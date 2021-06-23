@@ -4,7 +4,7 @@
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
     >
- <com.ysaito.shogi.GameStatusView
+ <mobi.omegacentauri.shogi.GameStatusView
   android:id="@+id/gamestatusview"
   xmlns:android="http://schemas.android.com/apk/res/android"
   android:orientation="vertical"
@@ -62,8 +62,8 @@
       android:layout_width="80dp"
       android:layout_height="wrap_content"/>
   </LinearLayout>
- </com.ysaito.shogi.GameStatusView>
- <com.ysaito.shogi.BoardView 
+ </mobi.omegacentauri.shogi.GameStatusView>
+ <mobi.omegacentauri.shogi.BoardView 
 	  android:id="@+id/boardview"
     android:layout_width="fill_parent" 
     android:layout_height="0dp" 

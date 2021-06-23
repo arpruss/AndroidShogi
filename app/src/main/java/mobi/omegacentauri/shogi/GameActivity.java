@@ -1,4 +1,4 @@
-package com.ysaito.shogi;
+package mobi.omegacentauri.shogi;
 
 import java.util.ArrayList;
 import java.util.TreeMap;
@@ -19,7 +19,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.widget.Toast;
 
-import com.ysaito.shogi.BonanzaController;
+import mobi.omegacentauri.shogi.BonanzaController;
 
 /**
  * The main activity that controls game play

@@ -1,4 +1,4 @@
-package com.ysaito.shogi;
+package mobi.omegacentauri.shogi;
 
 import android.app.Activity;
 import android.app.AlertDialog;

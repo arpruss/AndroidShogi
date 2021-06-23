@@ -1,4 +1,4 @@
-package com.ysaito.shogi;
+package mobi.omegacentauri.shogi;
 
 public class Assert {
   static public final boolean ENABLED = true;

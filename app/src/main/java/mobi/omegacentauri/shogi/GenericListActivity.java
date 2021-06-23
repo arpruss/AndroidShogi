@@ -1,4 +1,4 @@
-package com.ysaito.shogi;
+package mobi.omegacentauri.shogi;
 
 import java.util.ArrayList;
 import java.util.Collections;

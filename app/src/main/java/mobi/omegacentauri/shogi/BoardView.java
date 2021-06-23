@@ -1,4 +1,4 @@
-package com.ysaito.shogi;
+package mobi.omegacentauri.shogi;
 import java.util.ArrayList;
 
 import android.content.Context;
@@ -22,7 +22,7 @@ import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 
-import com.ysaito.shogi.Board;
+import mobi.omegacentauri.shogi.Board;
 
 public class BoardView extends View implements View.OnTouchListener {
   static public final String TAG = "ShogiView";
@@ -712,7 +712,7 @@ public class BoardView extends View implements View.OnTouchListener {
 
     for (int i = 1; i < Piece.NUM_TYPES; ++i) {
       if (koma_names[i] == null) continue;
-      int id = r.getIdentifier(String.format("@com.ysaito.shogi:drawable/%s_%s", prefix, koma_names[i]), null, null);
+      int id = r.getIdentifier(String.format("@mobi.omegacentauri.shogi:drawable/%s_%s", prefix, koma_names[i]), null, null);
       Bitmap blackBm = BitmapFactory.decodeResource(r, id);
       mBlackBitmaps[i] = new BitmapDrawable(getResources(), blackBm);
       Bitmap whiteBm = Bitmap.createBitmap(blackBm, 0, 0, blackBm.getWidth(), blackBm.getHeight(), 

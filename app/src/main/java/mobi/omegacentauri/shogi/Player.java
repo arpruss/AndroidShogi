@@ -1,6 +1,6 @@
 // Copyright 2010 Google Inc. All Rights Reserved.
 
-package com.ysaito.shogi;
+package mobi.omegacentauri.shogi;
 
 /**
  * Type of the player. "BLACK" is "sente(先手)" in japanese. BLACK makes the first move

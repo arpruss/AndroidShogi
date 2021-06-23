@@ -1,6 +1,6 @@
 // Copyright 2010 Google Inc. All Rights Reserved.
 
-package com.ysaito.shogi;
+package mobi.omegacentauri.shogi;
 
 import java.io.Serializable;
 import java.util.ArrayList;

@@ -1,4 +1,4 @@
-package com.ysaito.shogi;
+package mobi.omegacentauri.shogi;
 
 @SuppressWarnings("serial")
 public class ParseException extends Exception {

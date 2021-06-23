@@ -204,7 +204,7 @@ static void FillResult(const char* label,
   // Fill the board
   if (ptree != NULL) {
     jfieldID fid = (*env)->GetFieldID(env, result_class,
-                                      "board", "Lcom/ysaito/shogi/Board;");
+                                      "board", "Lmobi/omegacentauri/shogi/Board;");
     jobject board = (*env)->GetObjectField(env, result, fid);
     jclass board_class = (*env)->GetObjectClass(env, board);
     fid = (*env)->GetFieldID(env, board_class, "mSquares", "[I");
@@ -296,7 +296,7 @@ static int GameStatusToReturnCode() {
   return R_OK;
 }
 
-void Java_com_ysaito_shogi_BonanzaJNI_initialize(
+void Java_mobi_omegacentauri_shogi_BonanzaJNI_initialize(
     JNIEnv *env,
     jclass unused_bonanza_class,
     jstring storage_dir) {
@@ -316,7 +316,7 @@ void Java_com_ysaito_shogi_BonanzaJNI_initialize(
   pthread_mutex_unlock(&g_lock);
 }
 
-jint Java_com_ysaito_shogi_BonanzaJNI_startGame(
+jint Java_mobi_omegacentauri_shogi_BonanzaJNI_startGame(
     JNIEnv *env,
     jclass unused_bonanza_class,
     jint resume_instance_id,
@@ -396,7 +396,7 @@ static int AnotherInstanceStarted(JNIEnv* env,
   return 0;
 }
 
-void Java_com_ysaito_shogi_BonanzaJNI_humanMove(
+void Java_mobi_omegacentauri_shogi_BonanzaJNI_humanMove(
     JNIEnv *env,
     jclass unused_bonanza_class,
     jint instance_id,
@@ -440,7 +440,7 @@ void Java_com_ysaito_shogi_BonanzaJNI_humanMove(
   pthread_mutex_unlock(&g_lock);
 }
 
-void Java_com_ysaito_shogi_BonanzaJNI_undo(
+void Java_mobi_omegacentauri_shogi_BonanzaJNI_undo(
     JNIEnv *env,
     jclass unused_bonanza_class,
     jint instance_id,
@@ -465,7 +465,7 @@ void Java_com_ysaito_shogi_BonanzaJNI_undo(
   pthread_mutex_unlock(&g_lock);
 }
 
-void Java_com_ysaito_shogi_BonanzaJNI_computerMove(
+void Java_mobi_omegacentauri_shogi_BonanzaJNI_computerMove(
     JNIEnv *env,
     jclass unused_bonanza_class,
     jint instance_id,
@@ -492,7 +492,7 @@ void Java_com_ysaito_shogi_BonanzaJNI_computerMove(
   pthread_mutex_unlock(&g_lock);
 }
 
-void Java_com_ysaito_shogi_BonanzaJNI_abort(
+void Java_mobi_omegacentauri_shogi_BonanzaJNI_abort(
     JNIEnv *env,
     jclass unused_bonanza_class) {
   LOG_DEBUG("Aborting the game");

@@ -8,7 +8,7 @@
     <string name="promote_piece">成りますか</string>
     <string name="do_not_promote">成らない</string>
     <string name="promote">成る</string>
-    <string name="app_name">Android Shogi</string>
+    <string name="app_name">Shogi for Android</string>
     <string name="new_game">新規対局</string>
     <string name="shogi_data_download">
         将棋データベースファイルが見つかりません。

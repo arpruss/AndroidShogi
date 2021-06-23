@@ -1,6 +1,6 @@
 // Copyright 2011 Google Inc. All Rights Reserved.
 
-package com.ysaito.shogi;
+package mobi.omegacentauri.shogi;
 
 import org.mozilla.universalchardet.UniversalDetector;
 

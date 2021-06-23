@@ -1,5 +1,5 @@
-package com.ysaito.shogi;
-import com.ysaito.shogi.Board;
+package mobi.omegacentauri.shogi;
+import mobi.omegacentauri.shogi.Board;
 
 // JNI interface for Bonanza
 public class BonanzaJNI {
