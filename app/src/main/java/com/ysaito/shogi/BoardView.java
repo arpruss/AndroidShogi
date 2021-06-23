@@ -7,6 +7,7 @@ import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Paint.Style;
@@ -253,8 +254,8 @@ public class BoardView extends View implements View.OnTouchListener {
 
       if (finder.nearestType() != S_INVALID) {
 	final PositionOnBoard to = new PositionOnBoard(finder.nearestX(), finder.nearestY());
-	mMoveTo = to;
 	needInvalidation = !to.equals(mMoveTo);
+    mMoveTo = to;
       } else {
 	needInvalidation = (mMoveTo != null);
 	mMoveTo = null;
@@ -294,6 +295,7 @@ public class BoardView extends View implements View.OnTouchListener {
   // Screen drawing
   //
   @Override public void onDraw(Canvas canvas) {
+
     if (mBoard == null) return;
     ScreenLayout layout = getScreenLayout();
     int squareDim = layout.getSquareDim();
@@ -322,7 +324,7 @@ public class BoardView extends View implements View.OnTouchListener {
 
     // Draw pieces
     final Board board = ((animation & ANIM_DRAW_LAST_BOARD) != 0 ? mLastBoard : mBoard);
-    
+
     for (int y = 0; y < Board.DIM; ++y) {
       for (int x = 0; x < Board.DIM; ++x) {
         int piece = board.getPiece(x, y);
@@ -377,6 +379,7 @@ public class BoardView extends View implements View.OnTouchListener {
         // Dropping a captured piece. Nothing to do
       }
     }
+
     if (mMoveTo != null) {
       // Move the piece to be moved with 25% transparency.
       int pieceToMove = -1;
@@ -389,19 +392,20 @@ public class BoardView extends View implements View.OnTouchListener {
       }
       // TODO(saito) draw a big circle around mMoveTo so that people
       // with chubby finger can still see the destination.
-      drawPiece(canvas, layout, pieceToMove,
-          layout.screenX(mMoveTo.x),
-          layout.screenY(mMoveTo.y),
-          192);
-      
       Paint cp = new Paint();
       float radius = squareDim * 0.9f;
       float cx = layout.screenX(mMoveTo.x) + squareDim / 2.0f;
       float cy = layout.screenY(mMoveTo.y) + squareDim / 2.0f;
       cp.setShader(new RadialGradient(cx, cy, radius, 0xffb8860b, 0x00b8860b, Shader.TileMode.MIRROR));
+
       canvas.drawCircle(cx, cy, radius, cp);
+      drawPiece(canvas, layout, pieceToMove,
+              layout.screenX(mMoveTo.x),
+              layout.screenY(mMoveTo.y),
+              255);
+
     }
-    
+
     if (animation != 0) {
       postInvalidateDelayed(ANIMATION_INTERVAL);
     }

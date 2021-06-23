@@ -47,6 +47,7 @@ public class GameLogListManager {
   }
 
   private static String SUMMARY_PATH = "log_summary";
+  private static String SAVED_GAME = "current_game";
 
   public enum Mode {
     READ_SDCARD_SUMMARY,
@@ -151,6 +152,33 @@ public class GameLogListManager {
   }
 
   /**
+   * Delete save.
+   */
+  public void deleteSaveGame(
+          Activity activity
+  ) {
+    try {
+      activity.deleteFile(SAVED_GAME);
+    }
+    catch(Exception e) {
+    }
+  }
+
+
+  /**
+   * Save game.
+   */
+  public void saveGame(
+          Activity activity,
+          GameLog log) {
+    LogList summary = new LogList();
+    summary.logs.put(log.digest(), log);
+    deleteSaveGame(activity);
+    writeSummary(activity, summary, SAVED_GAME);
+//    showToast(activity, activity.getResources().getString(R.string.saved_game_log_in_memory));
+  }
+
+  /**
    * Add game "log" in sdcard. If "log" is in memory, it is removed from memory.
    */
   public void saveLogInSdcard(
@@ -191,12 +219,17 @@ public class GameLogListManager {
    * 
    * TODO this method assumes that context.openFileInput(path) opens the same file for a given path for any value of "context".
    */
+
   private LogList readSummary(Context context) {
+    return readSummary(context, SUMMARY_PATH);
+  }
+
+  private LogList readSummary(Context context, String path) {
     LogList summary = new LogList();
     FileInputStream fin = null;
     try {
       try {
-        fin = context.openFileInput(SUMMARY_PATH);
+        fin = context.openFileInput(path);
         ObjectInputStream oin = new ObjectInputStream(fin);
         summary = (LogList)oin.readObject();
       } finally {
@@ -224,13 +257,17 @@ public class GameLogListManager {
       }
     }
   }
-  
+
   private void writeSummary(Context context, LogList summary) {
     removeOldInMemoryLogs(summary);
+    writeSummary(context, summary, SUMMARY_PATH);
+  }
+  
+  private void writeSummary(Context context, LogList summary, String path) {
     FileOutputStream fout = null;
     try {
       try {
-        fout = context.openFileOutput(SUMMARY_PATH, Context.MODE_PRIVATE);
+        fout = context.openFileOutput(path, Context.MODE_PRIVATE);
         ObjectOutputStream oout = new ObjectOutputStream(fout);
         oout.writeObject(summary);
         oout.close();
