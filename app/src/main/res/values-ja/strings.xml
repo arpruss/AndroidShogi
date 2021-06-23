@@ -10,16 +10,10 @@
     <string name="promote">成る</string>
     <string name="app_name">Shogi for Android</string>
     <string name="new_game">新規対局</string>
-    <string name="shogi_data_download">
-        将棋データベースファイルが見つかりません。
-               データベースアプリケーション
-        (market://details?id=com.ysaito.shogidata)
-        をインストール後、起動してください。  </string>
     <string name="start_shogi_data">
         将棋データベースファイルが見つかりません。
         データベースアプリケーションを起動しますか?
         </string>
-    <string name="visit_marketplace">アンドロイドマーケットを起動</string>
     <string name="preferences">設定</string>
     <string name="player_types">対局者</string>
     <string name="computer_difficulty">コンピュータ難易度</string>
