@@ -16,7 +16,7 @@
    inkscape:version="0.92.1 r15371"
    width="100.633"
    height="100.633"
-   inkscape:export-filename="C:\cygwin64\home\Alexander_Pruss\android\Shogi\app\src\main\res\drawable\animal_hi.png"
+   inkscape:export-filename="C:\cygwin64\home\Alexander_Pruss\android\Shogi\app\src\main\res\drawable\animal_ryu.png"
    inkscape:export-xdpi="114.47536"
    inkscape:export-ydpi="114.47536">
   <metadata
@@ -27,7 +27,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -48,7 +48,7 @@
      showgrid="false"
      inkscape:snap-bbox="true"
      inkscape:zoom="2.6700352"
-     inkscape:cx="6.9637244"
+     inkscape:cx="-53.896896"
      inkscape:cy="13.170391"
      inkscape:window-x="-8"
      inkscape:window-y="-8"
