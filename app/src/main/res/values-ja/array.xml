@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string-array name="player_types">
+    <item>▲人 △コンピュータ</item>
+    <item>▲コンピュータ △人</item>
+    <item>▲人 △人</item>
+    <item>▲コンピュータ △コンピュータ</item>
+  </string-array>
+
+  <string-array name="computer_levels">
+    <item>レベル 0 (弱)</item>
+    <item>レベル 1</item>
+    <item>レベル 2</item>
+    <item>レベル 3</item>
+    <item>レベル 4 (強)</item>
+  </string-array>
+
+  <string-array name="computer_level_names">
+    <item>レベル0</item>
+    <item>レベル1</item>
+    <item>レベル2</item>
+    <item>レベル3</item>
+    <item>レベル4</item>
+  </string-array>
+
+  <string-array name="handicap_types">
+    <item>平手</item>
+    <item>左香落</item>
+    <item>角落</item>
+    <item>飛落</item>
+    <item>飛香落</item>
+    <item>飛角落</item>
+    <item>四枚落</item>
+    <item>六枚落</item>
+  </string-array>
+
+  <string-array name="max_undos">
+    <item>待ったなし</item>
+    <item>1回まで</item>
+    <item>2回まで</item>
+    <item>3回まで</item>
+    <item>4回まで</item>
+    <item>無制限</item>
+  </string-array>
+
+  <string-array name="piece_style">
+    <item>Animal</item>
+    <item>錦旗</item>
+    <item>錦旗(一字)</item>
+    <item>Chess</item>
+    <item>Western(Duniho/Marroquin)</item>
+  </string-array>
+  
+  <string-array name="log_save_format">
+    <item>KIF (MS-DOS形式)</item>
+    <item>KIF (UTF-8)</item>
+  </string-array>
+  
+</resources>

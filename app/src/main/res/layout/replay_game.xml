@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:orientation="vertical" >
+
+ <com.ysaito.shogi.GameStatusView
+     xmlns:android="http://schemas.android.com/apk/res/android"
+     android:id="@+id/replay_gamestatusview"
+     android:layout_width="fill_parent"
+     android:layout_height="wrap_content"
+     android:orientation="vertical" >
+
+  <LinearLayout
+      android:layout_width="fill_parent"
+      android:layout_height="wrap_content"
+      android:orientation="horizontal" >
+
+      <TextView
+          android:id="@+id/status_game_status"
+          android:layout_width="50dp"
+          android:layout_height="wrap_content"
+          android:layout_weight="0"
+          android:textSize="12dp" />
+
+      <TextView
+          android:id="@+id/status_play_history"
+          android:layout_width="fill_parent"
+          android:layout_height="wrap_content"
+          android:layout_weight="1"
+          android:gravity="right"
+          android:maxLines="1"
+          android:textSize="12dp" />
+  </LinearLayout>
+
+  <LinearLayout
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:orientation="horizontal" >
+
+    <TextView
+        android:id="@+id/status_black_time"
+        android:layout_width="70dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="0"
+        android:gravity="top|right"
+        android:textSize="12dp" />
+
+    <TextView
+        android:id="@+id/status_black_player_name"
+        android:layout_width="80dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="0"
+        android:gravity="top|left"
+        android:textSize="12dp" />
+
+    <TextView
+        android:id="@+id/status_white_time"
+        android:layout_width="70dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="0"
+        android:gravity="top|right"
+        android:textSize="12dp" />
+
+    <TextView
+        android:id="@+id/status_white_player_name"
+        android:layout_width="80dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="20"
+        android:gravity="top|left"
+        android:textSize="12dp" />
+
+  </LinearLayout>
+ </com.ysaito.shogi.GameStatusView>
+
+ <com.ysaito.shogi.BoardView
+     android:id="@+id/replay_boardview"
+     android:layout_width="fill_parent"
+     android:layout_height="1dp"
+     android:layout_gravity="top|fill_vertical"
+     android:layout_weight="1" />
+
+ <TableLayout
+     android:layout_width="match_parent"
+     android:layout_height="wrap_content"
+     android:stretchColumns="1"
+     android:layout_weight="0.1" >
+
+   <TableRow>
+
+   <ImageButton
+       android:contentDescription="@string/prev"
+       android:id="@+id/replay_prev_button"
+       android:layout_width="wrap_content"
+       android:layout_height="32dp"
+       android:background="@drawable/button_background"
+       android:longClickable="true"
+       android:src="@drawable/ic_media_back" />
+
+   <SeekBar
+       android:id="@+id/replay_seek_bar"
+       android:layout_width="wrap_content"
+       android:layout_height="wrap_content"
+       android:max="1000" />
+
+   <ImageButton
+       android:contentDescription="@string/next"
+       android:id="@+id/replay_next_button"
+       android:layout_width="wrap_content"
+       android:layout_height="32dp"
+       android:background="@drawable/button_background"
+       android:longClickable="true"
+       android:src="@drawable/ic_media_play" />
+
+   </TableRow> 
+  </TableLayout>        
+ </LinearLayout>

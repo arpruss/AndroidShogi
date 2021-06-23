@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="help">ヘルプ</string>
+    <string name="draw">持将棋</string>
+    <string name="black_won">先手勝ち</string>
+    <string name="white_won">後手勝ち</string>
+    <string name="confirm_quit_game">対局を終了しますか?</string>
+    <string name="promote_piece">成りますか</string>
+    <string name="do_not_promote">成らない</string>
+    <string name="promote">成る</string>
+    <string name="app_name">Android Shogi</string>
+    <string name="new_game">新規対局</string>
+    <string name="shogi_data_download">
+        将棋データベースファイルが見つかりません。
+               データベースアプリケーション
+        (market://details?id=com.ysaito.shogidata)
+        をインストール後、起動してください。  </string>
+    <string name="start_shogi_data">
+        将棋データベースファイルが見つかりません。
+        データベースアプリケーションを起動しますか?
+        </string>
+    <string name="visit_marketplace">アンドロイドマーケットを起動</string>
+    <string name="preferences">設定</string>
+    <string name="player_types">対局者</string>
+    <string name="computer_difficulty">コンピュータ難易度</string>
+    <string name="reset_preferences">設定リセット</string>
+    <string name="flip_screen">画面を上下反転する</string>
+    <string name="quit_game">対局終了</string>
+    <string name="start_game">対局開始</string>    
+    <string name="undo">待った</string>
+    <string name="optus_search">棋譜データベース検索</string>
+    <string name="undo_operation">操作取り消し</string>
+    <string name="undo_disallowed">待ったなし</string>
+    <string name="undos_remaining">待った(残り%d回)</string>
+    <string name="max_undos">待った</string>
+    <string name="piece_style">駒の種類</string>
+    <string name="handicap">手合</string>
+    <string name="reload">再読み込み</string>
+    <string name="game_logs">棋譜録</string>
+    <string name="replay_game">棋譜再生</string>
+    <string name="resume_play">この局面から対局</string>
+    <string name="log_properties">棋譜情報</string>
+    <string name="sort_by_date">日時順リスト</string>
+    <string name="sort_by_black_player">先手名順リスト</string>    
+    <string name="sort_by_white_player">後手名順リスト</string>        
+    <string name="sort_by_player">対局者順リスト</string>        
+    <string name="sort_by_number_of_games">対局数順リスト</string>
+    <string name="sort_by_tournament">棋戦順リスト</string>
+    <string name="sort_by_opening_moves">戦型順リスト</string>
+    <string name="game_log_properties">棋譜情報</string>        
+    <string name="date">日時</string>
+    <string name="save_in_sdcard">SDカードに保存</string>
+    <string name="game_log_dir">棋譜保存場所</string>
+    <string name="saved_game_log_in_memory">棋譜をメモリに保存しました</string>
+    <string name="file">ファイル</string>
+    <string name="saved_log_in_sdcard">%sに保存しました</string>
+    <string name="delete_log">棋譜削除</string>
+    <string name="deleted_log_in_memory">棋譜をメモリから削除しました</string>
+    <string name="deleted_log_in_sdcard">%sを削除しました</string>
+    <string name="restored_log">棋譜を復元しました</string>
+    <string name="num_plays">手数</string>
+    <string name="plays_suffix">手</string>
+
+    <string name="attr_title">表題</string>
+    <string name="attr_location">場所</string>
+    <string name="attr_time_limit">持ち時間</string>
+    <string name="attr_tournament">棋戦</string>
+    <string name="attr_black_player">先手</string>
+    <string name="attr_white_player">後手</string>
+    <string name="log_save_format">棋譜記録フォーマット</string>    
+    <string name="human_player_name">ユーザ名</string>
+    <string name="default_human_player_name">人</string>
+    <string name="visit_optus">棋譜DB</string>
+    <string name="fetching_game_log">棋譜読み込み中</string>
+    <string name="tournament">棋戦</string>
+    <string name="player">対局者</string>
+    <string name="date_range">対局日</string>
+    <string name="lower_bound">下限</string>
+    <string name="upper_bound">上限</string>
+    <string name="change">変更</string>
+    <string name="opening_moves">戦型</string>
+    <string name="search">検索</string>
+    <string name="unspecified">(指定なし)</string>
+    <string name="player_list">対局者リスト</string>
+    <string name="query_result">検索結果</string>
+</resources>

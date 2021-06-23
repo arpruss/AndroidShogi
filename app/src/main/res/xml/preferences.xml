@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen
+  xmlns:android="http://schemas.android.com/apk/res/android">
+  <ListPreference
+    android:title="@string/max_undos"
+    android:key="max_undos"
+    android:defaultValue="0"
+    android:entries="@array/max_undos"
+    android:entryValues="@array/max_undo_values"/>
+    />
+  <ListPreference
+    android:title="@string/piece_style"
+    android:key="piece_style"
+    android:defaultValue="kinki_simple"
+    android:entries="@array/piece_style"
+    android:entryValues="@array/piece_style_values"/>
+    />
+  <EditTextPreference
+     android:key="game_log_dir"
+     android:defaultValue="/sdcard/ShogiLog"
+     android:title="@string/game_log_dir"
+     />
+  <PreferenceCategory android:title="Advanced settings"/>
+  <ListPreference
+    android:title="@string/log_save_format"
+    android:key="log_save_format"
+    android:defaultValue="kif_dos"
+    android:entries="@array/log_save_format"
+    android:entryValues="@array/log_save_format_values"/>
+  />
+  <EditTextPreference
+    android:key="human_player_name"
+    android:title="@string/human_player_name"
+    android:defaultValue="@string/default_human_player_name"
+  />
+</PreferenceScreen>

@@ -1,0 +1,78 @@
+<HTML> 
+<head> 
+<meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/> 
+</head>
+<body> 
+
+<h2>Shogi version 2.7</h2>
+
+Released Feb 4, 2012
+
+<h3>棋譜の記録と再生</h3>
+
+アンドロイド将棋バージョン2.0以上では棋譜をKIF形式で読み書きすることができます。
+KIFファイルフォーマットについて詳細グーグルで「KIFファイル 将棋」を検索してください。
+
+<h4>対局結果の記録と再生</h4>
+
+
+アンドロイド将棋上での対局が終了すると、棋譜は自動的にメモリに保存されます。
+過去の棋譜を見るには、初期画面で「棋譜録」ボタンを押してください。
+棋譜は最大30局まで保存されます。30局以上は、古い棋譜から順に自動的に消去されます。
+
+<p>
+棋譜録画面でロングクリックすることで棋譜をSDカードに移動することができます。棋譜の保存先は
+<code>/sdcard/ShogiLog/<em>nonsense</em>.kif</code>です。
+<em>nonsense</em>は棋譜のSHA-1ハッシュ文字列です。SDカードに保存された
+棋譜は棋譜録画面上で<strong>[sd]</strong>と表示されます。
+SDカード上の棋譜には局数制限はありません。
+
+<h4>インターネット上の棋譜のダウンロード</h4>
+
+このソフトウェアは、インターネットからダウンロードした棋譜も再生することができます。 
+サポートされているファイル型式はつぎの２つです。
+
+<ul> 
+<li> KIFファイル(UTF-8エンコーディング)。 上記参照。
+
+<li> KIFファイルを埋め込んだEUC-JPエンコーディングのHTMLファイル。
+
+このファイル形式は
+<a href="http://wiki.optus.nu/shogi/"> http://wiki.optus.nu/shogi</a>で
+採用されています。このサイトに行って、適当な棋譜を選んで 
+"テキスト表示"リンクをロングクリックしてSDカードにセーブすれば、その棋譜はアンドロイド将棋に
+自動的に読み込まれます。
+</ul>
+
+
+ダウンロードしたKIF、HTMLファイルは必ず<code>/sdcard/download/</code>ディレクトリ内に
+保存してください
+(<code>/sdcard/download/</code>はAndroidのウェブブラウザの標準セーブ先です).
+
+<h3>クレジット</h3>
+<ul>
+  <li>コンピュータ側の思考ルーチンにはBonanza 4.1.3が使用されています。Bonanzaに関する詳細は
+    <a href="http://www.geocities.jp/bonanza_shogi/">
+      http://www.geocities.jp/bonanza_shogi/</a>にあります。
+  <li>錦旗駒のビットマップは
+    <a href="http://mucho.girly.jp/bona/">http://mucho.girly.jp/bona/</a>
+からお借りしました。
+  <li>Western bitmapsはFergus Dunihoと
+    Armando Marroquin両氏の作成です。
+    <a href="http://www.chessvariants.org/graphics.dir/wshogi/">
+      http://www.chessvariants.org/graphics.dir/wshogi/</a>からダウンロードできます。
+</ul>
+
+
+<h3>著作権その他</h3>
+
+<p>Copyright(c) 2011 Yasushi Saito<br>
+All rights reserved<br>
+This program is distributed under Apache 2.0 license.
+
+<p>The source code for this program is available at
+<a href="https://github.com/yasushi-saito/AndroidShogi">
+  https://github.com/yasushi-saito/AndroidShogi</a>.
+
+</body>
+</html>

@@ -1,0 +1,57 @@
+apply plugin: 'com.android.application'
+android {
+    signingConfigs {
+        shogi {
+            keyAlias 'shogi'
+            keyPassword 'shogi'
+            storeFile file('shogi.key')
+            storePassword 'shogi'
+        }
+    }
+    compileSdkVersion 26
+    buildToolsVersion "28.0.3"
+    defaultConfig {
+        applicationId "com.ysaito.shogi"
+        minSdkVersion 8
+        targetSdkVersion 8
+
+        ndk {
+            moduleName "bonanza-jni"
+        }
+
+        testApplicationId "com.ysaito.shogi.test"
+        testInstrumentationRunner "android.test.InstrumentationTestRunner"
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.txt'
+        }
+    }
+    dependencies {
+        implementation fileTree(dir: 'libs', include: ['*.jar'])
+    }
+    externalNativeBuild {
+        ndkBuild {
+            path 'src/main/cpp/Android.mk'
+        }
+    }
+    packagingOptions {
+        exclude 'META-INF/DEPENDENCIES'
+    }
+}
+
+
+android {
+    lintOptions {
+        checkReleaseBuilds false
+        abortOnError false
+    }
+}
+
+dependencies {
+    implementation files('C:/cygwin64/home/Alexander_Pruss/android/Shogi/libs/httpcore-4.4.14.jar')
+    implementation files('C:/cygwin64/home/Alexander_Pruss/android/Shogi/libs/httpclient-4.5.13.jar')
+    implementation files('C:/cygwin64/home/Alexander_Pruss/android/Shogi/libs/jsoup-1.6.1.jar')
+    implementation files('C:/cygwin64/home/Alexander_Pruss/android/Shogi/libs/juniversalchardet-1.0.3.jar')
+}

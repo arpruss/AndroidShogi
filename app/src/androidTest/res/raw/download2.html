@@ -1,0 +1,265 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd"><html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja"><HEAD><META HTTP-EQUIV="Pragma" CONTENT="no-cache">
+<META HTTP-EQUIV="Cache-Control" CONTENT="no-cache">
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=EUC-JP">
+<META NAME="Keywords" CONTENT="shogi,kif,ki2,柿木,将棋,棋譜,棋士,棋戦,database,データベース">
+<META NAME="Description" CONTENT="世界最大の将棋の棋譜データベース">
+<link rel="shortcut icon" href="favicon.ico"><LINK type="text/css" rel="stylesheet" href="./skin/style.css" media="screen,tv">
+<LINK type="text/css" rel="stylesheet" href="./skin/style-print.css" media="print">
+<TITLE>将棋の棋譜でーたべーす|世界最大の将棋の棋譜データベース</TITLE>
+</HEAD>
+<BODY>
+<div id="header"><a href="http://wiki.optus.nu/shogi/index.php?lan=jp&page=FrontPage"><img id="logo" src="./skin/logo.gif" align="top" alt="将棋の棋譜データベース" boder="0"></a><p class="title">将棋の棋譜でーたべーす</p>FrontPage: <a href="http://wiki.optus.nu/shogi/index.php?lan=jp&page=FrontPage"><span class="small">http://wiki.optus.nu/shogi/index.php?page=FrontPage</span></a></div><BR CLEAR="left"><div id="navigator">[ <a href="index.php?lan=jp&page=FrontPage" > トップ </a> ] &nbsp <Font color=gray><b>POST</b></font> [ 編集 | リロード | 履歴 ] [ <a href="index.php?lan=jp&cmd=post" >新規</a> |  <a href="index.php?lan=jp&cmd=post&amp;cmds=list" >一覧</a> ]  &nbsp;&nbsp;<Font color=gray><b>PAGE</b></font> [ 編集 | リロード ] [ <a href="index.php?lan=jp&cmd=edit" >新規</a> |  <a href="index.php?lan=jp&cmd=list" >一覧</a> ]</div><HR NOSHADE SIZE=1 width="100%">
+<table border=0 cellpadding=0 cellspacing=0 width=100%><Tr><td width=10% valign=top><div id="menubar"><p>
+■ <span style="color:#001; background-color:#DEF"><strong>DONATION　　　　　　　　</strong></span>
+<form name="_xclick" action="https://www.paypal.com/jp/cgi-bin/webscr" method="post">
+<input type="hidden" name="cmd" value="_xclick">
+<input type="hidden" name="business" value="yoda@wiki.optus.nu">
+<input type="hidden" name="item_name" value="Donation to KIFUDATABASE">
+<input type="text" name="amount" value="10000" maxlength=10>
+  <select name="currency_code">
+   <option value="JPY">JPY
+   <option value="USD">USD
+   <option value="EUR">EUR
+   <option value="GBP">GBP
+   <option value="CAD">CAD
+   <option value="CHF">CHF
+   <option value="AUD">AUD
+   <option value="NZD">NZD
+   <option value="TWD">TWD
+   <option value="HKD">HKD
+   <option value="SGD">SGD      
+  </select>
+<input type="image" src="https://www.paypal.com/ja_JP/JP/i/btn/btn_donateCC_LG.gif" border="0" name="submit" alt="Donation via PAYPAL">
+</form>
+
+■ <span style="color:#001; background-color:#DEF"><strong>棋譜直リン　　　　　　　　　</strong></span><br>
+┣ <A Href="index.php?lan=jp&page=senkei_index">戦型別一覧</A><br>
+┣ <A Href="index.php?lan=jp&page=index_kisi">棋士別一覧</A><br>
+┣ <A Href="index.php?lan=jp&page=kisen_index">棋戦別棋譜一覧</A><br>
+┣ <A Href="index.php?lan=jp&page=resbbs">棋譜掲示板</A><br>
+┣ <A Href="index.php?lan=jp&post=%B4%FD%C9%E8%A4%CB%A4%DE%A4%C4%A4%EF%A4%EB%C6%C9%A4%DF%CA%AA">読み物</A><br>
+┣ <A Href="index.php?lan=jp&page=modefyfile">修正棋譜</A><br>
+┗ <A Href="index.php?lan=jp&page=registerdfile">新着棋譜</A><br>
+<br>
+■ <span style="color:#001; background-color:#DEF"><strong>棋譜ﾃﾞｰﾀﾍﾞｰｽ　　　　　　　　</strong></span><br>
+┣ <A Href="index.php?cmd=kif&cmds=query3">棋譜検索</A><br>
+┣ <A Href="index.php?cmd=kif&cmds=query4">同手順検索</A><br>
+┣ <A Href="index.php?cmd=kif&cmds=query7">同局面検索</A><br>
+┣ <A Href="index.php?cmd=kif&cmds=query8">フリー手検索v2</A><br>
+┗ <A Href="index.php?cmd=kif&cmds=ki2regist">新規登録</A> <A Href="index.php?cmd=kif&cmds=regist">KIF</A><br>
+<br>
+■ <span style="color:#001; background-color:#DEF"><strong>棋譜解析　　　　　　　　</strong></span><br>
+┣ <A Href="index.php?cmd=keisei&cmds=upload">新規投稿</A><br>
+┗ <A Href="index.php?page=kaisekifile">新着解析</A><br>
+<br>
+
+■ <span style="color:#001; background-color:#DEF"><strong>棋譜貼りスレ　　　　　　　　　　　</strong></span><br>
+┣ <A Href="index.php?lan=jp&page=kifusure">棋譜スレログ</A><br>
+┣ <A Href="index.php?lan=jp&page=kifuhari">棋譜貼りスレ</A><br>
+┣ <A Href="index.php?lan=jp&page=ayamari">誤り報告スレ</A><br>
+┗ <A Href="index.php?lan=jp&page=tyousa">調査スレ</A><br>
+<br>
+■ <span style="color:#001; background-color:#DEF"><strong>棋書関係　　　　　　　　</strong></span><br>
+┣ <A Href="index.php?lan=jp&page=kisyomatome">棋書ガイド</A><br>
+┣ <A Href="index.php?lan=jp&page=sinkan">新刊まとめ</A><br>
+┗ <A Href="index.php?lan=jp&page=kishosure">棋書スレログ</A><br>
+<br>
+■ <span style="color:#001; background-color:#DEF"><strong>将棋ソフト関係　　　　　　　　</strong></span><br>
+┣ <A Href="index.php?lan=jp&page=softmatome">ソフトまとめ</A><br>
+┗ <A Href="index.php?lan=jp&page=softsure">ソフトスレログ</A><br>
+<br>
+■ <span style="color:#001; background-color:#DEF"><strong>棋具関係　　　　　　　　</strong></span><br>
+┣ <A Href="index.php?page=kifunarabe" target="_blank">将棋の盤駒</A><br>
+┗ <A Href="index.php?lan=jp&page=kigusure">棋具スレログ</A><br>
+<br>
+■ <span style="color:#001; background-color:#DEF"><strong>掲示板　　　　　　　　　　　　</strong></span><br>
+┣ <A Href="index.php?cmd=2chbbs&cmds=bbs&bord=shogi">BBS</A><br>
+┗ <A Href="index.php?lan=jp&page=kakolog">過去ログ</A><br>
+<br>
+■ <span style="color:#001; background-color:#DEF"><strong>あぷろだ　　　　　　　　　　　</strong></span><br>
+┣ <A Href="index.php?cmd=upload">あぷろだ</A><br>
+┗ <A Href="index.php?cmd=sam">サムネイル一覧</A><br>
+<br>
+■ <span style="color:#001; background-color:#DEF"><strong>棋譜ツール　　　　　　　　　　　　</strong></span><br>
+┣ <A Href="index.php?cmd=kif&cmds=ki2tocsa">KI2 TO CSA</A><br>
+┣ <A Href="index.php?cmd=kif&cmds=ki2togif">KI2/TXT to GIF</A><br>
+┣ <A Href="index.php?cmd=kif&cmds=ki2totxt">KI2 TO TXT</A><br>
+┣ <A Href="index.php?cmd=kif&cmds=ki2tokif">KI2 TO KIF</A><br>
+┣ <A Href="index.php?cmd=kif&cmds=kiftotxt">KIF TO TXT</A><br>
+┣ <A Href="index.php?cmd=kif&cmds=kiftogif">KIF TO GIF</A><br>
+┣ <A Href="index.php?cmd=kif&cmds=kiftojava">KIF TO JAVA</A><br>
+┗ <A Href="index.php?cmd=kif&cmds=ki2tojava">KIF2 TO JAVA</A><br>
+<br>
+■ <span style="color:#001; background-color:#DEF"><strong>その他　　　　　　　　　　　　</strong></span><br>
+┣ <A Href="http://guest:guest@wiki.optus.nu/p2/" target="_blank">2chブラウザ</A><br>
+┣ <A Href="index.php?lan=jp&page=copyright">棋譜の著作権</A><br>
+┣ <A Href="index.php?lan=jp&page=FAQ&with=tinybbs">FAQ</A><br>
+┣ <A Href="index.php?lan=jp&page=LINK&with=tinybbs">LINKs</A><br>
+┗ <A Href="index.php?lan=jp&page=ADMINMEMO&with=tinybbs">編集後記</A><br>
+<br>
+<a href="i/index.php">携帯版</a><br>
+<img src="skin/qr.png"><br><br>
+
+<a href="iphone/index.php">iphone版</a><br><br>
+
+<iframe src="http://rcm-jp.amazon.co.jp/e/cm?t=tomatocablenu-22&o=9&p=20&l=qs1&f=ifr" width="120" height="90" frameborder="0" scrolling="no"></iframe>
+<br><br>
+
+■ <span style="color:#001; background-color:#DEF"><strong>関連サイト　　　　　　　　</strong></span><br>
+┣ <A Href="http://wiki.optus.nu/tsumeshogi/">詰将棋総覧</A><br>
+┗ <A Href="http://wiki.optus.nu/shogibbs/">棋譜掲示板</A><br>
+<br>
+日本将棋連盟
+<a href="http://hb.afl.rakuten.co.jp/hsc/06fd2e40.60a7b9eb.06fd2e41.33ae08db/" target="_blank"><img src="http://hbb.afl.rakuten.co.jp/hsb/06fd2e40.60a7b9eb.06fd2e41.33ae08db/" border="0"></a>
+<br><br>
+
+<a href="http://hb.afl.rakuten.co.jp/hgc/06fd2be6.27450292.06fd2be7.8796df52/?pc=http%3a%2f%2fwww.rakuten.co.jp%2fshogi%2f367649%2f470736%2f1818700%2f%231386921&m=http%3a%2f%2fm.rakuten.co.jp%2fshogi%2fi%2f1386921%2f" target="_blank"><img src="http://hbb.afl.rakuten.co.jp/hgb/?pc=http%3a%2f%2fimage.rakuten.co.jp%2fwshop%2fdata%2fws-mall-img%2fshogi%2fimg128%2fimg10014052673.jpeg&m=http%3a%2f%2fimage.rakuten.co.jp%2fwshop%2fdata%2fws-mall-img%2fshogi%2fimg64%2fimg10014052673.jpeg" border="0"></a>
+
+<br>
+<A Href="index.php?cmd=edit&page=menu">edit</A><br>
+</p></div></Td><td width=90% valign=top><H1>棋譜表示(テキスト) 73129</H1><div id="navigator"> [<A Href="index.php?cmd=kif&cmds=displaytxt&kid=73129&cache=1">リロード</A>]
+ [<A Href="index.php?cmd=kif&cmds=modefydata&kid=73129">棋譜修正</A>]
+ [<A Href="index.php?cmd=kif&cmds=display3&kid=73129">GIF画像</A>]
+ [<A Href="index.php?cmd=kif&cmds=display&kid=73129">柿木将棋盤</A>]
+ [<A Href="index.php?cmd=kif&cmds=display2&kid=73129"><SPAN TITLE="フラッシュ必須">SWF将棋盤</span></A>]</div>
+<script>
+function clip_copy() {
+   if (document.all && navigator.userAgent.match(/windows/i) && document.obj.data.value) {
+      copy_obj = document.obj.data.createTextRange()
+      copy_obj.execCommand("Copy")
+   }
+}
+</script><form name=obj><input type="button" value="全選択" onClick="javascript:this.form.data.focus();this.form.data.select();"><input type=button onClick="clip_copy()" value="クリップボードにコピー"><Table Border = 1><Tr><Td>
+<textarea name="data" ROWS="40" COLS="54" >表題：第19期銀河戦Hブロック4回戦
+開始日時：2010/10/26
+棋戦：銀河戦
+手合割：平手
+後手：上野裕和
+先手：稲葉陽
+手数----指手---------消費時間--
+   1 ７六歩(77)        
+   2 ８四歩(83)        
+   3 ５六歩(57)        
+   4 ３四歩(33)        
+   5 ５五歩(56)        
+   6 ６二銀(71)        
+   7 ５八飛(28)        
+   8 ４二王(51)        
+   9 ４八王(59)        
+  10 ３二王(42)        
+  11 ３八王(48)        
+  12 ５二金(61)        
+  13 ２八王(38)        
+  14 ３三角(22)        
+  15 １八香(19)        
+  16 ２二王(32)        
+  17 １九王(28)        
+  18 ３二金(41)        
+  19 ２八銀(39)        
+  20 ８五歩(84)        
+  21 ７七角(88)        
+  22 ４四歩(43)        
+  23 ６八銀(79)        
+  24 ４三金(52)        
+  25 ５七銀(68)        
+  26 １二香(11)        
+  27 ３六歩(37)        
+  28 １一王(22)        
+  29 ４六銀(57)        
+  30 ５一銀(62)        
+  31 ３八飛(58)        
+  32 ４二銀(51)        
+  33 ３五歩(36)        
+  34 同　歩(34)        
+  35 同　銀(46)        
+  36 ２二角(33)        
+  37 ３四銀(35)        
+  38 同　金(43)        
+  39 同　飛(38)        
+  40 ７四歩(73)        
+  41 ３八飛(34)        
+  42 ８六歩(85)        
+  43 同　歩(87)        
+  44 ７三桂(81)        
+  45 ４一金打          
+  46 ４三銀打          
+  47 ５九金(69)        
+  48 ３四歩打          
+  49 ３六飛(38)        
+  50 ６四歩(63)        
+  51 ６八角(77)        
+  52 ４五歩(44)        
+  53 ７五歩(76)        
+  54 ８四飛(82)        
+  55 ３九金(49)        
+  56 ７五歩(74)        
+  57 ４九金(59)        
+  58 ６五歩(64)        
+  59 １六歩(17)        
+  60 ８八歩打          
+  61 ７七桂(89)        
+  62 ５五角(22)        
+  63 ５六飛(36)        
+  64 ３三角(55)        
+  65 ８五桂(77)        
+  66 同　桂(73)        
+  67 同　歩(86)        
+  68 同　飛(84)        
+  69 ２五桂打          
+  70 ８七飛成(85)      
+  71 ３三桂成(25)      
+  72 同　銀(42)        
+  73 ５三飛成(56)      
+  74 ２二銀(31)        
+  75 ６一角打          
+  76 ５二歩打          
+  77 ４三竜(53)        
+  78 同　金(32)        
+  79 ５二角成(61)      
+  80 ４二飛打          
+  81 ５三歩打          
+  82 ７八竜(87)        
+  83 ４二金(41)        
+  84 同　金(43)        
+  85 同　馬(52)        
+  86 同　銀(33)        
+  87 ５二歩成(53)      
+  88 ６八竜(78)        
+  89 ４二と(52)        
+  90 ３六桂打          
+  91 ３七銀打          
+  92 ２八桂成(36)      
+  93 同　銀(37)        
+  94 ６四角打          
+  95 ３七歩打          
+  96 ４二角(64)        
+  97 ３二金打          
+  98 ３一銀打          
+  99 ４三銀打          
+ 100 ３二銀(31)        
+ 101 ４二銀成(43)      
+ 102 ４一金打          
+ 103 同　成銀(42)      
+ 104 同　銀(32)        
+ 105 ７一飛打          
+ 106 ３二銀打          
+ 107 ４四桂打          
+ 108 ５三角打          
+ 109 ３二桂成(44)      
+ 110 同　銀(41)        
+ 111 ５一飛成(71)      
+ 112 ４六歩(45)        
+ 113 ５三竜(51)        
+ 114 ４七歩成(46)      
+ 115 ４二金打          
+ 116 ４一金打          
+ 117 ５四角打          
+ 118 ４三歩打          
+ 119 同　金(42)        
+ 120 同　銀(32)        
+ 121 同　竜(53)        
+ 122 投了         
+まで121手で先手の勝ち
+</textarea></form>
+</Td><Td valign="top"></Td></Tr></Table></form></Body></Html></Td></Tr></Table><HR NOSHADE SIZE=1 width="100%">
+<div id="footer"><center><A HREF="http://wiki.optus.nu/amethyst" TARGET="_blank">Amethyst Wiki Modoki v0.04</A> - by Amethyst<BR></center></div></BODY></HTML>

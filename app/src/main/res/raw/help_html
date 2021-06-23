@@ -1,0 +1,107 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/>
+</head>
+<body>
+
+<h2>Shogi version 2.7</h2>
+
+Released Feb 4, 2012.
+
+<h3>Shogi Log Files</h3>
+
+Starting from version 2.0, Android Shogi can save and load game logs
+in KIF version 1 format, in UTF-8 encoding.  KIF is a widely used
+Shogi log format that looks like the following:
+
+<pre>
+後手：XXXXX<br>
+先手：YYYYY<br>
+手数----指手---------消費時間--<br>
+   1 ７六歩(77)        <br>
+   2 ３四歩(33)        <br>
+   3 ２六歩(27)        <br>
+   4 ４四歩(43)        <br>
+   5 ４八銀(39)        <br>
+   6 ３二銀(31)        <br>
+   7 ５六歩(57)        <br>
+   8 ４二飛(82)        <br>
+   9 ６八王(59)        <br>
+  10 ６二王(51)        <br>
+  11 ７八王(68)        <br>
+</pre>
+
+You will find more information about this format by search google for
+"<tt>kif 将棋 ファイル</tt>" (most pages are in Japanese, though).
+
+<h4>Saving and Loading Games Played</h4>
+
+When you finish playing a game on Android Shogi, it automatically
+saves the log. You can later click on the "Game logs" button on the
+start screen to view them. Only the last 30 logs are kept in the list.
+
+<p>You can permanently save some of these logs in the SDcard by 
+long-clicking on the log, then pick "Save in sdcard". This will cause 
+the log to be saved in file
+<tt>/sdcard/ShogiLog/<em>nonsense</em>.kif</tt>,
+where <em>nonsense</em> is some illegible string (it's the SHA-1 hash 
+of the log, if you are a nerd). The logs saved in the sdcard will have 
+marker <strong>[sd]</strong> in the game log list, and they will 
+survive even if the Android Shogi is uninstalled.
+
+
+<h4>Loading KIF and HTML files</h4>
+
+Android Shogi also can show KIF files downloaded from the Internet.
+These files must be stored in directory <tt>/sdcard/download</tt> for
+Android Shogi to find them (<tt>/sdcard/download</tt> is be the
+default download directory used by the Android web browser). The files can be
+one of the two formats:
+
+<ul>
+<li> A KIF file in UTF-8 encoding (see above).
+
+<li> An HTML file that embeds a KIF inside a
+&lt;pre&gt;...&lt;pre&gt;... block.  The file itself must be EUC-JP
+encoded.
+
+<p>The EUC-JP HTML format happens to be used by a popular professional Shogi log site,
+<a href="http://wiki.optus.nu/shogi/">http://wiki.optus.nu/shogi/</a>.
+To download a log from that site, pick a game you want, then save the
+"テキスト表示" link to the sdcard by long-clicking on it. For example,
+
+<a href="http://wiki.optus.nu/shogi/index.php?cmd=kif&cmds=displaytxt&kid=7780">
+http://wiki.optus.nu/shogi/index.php?cmd=kif&cmds=displaytxt&kid=7780</a>.
+
+</ul>
+
+<h3>Credits</h3>
+<ul>
+  <li>The computer shogi solver is a slightly modified Bonanza
+    version 4.1.3, by Kunihito Hoki et al.  For more information
+    about Bonanza, visit 
+    <a href="http://www.geocities.jp/bonanza_shogi/">
+      http://www.geocities.jp/bonanza_shogi/</a>.
+  <li>Japanese bitmaps for shogi pieces are from 
+    <a href="http://mucho.girly.jp/bona/">http://mucho.girly.jp/bona/</a>.
+  <li>Western bitmaps for shogi pieces are by Fergus Duniho and
+    Armando Marroquin, and are available at
+    <a href="http://www.chessvariants.org/graphics.dir/wshogi/">
+      http://www.chessvariants.org/graphics.dir/wshogi/</a>.
+</ul>
+
+<h3>Looking for Help!</h3>  
+
+The author is looking for bitmaps for good western (chess-style) shogi
+pieces.  Drop email to yasushi.saito@gmail.com if you have one.
+
+<h3>Disclaimer</h3>
+
+<p>Copyright(c) 2011 Yasushi Saito<br>All rights reserved<br>
+  This program is distributed under Apache 2.0 license.
+
+<p>The source code for this program is available at
+<a href="https://github.com/yasushi-saito/AndroidShogi">
+  https://github.com/yasushi-saito/AndroidShogi</a>.
+
+</body></html>	

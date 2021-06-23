@@ -1,0 +1,771 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdarg.h>
+#include <errno.h>
+#if defined(_WIN32)
+#  include <io.h>
+#  include <conio.h>
+#else
+#  include <sys/time.h>
+#  include <sys/types.h>
+#  include <unistd.h>
+#endif
+#include "shogi.h"
+
+#include "shogi_jni.h"
+#include <sys/stat.h>
+
+#if defined(_MSC_VER)
+#  include <Share.h>
+#  define fopen( file, mode ) _fsopen( file, mode, _SH_DENYNO )
+#endif
+
+#if defined(NO_STDOUT) || defined(WIN32_PIPE)
+static int out_board0( FILE *pf, int piece, int i, int ito, int ifrom );
+#  define OutBoard0(a,b,c,d,e,f) out_board0(a,b,c,d,e)
+#else
+static int out_board0( FILE *pf, int piece, int i, int ito, int ifrom,
+		       int is_promote );
+#  define OutBoard0(a,b,c,d,e,f) out_board0(a,b,c,d,e,f)
+#endif
+
+static int check_input_buffer( void );
+static int read_command( char **pstr_line_end );
+static void out_hand( FILE *pf, unsigned int hand, const char *str_prefix );
+static void out_hand0( FILE *pf, int n, const char *str_prefix,
+		       const char *str );
+
+#if ! ( defined(NO_STDOUT) && defined(NO_LOGGING) )
+void
+out( const char *format, ... )
+{
+  va_list arg;
+  if ( game_status & flag_quiet ) { return; }
+
+#  if ! defined(NO_STDOUT)
+  va_start( arg, format );
+  vprintf( format, arg );
+  va_end( arg );
+  fflush( stdout );
+#  endif
+
+#  if ! defined(NO_LOGGING)
+  if ( ( strchr( format, '\n' ) != NULL || strchr( format, '\r' ) == NULL )
+       && pf_log != NULL )
+    {
+      va_start( arg, format );
+      vfprintf( pf_log, format, arg );
+      va_end( arg );
+      fflush( pf_log );
+    }
+#  endif
+}
+#endif
+
+
+#if defined(CSASHOGI)
+void
+out_csashogi( const char *format, ... )
+{
+  va_list arg;
+
+  va_start( arg, format );
+  vprintf( format, arg );
+  va_end( arg );
+
+  fflush( stdout );
+}
+#endif
+
+
+void
+out_file( FILE *pf, const char *format, ... )
+{
+  va_list arg;
+
+  if ( pf != NULL )
+    {
+      va_start( arg, format );
+      vfprintf( pf, format, arg );
+      va_end( arg );
+      fflush( pf );
+    }
+
+#if ! defined(NO_LOGGING)
+  if ( pf_log != NULL )
+    {
+      va_start( arg, format );
+      vfprintf( pf_log, format, arg );
+      va_end( arg );
+      fflush( pf_log );
+    }
+#endif
+
+}
+
+
+void
+out_warning( const char *format, ... )
+{
+  va_list arg;
+
+  fprintf( stderr, "\n%s", str_warning );
+  va_start( arg, format );
+  vfprintf( stderr, format, arg );
+  va_end( arg );
+  fprintf( stderr, "\n\n" );
+  fflush( stderr );
+
+#if ! defined(NO_LOGGING)
+  if ( pf_log != NULL )
+    {
+      fprintf( pf_log, "\n%s", str_warning );
+      va_start( arg, format );
+      vfprintf( pf_log, format, arg );
+      va_end( arg );
+      fprintf( pf_log, "\n\n" );
+      fflush( pf_log );
+    }
+#endif
+
+}
+
+
+void
+out_error( const char *format, ... )
+{
+  va_list arg;
+
+  fprintf( stderr, "\nERROR: " );
+  va_start( arg, format );
+  vfprintf( stderr, format, arg );
+  va_end( arg );
+  fprintf( stderr, "\n\n" );
+  fflush( stderr );
+
+#if ! defined(NO_LOGGING)
+  if ( pf_log != NULL )
+    {
+      fprintf( pf_log, "\nERROR: " );
+      va_start( arg, format );
+      vfprintf( pf_log, format, arg );
+      va_end( arg );
+      fprintf( pf_log, "\n\n" );
+      fflush( pf_log );
+    }
+#endif
+
+}
+
+extern const char* g_storage_dir;
+
+FILE *
+file_open( const char *str_file, const char *str_mode )
+{
+  FILE *pf;
+
+  char abs_path[1024];
+  snprintf(abs_path, sizeof(abs_path), "%s/%s", g_storage_dir, str_file);
+
+  pf = fopen( abs_path, str_mode );
+  if ( pf == NULL )
+    {
+      LOG_DEBUG("Open error %s: %s", abs_path, strerror(errno));
+      snprintf( str_message, SIZE_MESSAGE,
+		"%s, %s", str_fopen_error, abs_path );
+      str_error = str_message;
+      return NULL;
+    }
+
+  struct stat st;
+  fstat(fileno(pf), &st);
+  LOG_DEBUG("Open %s, size=%lld", abs_path, (long long)st.st_size);
+  return pf;
+}
+
+
+int
+file_close( FILE *pf )
+{
+  if ( pf == NULL ) { return 1; }
+  if ( ferror( pf ) )
+    {
+      fclose( pf );
+      snprintf( str_message, SIZE_MESSAGE, "blah1: %s", strerror(errno));
+      str_error = str_message;
+      return -2;
+    }
+  if ( fclose( pf ) )
+    {
+      snprintf( str_message, SIZE_MESSAGE, "blah2: %s",
+		strerror(errno));
+      str_error = str_message;
+      return -2;
+    }
+
+  return 1;
+}
+
+
+void
+show_prompt( void )
+{
+#if defined(DEKUNOBOU)
+  if ( dek_ngame )
+    {
+      Out( "Won=%3d Lost=%3d Total=%4d/", dek_win, dek_lost, dek_ngame-1 );
+    }
+#endif
+
+  if ( game_status & flag_drawn ) { Out( "Drawn> " ); }
+  else if ( game_status & flag_mated )
+    {
+      if ( root_turn ) { Out( "Black Mated> " ); }
+      else             { Out( "White Mated> " ); }
+    }
+  else if ( game_status & flag_resigned )
+    {
+      if ( root_turn ) { Out( "White Resigned> " ); }
+      else             { Out( "Black Resigned> " ); }
+    }
+  else if ( game_status & flag_suspend )
+    {
+      if ( root_turn ) { Out( "White Suspend> " ); }
+      else             { Out( "Black Suspend> " ); }
+    }
+  else if ( root_turn ) { Out( "White %d> ", record_game.moves+1 ); }
+  else                  { Out( "Black %d> ", record_game.moves+1 ); }
+}
+
+
+int
+open_history( const char *str_name1, const char *str_name2 )
+{
+#if defined(NO_LOGGING)
+  int iret;
+
+  iret = record_close( &record_game );
+  if ( iret < 0 ) { return -1; }
+
+  iret = record_open( &record_game, NULL, mode_read_write,
+		      str_name1, str_name2 );
+  if ( iret < 0 ) { return -1; }
+
+  return 1;
+#else
+  FILE *pf;
+  int i, iret;
+  char str_file[SIZE_FILENAME];
+
+  if ( record_game.pf != NULL && ! record_game.moves )
+    {
+      record_game.str_name1[0] = '\0';
+      record_game.str_name2[0] = '\0';
+
+      if ( str_name1 )
+	{
+	  strncpy( record_game.str_name1, str_name1, SIZE_PLAYERNAME-1 );
+	  record_game.str_name1[SIZE_PLAYERNAME-1] = '\0';
+	}
+
+      if ( str_name2 )
+	{
+	  strncpy( record_game.str_name2, str_name2, SIZE_PLAYERNAME-1 );
+	  record_game.str_name2[SIZE_PLAYERNAME-1] = '\0';
+	}
+      return 1;
+    }
+
+  iret = file_close( pf_log );
+  if ( iret < 0 ) { return -1; }
+
+  iret = record_close( &record_game );
+  if ( iret < 0 ) { return -1; }
+
+  for ( i = 0; i < 999; i++ )
+    {
+      snprintf( str_file, SIZE_FILENAME, "%s/game%03d.csa",
+	       str_dir_logs, i );
+      pf = file_open( str_file, "r" );
+      if ( pf == NULL ) { break; }
+      iret = file_close( pf );
+      if ( iret < 0 ) { return -1; }
+    }
+  irecord_game = i;
+
+  snprintf( str_file, SIZE_FILENAME, "%s/n%03d.log",
+	    str_dir_logs, i );
+  pf_log = file_open( str_file, "w" );
+  if ( pf_log == NULL ) { return -1; }
+
+  snprintf( str_file, SIZE_FILENAME, "%s/game%03d.csa",
+	    str_dir_logs, i );
+  iret = record_open( &record_game, str_file, mode_read_write,
+		      str_name1, str_name2 );
+  if ( iret < 0 ) { return -1; }
+
+  return 1;
+#endif
+}
+
+
+int
+out_board( const tree_t * restrict ptree, FILE *pf, unsigned int move,
+	   int is_strict )
+{
+  int irank, ifile, i, iret, ito, ifrom;
+
+#if ! defined(WIN32_PIPE)
+  int is_promote;
+#endif
+
+  if ( ! is_strict && move )
+    {
+      ito        = I2To( move );
+      ifrom      = I2From( move );
+#if ! defined(NO_STDOUT) && ! defined(WIN32_PIPE)
+      is_promote = I2IsPromote( move );
+#endif
+    }
+  else {
+    ito = ifrom = nsquare;
+#if ! defined(NO_STDOUT) && ! defined(WIN32_PIPE)
+    is_promote = 0;
+#endif
+  }
+
+  if ( ( game_status & flag_reverse ) && ! is_strict )
+    {
+      fprintf( pf, "          <reversed>        \n" );
+      fprintf( pf, "'  1  2  3  4  5  6  7  8  9\n" );
+
+      for ( irank = rank9; irank >= rank1; irank-- )
+	{
+	  fprintf( pf, "P%d", irank + 1 );
+
+	  for ( ifile = file9; ifile >= file1; ifile-- )
+	    {
+	      i = irank * nfile + ifile;
+	      iret = OutBoard0( pf, BOARD[i], i, ito, ifrom, is_promote );
+	      if ( iret < 0 ) { return iret; }
+	    }
+	  fprintf( pf, "\n" );
+	}
+    }
+  else {
+    fprintf( pf, "'  9  8  7  6  5  4  3  2  1\n" );
+
+    for ( irank = rank1; irank <= rank9; irank++ )
+      {
+	fprintf( pf, "P%d", irank + 1 );
+
+	for ( ifile = file1; ifile <= file9; ifile++ )
+	  {
+	    i = irank * nfile + ifile;
+	    iret = OutBoard0( pf, BOARD[i], i, ito, ifrom, is_promote );
+	    if ( iret < 0 ) { return iret; }
+	  }
+	fprintf( pf, "\n" );
+      }
+  }
+
+  out_hand( pf, HAND_B, "P+" );
+  out_hand( pf, HAND_W, "P-" );
+  fflush( pf );
+
+  return 1;
+}
+
+
+int
+next_cmdline( int is_wait )
+{
+  str_buffer_cmdline[0] = '\0';
+  return 0;
+
+  char *str_line_end;
+  size_t size;
+  int iret;
+
+  str_line_end = strchr( str_buffer_cmdline, '\n' );
+
+  if ( ! str_line_end )
+    {
+      if ( is_wait )
+	{
+	  do {
+	    iret = read_command( & str_line_end );
+	    if ( iret < 0 ) { return iret; }
+	  } while ( ! str_line_end && iret );
+	  if ( ! iret )
+	    {
+              LOG_DEBUG("QUIT1");
+	      game_status |= flag_quit;
+	      return 1;
+	    }
+	}
+      else {
+#if defined(DEKUNOBOU)
+	if ( dek_ngame )
+	  {
+	    iret = dek_check();
+	    goto tag;
+	  }
+#endif
+
+#if defined(CSA_LAN)
+	if ( sckt_csa != SCKT_NULL )
+	  {
+	    iret = sckt_check( sckt_csa );
+	    goto tag;
+	  }
+#endif
+	iret = check_input_buffer();
+
+#if defined(DEKUNOBOU) || defined(CSA_LAN)
+    tag:
+#endif
+	if ( iret <= 0 ) { return iret; }
+
+	iret = read_command( & str_line_end );
+	if ( iret < 0 ) { return iret; }
+	if ( ! iret )
+	  {
+            LOG_DEBUG("QUIT2");
+	    game_status |= flag_quit;
+	    return 1;
+	  }
+	if ( ! str_line_end ) { return 0; }
+      }
+    }
+
+  if ( str_line_end - str_buffer_cmdline + 1 >= SIZE_CMDLINE )
+    {
+      str_error = str_ovrflw_line;
+      memmove( str_buffer_cmdline, str_line_end + 1,
+	       strlen( str_line_end + 1 ) + 1 );
+      return -2;
+    }
+
+  size = str_line_end - str_buffer_cmdline;
+  memcpy( str_cmdline, str_buffer_cmdline, size );
+  *( str_cmdline + size ) = '\0';
+
+#if defined(DEKUNOBOU)
+  if ( dek_ngame )
+    {
+      iret = dek_parse( str_cmdline, SIZE_CMDLINE );
+      if ( iret < 0 )
+	{
+	  memmove( str_buffer_cmdline, str_line_end + 1,
+		   strlen( str_line_end + 1 ) + 1 );
+	  return iret;
+	}
+    }
+#endif
+
+  if ( is_wait )
+    {
+      out_file( NULL, "%s\n", str_cmdline );
+      memmove( str_buffer_cmdline, str_line_end + 1,
+	       strlen( str_line_end + 1 ) + 1 );
+    }
+
+  return 1;
+}
+
+
+static int
+#if defined(NO_STDOUT) || defined(WIN32_PIPE)
+out_board0( FILE *pf, int piece, int i, int ito, int ifrom )
+#else
+out_board0( FILE *pf, int piece, int i, int ito, int ifrom, int is_promote )
+#endif
+{
+  int ch;
+#if ! ( defined(NO_STDOUT) || defined(WIN32_PIPE) )
+  int iret;
+#endif
+
+  if ( piece )
+    {
+      ch = piece < 0 ? '-' : '+';
+#if ! ( defined(NO_STDOUT) || defined(WIN32_PIPE) )
+      if ( i == ito && pf == stdout && ! ( game_status & flag_nostress ) )
+	{
+	  iret = StdoutStress( is_promote, ifrom );
+	  if ( iret < 0 )
+	    {
+	      fprintf( pf, "\n" );
+	      return iret;
+	    }
+	}
+#endif
+      fprintf( pf, "%c%s", ch, astr_table_piece[ abs( piece ) ] );
+#if ! ( defined(NO_STDOUT) || defined(WIN32_PIPE) )
+      if ( i == ito && pf == stdout && ! ( game_status & flag_nostress ) )
+	{
+	  iret = StdoutNormal();
+	  if ( iret < 0 )
+	    {
+	      fprintf( pf, "\n" );
+	      return iret;
+	    }
+	}
+#endif
+    }
+  else {
+    if ( ifrom < nsquare
+	 && ( ifrom == i
+	      || ( adirec[ito][ifrom]
+		   && adirec[ito][ifrom] == adirec[ito][i]
+		   && ( ( ito < i && i <= ifrom )
+			|| ( ito > i && i >= ifrom ) ) ) ) )
+      {
+	fprintf( pf, "   " );
+      }
+    else { fprintf( pf, " * " ); }
+  }
+
+  return 1;
+}
+
+
+#if ! defined(NO_STDOUT) && ! defined(WIN32_PIPE)
+
+void
+out_beep( void )
+{
+  if ( game_status & flag_nobeep ) { return; }
+
+#  if defined(_WIN32)
+  if ( ! MessageBeep( MB_OK ) )
+    {
+      out_warning( "Beep is not available." );
+    }
+#  else
+  printf( "\007" );
+#  endif
+}
+
+
+int
+stdout_normal( void )
+{
+#  if defined(_WIN32)
+  HANDLE hStdout;
+  WORD wAttributes;
+
+  hStdout = GetStdHandle( STD_OUTPUT_HANDLE );
+  if ( hStdout == INVALID_HANDLE_VALUE )
+    {
+      str_error = "GetStdHandle() faild";
+      return -1;
+    }
+
+  wAttributes = FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE;
+  if ( ! SetConsoleTextAttribute( hStdout, wAttributes ) )
+    {
+      str_error = "SetConsoleTextAttribute() faild";
+      return -1;
+    }
+
+#  else
+  printf( "\033[0m" );
+#  endif
+  return 1;
+}
+
+
+int
+stdout_stress( int is_promote, int ifrom )
+{
+#  if defined(_WIN32)
+  HANDLE hStdout;
+  WORD wAttributes;
+
+  hStdout = GetStdHandle( STD_OUTPUT_HANDLE );
+  if ( hStdout == INVALID_HANDLE_VALUE )
+    {
+      str_error = "GetStdHandle() faild";
+      return -1;
+    }
+
+  if ( is_promote )
+    {
+      wAttributes = BACKGROUND_RED | BACKGROUND_INTENSITY;
+    }
+  else if ( ifrom >= nsquare )
+    {
+      wAttributes = BACKGROUND_BLUE | BACKGROUND_INTENSITY;
+    }
+  else {
+    wAttributes = ( BACKGROUND_RED | BACKGROUND_GREEN | BACKGROUND_BLUE
+		    | BACKGROUND_INTENSITY );
+  }
+  if ( ! SetConsoleTextAttribute( hStdout, wAttributes ) )
+    {
+      str_error = "SetConsoleTextAttribute() faild";
+      return -1;
+    }
+#  else
+  if      ( is_promote )       { printf( "\033[7;31m" ); }
+  else if ( ifrom >= nsquare ) { printf( "\033[7;34m" ); }
+  else                         { printf( "\033[7m" ); }
+#  endif
+
+  return 1;
+}
+
+#endif /* no NO_STDOUT and no WIN32_PIPE */
+
+
+static void
+out_hand( FILE *pf, unsigned int hand, const char *str_prefix )
+{
+  out_hand0( pf, (int)I2HandPawn(hand),   str_prefix, "00FU" );
+  out_hand0( pf, (int)I2HandLance(hand),  str_prefix, "00KY" );
+  out_hand0( pf, (int)I2HandKnight(hand), str_prefix, "00KE" );
+  out_hand0( pf, (int)I2HandSilver(hand), str_prefix, "00GI" );
+  out_hand0( pf, (int)I2HandGold(hand),   str_prefix, "00KI" );
+  out_hand0( pf, (int)I2HandBishop(hand), str_prefix, "00KA" );
+  out_hand0( pf, (int)I2HandRook(hand),   str_prefix, "00HI" );
+}
+
+
+static void
+out_hand0( FILE *pf, int n, const char *str_prefix, const char *str )
+{
+  int i;
+
+  if ( n > 0 )
+    {
+#pragma clang diagnostic ignored "-Wformat-security"
+#pragma clang diagnostic ignored "-Wformat"
+              fprintf( pf, str_prefix );
+      for ( i = 0; i < n; i++ ) { fprintf( pf, str ); }
+      fprintf( pf, "\n" );
+    }
+}
+
+
+static int
+read_command( char ** pstr_line_end )
+{
+  char *str_end;
+  int count_byte, count_cmdbuff;
+
+  count_cmdbuff = (int)strlen( str_buffer_cmdline );
+  str_end       = str_buffer_cmdline + count_cmdbuff;
+
+#if defined(DEKUNOBOU)
+  if ( dek_ngame )
+    {
+      count_byte = dek_in( str_end, SIZE_CMDLINE-1-count_cmdbuff );
+      if ( count_byte < 0 ) { return count_byte; }
+      goto tag;
+    }
+#endif
+
+#if defined(CSA_LAN)
+  if ( sckt_csa != SCKT_NULL )
+    {
+      count_byte = sckt_in( sckt_csa, str_end, SIZE_CMDLINE-1-count_cmdbuff );
+      if ( count_byte < 0 ) { return count_byte; }
+      goto tag;
+    }
+#endif
+
+  do { count_byte = (int)read( 0, str_end, SIZE_CMDBUFFER-1-count_cmdbuff ); }
+  while ( count_byte < 0 && errno == EINTR );
+
+  if ( count_byte < 0 )
+    {
+      str_error = "read() faild.";
+      return -1;
+    }
+  *( str_end + count_byte ) = '\0';
+
+#if defined(DEKUNOBOU) || defined(CSA_LAN)
+ tag:
+#endif
+  /* return the result of strchr */
+  *pstr_line_end = strchr( str_buffer_cmdline, '\n' );
+  if ( *pstr_line_end == NULL
+       && count_byte + count_cmdbuff + 1 >= SIZE_CMDLINE )
+    {
+      *str_buffer_cmdline = '\0';
+      str_error = str_ovrflw_line;
+      return -2;
+    }
+
+  return count_byte;
+}
+
+#if defined(_WIN32)
+
+static int
+check_input_buffer( void )
+{
+#  if defined(WIN32_PIPE)
+  BOOL bSuccess;
+  HANDLE hHandle;
+  DWORD dwBytesRead, dwTotalBytesAvail, dwBytesLeftThisMessage;
+  char buf[1];
+
+  hHandle = GetStdHandle( STD_INPUT_HANDLE );
+  if ( hHandle == INVALID_HANDLE_VALUE )
+    {
+      str_error = "GetStdHandle() faild.";
+      return -1;
+    }
+  bSuccess = PeekNamedPipe( hHandle, buf, 1, &dwBytesRead, &dwTotalBytesAvail,
+			    &dwBytesLeftThisMessage );
+  if ( ! bSuccess )
+    {
+      str_error = "PeekNamedPipe() faild.";
+      return -1;
+    }
+  if ( dwBytesRead ) { return 1; }
+  return 0;
+#  else
+  return _kbhit();
+#  endif
+}
+
+#else /* no _WIN32 */
+
+static int
+check_input_buffer( void )
+{
+  fd_set readfds;
+  struct timeval tv;
+  int iret;
+
+#if defined(__ICC)
+#  pragma warning(disable:279)
+#  pragma warning(disable:593)
+#  pragma warning(disable:1469)
+#endif
+
+  FD_ZERO(&readfds);
+  FD_SET(0, &readfds);
+  tv.tv_sec  = 0;
+  tv.tv_usec = 0;
+  iret       = select( 1, &readfds, NULL, NULL, &tv );
+  if ( iret == -1 )
+    {
+      str_error = "select() faild.";
+      return -1;
+    }
+  return iret;
+
+#if defined(__ICC)
+#  pragma warning(default:279)
+#  pragma warning(default:593)
+#  pragma warning(default:1469)
+#endif
+}
+
+#endif /* no _WIN32 */

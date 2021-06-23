@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+  xmlns:android="http://schemas.android.com/apk/res/android"
+  android:orientation="vertical"
+  android:layout_width="fill_parent"
+  android:layout_height="fill_parent">
+
+  <TextView android:layout_height="wrap_content"
+            android:layout_width="fill_parent"
+            android:text="@string/player_types"/>
+  <Spinner android:id="@+id/start_game_player_types"
+           android:layout_height="wrap_content"
+           android:layout_width="fill_parent"
+           android:drawSelectorOnTop="true"
+           android:prompt = "@string/player_types"/>
+
+  <TextView android:layout_height="wrap_content"
+            android:layout_width="fill_parent"
+            android:text="@string/computer_difficulty"/>
+  <Spinner android:id="@+id/start_game_computer_difficulty"
+           android:layout_height="wrap_content"
+           android:layout_width="fill_parent"
+           android:drawSelectorOnTop="true"
+           android:prompt = "@string/computer_difficulty"/>
+
+  <TextView android:layout_height="wrap_content"
+            android:layout_width="fill_parent"
+            android:text="@string/handicap"/>
+  <Spinner android:id="@+id/start_game_handicap"
+           android:layout_height="wrap_content"
+           android:layout_width="fill_parent"
+           android:drawSelectorOnTop="true"
+           android:prompt = "@string/handicap"/>
+
+  <CheckBox android:checked="false"
+            android:layout_height="wrap_content"
+            android:layout_width="wrap_content"
+	    android:id="@+id/start_game_flip_screen"
+	    android:text="@string/flip_screen"/>
+
+</LinearLayout>

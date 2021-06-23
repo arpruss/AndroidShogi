@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   data-name="Layer 1"
+   viewBox="0 0 64 80"
+   x="0px"
+   y="0px"
+   version="1.1"
+   id="svg22"
+   sodipodi:docname="noun_bunny_1565760.svg"
+   inkscape:version="0.92.1 r15371">
+  <metadata
+     id="metadata28">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <defs
+     id="defs26" />
+  <sodipodi:namedview
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:window-width="716"
+     inkscape:window-height="480"
+     id="namedview24"
+     showgrid="false"
+     inkscape:zoom="2.95"
+     inkscape:cx="32"
+     inkscape:cy="40"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="svg22" />
+  <title
+     id="title2">bunny-rabbit-carrot-animal-face</title>
+  <g
+     id="g4520">
+    <path
+       id="path4"
+       d="M50,7c-3.545,0-4,4.453-4,8.333C46,15.479,46.172,30,50,30s4-14.521,4-14.667C54,11.453,53.545,7,50,7Zm0,20.835c-.855-1.241-2-6.606-2-12.5C48,9,49.453,9,50,9s2,0,2,6.333C52,21.229,50.855,26.594,50,27.835Z" />
+    <path
+       id="path6"
+       d="M33,15.333C33,11.453,32.545,7,29,7s-4,4.453-4,8.333C25,15.479,25.172,30,29,30S33,15.479,33,15.333Zm-6,0C27,9,28.453,9,29,9s2,0,2,6.333c0,5.9-1.145,11.261-2,12.5C28.145,26.594,27,21.229,27,15.333Z" />
+    <path
+       id="path8"
+       d="M56.206,32.05A77.831,77.831,0,0,0,58,16c0-9.683-2.467-14-8-14s-8,4.317-8,14a76.532,76.532,0,0,0,.756,10.243,29.124,29.124,0,0,0-6.5-.112A76.487,76.487,0,0,0,37,16c0-9.683-2.467-14-8-14s-8,4.317-8,14a78.561,78.561,0,0,0,1.641,15.344C18.353,34.731,16,39.2,16,44c0,9.925,10.318,18,23,18s23-8.075,23-18A15.928,15.928,0,0,0,56.206,32.05ZM39,60c-11.58,0-21-7.178-21-16,0-4.337,2.255-8.4,6.349-11.445l.519-.387-.139-.632A76.253,76.253,0,0,1,23,16C23,4,27.052,4,29,4s6,0,6,12a75.59,75.59,0,0,1-.906,11.122l-.2,1.328,1.331-.185a27.239,27.239,0,0,1,8.549.156l1.379.245-.217-1.384A75.656,75.656,0,0,1,44,16C44,4,48.052,4,50,4s6,0,6,12a75.539,75.539,0,0,1-1.877,16.189l-.141.6.476.395A14.119,14.119,0,0,1,60,44C60,52.822,50.58,60,39,60Z" />
+    <path
+       id="path10"
+       d="M47,36a3,3,0,1,0,3,3A3,3,0,0,0,47,36Zm0,4a1,1,0,1,1,1-1A1,1,0,0,1,47,40Z" />
+    <path
+       id="path12"
+       d="M34,39a3,3,0,1,0-3,3A3,3,0,0,0,34,39Zm-4,0a1,1,0,1,1,1,1A1,1,0,0,1,30,39Z" />
+    <path
+       id="path14"
+       d="M42.5,51.5a2.639,2.639,0,0,1-2.418-2.277L42.8,45.6A1,1,0,0,0,42,44H36a1,1,0,0,0-.8,1.6l2.718,3.623A2.639,2.639,0,0,1,35.5,51.5a2.788,2.788,0,0,1-2.5-3H31a4.775,4.775,0,0,0,4.5,5A4.332,4.332,0,0,0,39,51.6a4.332,4.332,0,0,0,3.5,1.9,4.775,4.775,0,0,0,4.5-5H45A2.788,2.788,0,0,1,42.5,51.5ZM39,47.333,38,46h2Z" />
+  </g>
+  <path
+     d="M7.479,30a5.476,5.476,0,0,0-4.251,2A5.349,5.349,0,0,0,2.1,36.449L6.787,60.192a2.258,2.258,0,0,0,4.426,0L15.9,36.449A5.349,5.349,0,0,0,14.772,32a5.476,5.476,0,0,0-4.251-2H10V28.566l4.515-2.709-1.03-1.714L10,26.234V24H8v2.234L4.515,24.143l-1.03,1.714L8,28.566V30Zm3.042,2a3.488,3.488,0,0,1,2.707,1.271,3.358,3.358,0,0,1,.707,2.792L9.251,59.806a.259.259,0,0,1-.5,0L5.433,43H8.919V41H5.039l-.395-2H6.919V37H4.25l-.185-.937a3.358,3.358,0,0,1,.707-2.792A3.488,3.488,0,0,1,7.479,32Z"
+     id="path16" />
+  <text
+     x="0"
+     y="79"
+     fill="#000000"
+     font-size="5px"
+     font-weight="bold"
+     font-family="'Helvetica Neue', Helvetica, Arial-Unicode, Arial, Sans-serif"
+     id="text18">Created by Nithinan Tatah</text>
+  <text
+     x="0"
+     y="84"
+     fill="#000000"
+     font-size="5px"
+     font-weight="bold"
+     font-family="'Helvetica Neue', Helvetica, Arial-Unicode, Arial, Sans-serif"
+     id="text20">from the Noun Project</text>
+</svg>
