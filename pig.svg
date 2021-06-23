@@ -16,7 +16,7 @@
    inkscape:version="0.92.1 r15371"
    width="100.633"
    height="100.633"
-   inkscape:export-filename="C:\cygwin64\home\Alexander_Pruss\android\Shogi\app\src\main\res\drawable\animal_hi.png"
+   inkscape:export-filename="C:\cygwin64\home\Alexander_Pruss\android\Shogi\app\src\main\res\drawable\animal_kyo.png"
    inkscape:export-xdpi="114.47536"
    inkscape:export-ydpi="114.47536">
   <metadata
@@ -27,7 +27,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -48,7 +48,7 @@
      showgrid="false"
      inkscape:snap-bbox="true"
      inkscape:zoom="2.6700352"
-     inkscape:cx="-53.896896"
+     inkscape:cx="-66.146198"
      inkscape:cy="13.170391"
      inkscape:window-x="-8"
      inkscape:window-y="-8"
@@ -102,23 +102,6 @@
      y="6.7197742"
      ry="10.738318"
      rx="10.738318" />
-  <path
-     transform="matrix(0,0.83870968,-0.85100638,0,62.665918,50.600602)"
-     d="m -48.993643,14.511544 6.157309,-3.554924 6.15731,-3.5549237 -1e-6,7.1098477 0,7.109848 -6.157309,-3.554924 z"
-     inkscape:randomized="0"
-     inkscape:rounded="0"
-     inkscape:flatsided="false"
-     sodipodi:arg2="4.1887902"
-     sodipodi:arg1="3.1415927"
-     sodipodi:r2="4.1048727"
-     sodipodi:r1="8.2097454"
-     sodipodi:cy="14.511544"
-     sodipodi:cx="-40.783897"
-     sodipodi:sides="3"
-     id="path5133"
-     style="opacity:1;fill:#ff0000;fill-opacity:1;stroke:none;stroke-width:3.25;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0"
-     sodipodi:type="star"
-     inkscape:transform-center-y="-35.643146" />
   <g
      transform="matrix(0.75987534,0,0,0.75987534,14.27166,19.497851)"
      data-name="Camada 2"
@@ -153,4 +136,11 @@
          id="path8136" />
     </g>
   </g>
+  <path
+     sodipodi:nodetypes="ccccccc"
+     inkscape:connector-curvature="0"
+     id="path5700"
+     d="m 50.316502,9.5091591 3.025263,5.1641939 3.025262,5.164197 -6.050525,-3.442799 -6.050526,3.442798 3.025263,-5.164196 z"
+     style="opacity:1;fill:#ff0000;fill-opacity:1;stroke:none;stroke-width:2.74571586;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0"
+     inkscape:transform-center-y="-35.643146" />
 </svg>

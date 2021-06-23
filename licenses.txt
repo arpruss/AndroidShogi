@@ -1,7 +1,9 @@
-animal_fu/to Chick CC "chick by sandra from the Noun Project" https://thenounproject.com/search/?q=chick&i=1500444
-animal_ou Lion CC "lion face by Icons Producer from the Noun Project" https://thenounproject.com/iconsproducer/collection/lion-face-icon/?i=1979240
-animal_hi/ryu Giraffe CC "Giraffe by Eucalyp from the Noun Project" https://thenounproject.com/search/?q=giraffe&i=1473508
-animal_kaku/uma Elephant CC "elephant face by Icons Producer from the Noun Project" https://thenounproject.com/search/?q=elephant&i=1557800
+Animal icons are licensed under Creative Commons 3.0 Attribution https://creativecommons.org/licenses/by/3.0/
+
+animal_fu/to Chick "chick by sandra from the Noun Project" https://thenounproject.com/search/?q=chick&i=1500444
+animal_ou Lion "lion face by Icons Producer from the Noun Project" https://thenounproject.com/iconsproducer/collection/lion-face-icon/?i=1979240
+animal_hi/ryu Giraffe "Giraffe by Kantor Tegalsari from the Noun Project" https://thenounproject.com/search/?q=giraffe&i=2192507
+animal_kaku/uma Elephant "elephant face by Icons Producer from the Noun Project" https://thenounproject.com/search/?q=elephant&i=1557800
 animal_kin "Dog by Andrea Harris from the Noun Project" https://thenounproject.com/search/?q=dog&i=246741
 animal_gin/nari_gin "Cat by ibrandify from the Noun Project" https://thenounproject.com/search/?q=cat&i=3027860
 animal_kei/nari_kei "bunny by Nithinan Tatah from the Noun Project" https://thenounproject.com/search/?q=bunny&i=1565760
@@ -11,7 +13,7 @@ animal_kyo/nari_kyo "Pig by Luiz Carvalho from the Noun Project" https://thenoun
  All files, except under cpp/* and res/drawable*/* are distributed under
  Apache license below:
 
- Copyright 2011 Yasushi Saito
+ Copyright 2011-21 Yasushi Saito and Alexander Pruss
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -31,6 +33,5 @@ They are distributed under Creative Commons license.
 Files under cpp/ are modified copies of Bonanza 4.1.3. The original
 source code can be downloaded from
 http://www.computer-shogi.org/library/ or
-http://www.geocities.jp/bonanza_shogi/. See BONANZA-README.TXT for the
-conditions for redistribution (Note: this file is in japanese.  It
-allows redistribution only for non-commercial purposes).
+http://www.geocities.jp/bonanza_shogi/. 
+The Bonanza code is licensed only for non-commercial use.
