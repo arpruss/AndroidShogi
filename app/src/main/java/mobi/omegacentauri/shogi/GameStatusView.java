@@ -16,6 +16,10 @@ import java.util.Locale;
  * last moves.
  */
 public class GameStatusView extends LinearLayout {
+    private String mBaseBlackPlayerName;
+    private String mBaseWhitePlayerName;
+  private Player mCurrentPlayer;
+
   class Timer {
     public Timer(TextView v) { mView = v; mLastThinkTimeSeconds = -1; }
     public void update(long thinkTimeMs) {
@@ -41,6 +45,7 @@ public class GameStatusView extends LinearLayout {
   private TextView mWhiteStatus;
   private String mBlackPlayerName;
   private String mWhitePlayerName;
+  private boolean mFlipScreen;
   
   // List of past moves, in display format.
   private ArrayList<String> mPlayList;
@@ -53,8 +58,8 @@ public class GameStatusView extends LinearLayout {
   }
   
   public final void initialize(
-      String blackPlayerName,
-      String whitePlayerName) {
+          String blackPlayerName,
+          String whitePlayerName, boolean flipScreen) {
     mGameStatus = (TextView)findViewById(R.id.status_game_status);
     mPlayHistory = (TextView)findViewById(R.id.status_play_history);
     mPlayHistory.setHorizontallyScrolling(true);
@@ -63,14 +68,27 @@ public class GameStatusView extends LinearLayout {
     mWhiteTime = new Timer((TextView)findViewById(R.id.status_white_time));
     mWhiteStatus = (TextView)findViewById(R.id.status_white_player_name);
     mPlayList = new ArrayList<String>();
-  
-    mBlackPlayerName = "▲" + blackPlayerName;
-    mWhitePlayerName = "△" + whitePlayerName;
+    mFlipScreen = flipScreen;
+    mBaseBlackPlayerName = blackPlayerName;
+    mBaseWhitePlayerName = whitePlayerName;
+
+    setPlayerNames();
     mBlackStatus.setText(mBlackPlayerName);
     mWhiteStatus.setText(mWhitePlayerName);    
   }
-  
-  /**
+
+    private void setPlayerNames() {
+        mBlackPlayerName = (mFlipScreen ? "▼" : "▲") + mBaseBlackPlayerName;
+        mWhitePlayerName = (mFlipScreen ? "△" : "▽") + mBaseWhitePlayerName;
+    }
+
+    public void setFlipScreen(boolean flipScreen) {
+      mFlipScreen = flipScreen;
+      setPlayerNames();
+      showPlayerNames();
+    }
+
+    /**
    * Update the state of the game and redraw widgets.
    * 
    * @param gameState
@@ -87,20 +105,10 @@ public class GameStatusView extends LinearLayout {
       ArrayList<Play> plays,
       Player currentPlayer,
       String errorMessage) {
-    
-    if (currentPlayer == Player.WHITE) {
-      
-      mBlackStatus.setText(mBlackPlayerName);
-      SpannableString s = new SpannableString(mWhitePlayerName);
-      s.setSpan(new UnderlineSpan(), 0, s.length(), 0);
-      mWhiteStatus.setText(s);
-    } else {
-      SpannableString s = new SpannableString(mBlackPlayerName);
-      s.setSpan(new UnderlineSpan(), 0, s.length(), 0);
-      mBlackStatus.setText(s);
-      mWhiteStatus.setText(mWhitePlayerName);
-    }
-    
+
+    mCurrentPlayer = currentPlayer;
+    showPlayerNames();
+
     while (plays.size() > mPlayList.size()) {
       // Generally, moves is just one larger than mMoveList, in which case
       // we can use "lastBoard" to compute the display string of the last move.
@@ -126,7 +134,7 @@ public class GameStatusView extends LinearLayout {
       for (int i = mPlayList.size() - n; i < mPlayList.size(); ++i) {
         if (!first) b.append(", ");
         b.append(i + 1).append(":");
-        b.append((i % 2 == 0) ? "▲" : "△");
+        b.append((i % 2 == 0) ? "◆" : "◇");
         b.append(mPlayList.get(i));
         first = false;
       }
@@ -148,7 +156,21 @@ public class GameStatusView extends LinearLayout {
       mGameStatus.setText(endGameMessage);
     }
   }
-  
+
+  private void showPlayerNames() {
+    if (mCurrentPlayer == Player.WHITE) {
+      mBlackStatus.setText(mBlackPlayerName);
+      SpannableString s = new SpannableString(mWhitePlayerName);
+      s.setSpan(new UnderlineSpan(), 0, s.length(), 0);
+      mWhiteStatus.setText(s);
+    } else {
+      SpannableString s = new SpannableString(mBlackPlayerName);
+      s.setSpan(new UnderlineSpan(), 0, s.length(), 0);
+      mBlackStatus.setText(s);
+      mWhiteStatus.setText(mWhitePlayerName);
+    }
+  }
+
   public final void updateThinkTimes(long black, long white) {
     mBlackTime.update(black);
     mWhiteTime.update(white);

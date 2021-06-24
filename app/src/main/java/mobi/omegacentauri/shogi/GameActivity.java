@@ -87,7 +87,8 @@ public class GameActivity extends Activity {
     mStatusView = (GameStatusView)findViewById(R.id.gamestatusview);
     mStatusView.initialize(
         playerName(mPlayerTypes.charAt(0), mComputerLevel),
-        playerName(mPlayerTypes.charAt(1), mComputerLevel));
+        playerName(mPlayerTypes.charAt(1), mComputerLevel),
+            mFlipScreen);
 
     mBoardView = (BoardView)findViewById(R.id.boardview);
     mBoardView.initialize(mViewListener, mHumanPlayers, mFlipScreen);
@@ -121,7 +122,9 @@ public class GameActivity extends Activity {
       undo();
       return true;
     case R.id.menu_flip_screen:
-      mBoardView.flipScreen();
+      mFlipScreen = !mFlipScreen;
+      mBoardView.setFlipScreen(mFlipScreen);
+      mStatusView.setFlipScreen(mFlipScreen);
       return true;
     case R.id.menu_quit_game:
       tryQuitGame();
@@ -192,7 +195,7 @@ public class GameActivity extends Activity {
     b.putSerializable("shogi_move_cookies", mMoveCookies);
   }
   
-  @SuppressWarnings(value="unchecked")
+  @SuppressWarnings(value="`unchecked")
   private final void initializeInstanceState(Bundle b) {
     SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(
         getBaseContext());

@@ -68,7 +68,7 @@ public class ReplayGameActivity extends Activity {
     mStatusView = (GameStatusView)findViewById(R.id.replay_gamestatusview);
     mStatusView.initialize(
         mLog.attr(GameLog.ATTR_BLACK_PLAYER),
-        mLog.attr(GameLog.ATTR_WHITE_PLAYER));
+        mLog.attr(GameLog.ATTR_WHITE_PLAYER), mFlipScreen);
 
     mBoardView = (BoardView)findViewById(R.id.replay_boardview);
     mBoardView.initialize(mViewListener, 
@@ -160,12 +160,13 @@ public class ReplayGameActivity extends Activity {
   private static final int DIALOG_LOG_PROPERTIES = 2;
   private StartGameDialog mStartGameDialog;
 
-  void resumeGame() {            
+  void resumeGame(boolean skipDialog) {
     Intent intent = new Intent(this, GameActivity.class);
     intent.putExtra("initial_board", mBoard);
     intent.putExtra("moves", mPlays);
     intent.putExtra("next_player", mNextPlayer);
     intent.putExtra("replaying_saved_game", true);
+    intent.putExtra("skip_dialog", skipDialog);
 
     Handicap h = mLog.handicap();
     if (h != Handicap.NONE) intent.putExtra("handicap", h);
@@ -175,7 +176,9 @@ public class ReplayGameActivity extends Activity {
   @Override public boolean onOptionsItemSelected(MenuItem item) {
     switch (item.getItemId()) {
     case R.id.menu_flip_screen:
-      mBoardView.flipScreen();
+      mFlipScreen = ! mFlipScreen;
+      mBoardView.setFlipScreen(mFlipScreen);
+      mStatusView.setFlipScreen(mFlipScreen);
       return true;
     case R.id.menu_resume:
       // TODO(saito) Disable resumegame when !hasRequiredFiles.
@@ -206,7 +209,7 @@ public class ReplayGameActivity extends Activity {
       		this, "Resume Game",
           new DialogInterface.OnClickListener() {
            public void onClick(DialogInterface dialog, int id) {
-             resumeGame();
+             resumeGame(false);
            }}
           );
       return mStartGameDialog.getDialog();

@@ -238,9 +238,9 @@ public class GameLogListManager {
     } catch (FileNotFoundException e) {
       ;
     } catch (ClassNotFoundException e) {
-      Log.d(TAG, SUMMARY_PATH + ": ClassNotFoundException: " + e.getMessage());
+      Log.d(TAG, path + ": ClassNotFoundException: " + e.getMessage());
     } catch (IOException e) {
-      Log.d(TAG, SUMMARY_PATH + ": IOException: " + e.getMessage());
+      Log.d(TAG, path + ": IOException: " + e.getMessage());
     }
     return summary;
   }

@@ -22,8 +22,8 @@
       android:id="@+id/data_download_button"
       android:layout_width="fill_parent"
       android:layout_height="wrap_content"
-      android:layout_marginLeft="10dip"
-      android:layout_marginRight="10dip"
+      android:layout_marginLeft="0dip"
+      android:layout_marginRight="5dip"
       android:layout_weight="1"
       android:background="@drawable/button_background"
       android:text="@string/engine_data_download" />
@@ -32,8 +32,8 @@
         android:id="@+id/new_game_button"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
-        android:layout_marginLeft="10dip"
-        android:layout_marginRight="10dip"
+        android:layout_marginLeft="0dip"
+        android:layout_marginRight="5dip"
         android:layout_weight="1"
         android:visibility="gone"
         android:background="@drawable/button_background"
@@ -43,8 +43,8 @@
       android:id="@+id/pick_log_button"
       android:layout_width="fill_parent"
       android:layout_height="wrap_content"
-      android:layout_marginLeft="10dip"
-      android:layout_marginRight="10dip"
+      android:layout_marginLeft="5dip"
+      android:layout_marginRight="5dip"
       android:layout_weight="1"
       android:background="@drawable/button_background"
       android:text="@string/game_logs" />
@@ -53,11 +53,21 @@
       android:id="@+id/options_button"
       android:layout_width="fill_parent"
       android:layout_height="wrap_content"
-      android:layout_marginLeft="10dip"
-      android:layout_marginRight="10dip"
+      android:layout_marginLeft="5dip"
+      android:layout_marginRight="5dip"
       android:layout_weight="1"
       android:background="@drawable/button_background"
       android:text="@string/options" />
 
-  </LinearLayout>            
+    <Button
+        android:id="@+id/help_button"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="5dip"
+        android:layout_marginRight="0dip"
+        android:layout_weight="1"
+        android:background="@drawable/button_background"
+        android:text="@string/help" />
+
+  </LinearLayout>
 </LinearLayout>

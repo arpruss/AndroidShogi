@@ -11,9 +11,6 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.util.Log;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
@@ -81,19 +78,19 @@ public class StartScreenActivity extends Activity {
     Button optionsButton = (Button)findViewById(R.id.options_button);
     optionsButton.setOnClickListener(new Button.OnClickListener() {
       public void onClick(View v) {
-        Log.v("Shogi", "options!");
         startActivity(new Intent(v.getContext(), ShogiPreferenceActivity.class));
       }
     });
 
-    checkIfReady();
-  }
+    Button helpButton = (Button)findViewById(R.id.help_button);
+    helpButton.setOnClickListener(new Button.OnClickListener() {
+      public void onClick(View v) {
+        startActivity(new Intent(v.getContext(), HelpActivity.class));
+      }
+    });
 
-  @Override
-  public boolean onCreateOptionsMenu(Menu menu) {
-    MenuInflater inflater = getMenuInflater();
-    inflater.inflate(R.menu.start_screen_menu, menu);
-    return true;
+
+    checkIfReady();
   }
 
   public void downloadData() {
@@ -103,20 +100,6 @@ public class StartScreenActivity extends Activity {
       zd.execute(new URL("https://github.com/arpruss/AndroidShogiData/blob/master/assets/shogi-data.zip?raw=true"));
     } catch (MalformedURLException e) {
       Log.v("Shogi", ""+e);
-    }
-  }
-
-  @Override
-  public boolean onOptionsItemSelected(MenuItem item) {
-    switch (item.getItemId()) {
-    case R.id.start_screen_help_menu_id:
-      startActivity(new Intent(this, HelpActivity.class));
-      return true;
-    case R.id.start_screen_preferences_menu_id:
-      startActivity(new Intent(this, ShogiPreferenceActivity.class));
-      return true;
-    default:    
-      return super.onOptionsItemSelected(item);
     }
   }
 
