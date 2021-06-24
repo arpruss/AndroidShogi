@@ -17,6 +17,8 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import mobi.omegacentauri.shogi.BonanzaController;
@@ -51,7 +53,6 @@ public class GameActivity extends Activity {
   private BonanzaController mController;
   private BoardView mBoardView;
   private GameStatusView mStatusView;
-  private Menu mMenu;
 
   // Game preferences
   private int mComputerLevel;      // 0 .. 4
@@ -101,37 +102,10 @@ public class GameActivity extends Activity {
     // user inputs.
   }
 
-  @Override 
-  public boolean onCreateOptionsMenu(Menu menu) {
-    MenuInflater inflater = getMenuInflater();
-    inflater.inflate(R.menu.game_menu, menu);
-    mMenu = menu;
-    updateUndoMenu();
-    return true;
-  }
-
-  @Override 
+  @Override
   public void onSaveInstanceState(Bundle bundle) {
     saveInstanceState(bundle);
     mController.saveInstanceState(bundle);
-  }
-
-  @Override public boolean onOptionsItemSelected(MenuItem item) {
-    switch (item.getItemId()) {
-    case R.id.menu_undo:
-      undo();
-      return true;
-    case R.id.menu_flip_screen:
-      mFlipScreen = !mFlipScreen;
-      mBoardView.setFlipScreen(mFlipScreen);
-      mStatusView.setFlipScreen(mFlipScreen);
-      return true;
-    case R.id.menu_quit_game:
-      tryQuitGame();
-      return true;
-    default:    
-      return super.onOptionsItemSelected(item);
-    }
   }
 
   private final String playerName(char type, int level) {
@@ -333,6 +307,8 @@ public class GameActivity extends Activity {
   }
 
   private final void updateUndoMenu() {
+      ((TextView)findViewById(R.id.undo_text_button)).setVisibility(mUndosRemaining > 0 ? View.VISIBLE : View.INVISIBLE);
+/*
     if (mMenu == null) return;
     
     boolean enabled = (mUndosRemaining > 0) && !mMoveCookies.isEmpty();
@@ -347,6 +323,7 @@ public class GameActivity extends Activity {
           getResources().getString(R.string.undos_remaining),
           new Integer(mUndosRemaining)));
     }
+    */
   }  
 
   //
@@ -511,4 +488,16 @@ public class GameActivity extends Activity {
     });
     return builder.create();
   }
+
+    public void undoClick(View view) {
+        undo();
+    }
+
+    public void flipClick(View view) {
+        mFlipScreen = !mFlipScreen;
+        mBoardView.setFlipScreen(mFlipScreen);
+        mStatusView.setFlipScreen(mFlipScreen);
+    }
+
+
 }

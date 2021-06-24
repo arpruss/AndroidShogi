@@ -35,38 +35,63 @@
     android:layout_height="wrap_content">
     <TextView
       android:id="@+id/status_black_time"
-      android:gravity="top|right"
+      android:gravity="center_vertical|right"
       android:layout_weight="0"
-      android:textSize="12dp"
-      android:layout_width="70dp"
+      android:textSize="14sp"
+      android:layout_width="70sp"
       android:layout_height="wrap_content"/>
     <TextView
       android:id="@+id/status_black_player_name"
-      android:gravity="top|left"
+      android:gravity="center_vertical|left"
       android:layout_weight="0"
-      android:textSize="12dp"
-      android:layout_width="80dp"
+      android:textSize="14sp"
+      android:layout_width="80sp"
       android:layout_height="wrap_content"/>
     <TextView
       android:id="@+id/status_white_time"
-      android:gravity="top|right"
-      android:textSize="12dp"
+      android:gravity="center_vertical|right"
+      android:textSize="14sp"
       android:layout_weight="0"
-      android:layout_width="70dp"
+      android:layout_width="70sp"
       android:layout_height="wrap_content"/>
     <TextView
       android:id="@+id/status_white_player_name"
-      android:gravity="top|left"
+      android:gravity="center_vertical|left"
       android:layout_weight="20"
-      android:textSize="12dp"
-      android:layout_width="80dp"
+      android:textSize="14sp"
+      android:layout_width="80sp"
       android:layout_height="wrap_content"/>
+
+      <TextView
+          android:id="@+id/undo_text_button"
+          android:textSize="25sp"
+          android:layout_weight="0"
+          android:layout_gravity="top|left"
+          android:layout_width="40sp"
+          android:text="⎌"
+          android:onClick="undoClick"
+          android:clickable="true"
+          android:layout_height="wrap_content"
+          android:layout_marginLeft="10sp"
+          android:layout_marginRight="10sp"
+          />
+      <TextView
+          android:layout_weight="0"
+          android:layout_gravity="top|left"
+          android:textSize="25sp"
+          android:clickable="true"
+          android:onClick="flipClick"
+          android:layout_width="40sp"
+          android:layout_height="wrap_content"
+          android:text="↕"/>
+
+
   </LinearLayout>
  </mobi.omegacentauri.shogi.GameStatusView>
- <mobi.omegacentauri.shogi.BoardView 
+ <mobi.omegacentauri.shogi.BoardView
 	  android:id="@+id/boardview"
-    android:layout_width="fill_parent" 
-    android:layout_height="0dp" 
+    android:layout_width="fill_parent"
+    android:layout_height="0dp"
     android:layout_weight="1"
     android:layout_gravity="top|fill_vertical"
   />
