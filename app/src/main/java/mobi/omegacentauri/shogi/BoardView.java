@@ -472,7 +472,7 @@ public class BoardView extends View implements View.OnTouchListener {
         float sy = layout.screenY(py);
         paint.setColor(0x30000000);
         final int squareDim = layout.getSquareDim();
-        canvas.drawRect(sx-.1f*squareDim, sy-.1f*squareDim, sx + squareDim*1.1f, sy + squareDim*1.1f, paint);
+        canvas.drawRect(sx - .1f * squareDim, sy - .1f * squareDim, sx + squareDim * 1.1f, sy + squareDim * 1.1f, paint);
     }
 
     // Point to a captured piece

@@ -76,7 +76,8 @@ public class GameActivity extends Activity {
   // moves by the black (resp. white) player.
   private ArrayList<Play> mPlays;
   private ArrayList<Integer> mMoveCookies;
-  
+  private SharedPreferences mPrefs;
+
   @Override
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
@@ -171,9 +172,9 @@ public class GameActivity extends Activity {
   
   @SuppressWarnings(value="`unchecked")
   private final void initializeInstanceState(Bundle b) {
-    SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(
+    mPrefs = PreferenceManager.getDefaultSharedPreferences(
         getBaseContext());
-    mUndosRemaining = (int)initializeLong(b, "shogi_undos_remaining", prefs, "max_undos", 0);
+    mUndosRemaining = (int)initializeLong(b, "shogi_undos_remaining", mPrefs, "max_undos", 0);
     mBlackThinkTimeMs = initializeLong(b, "shogi_black_think_time_ms", null, null, 0);
     mWhiteThinkTimeMs = initializeLong(b, "shogi_white_think_time_ms", null, null, 0);	  
     mBlackThinkStartMs = initializeLong(b, "shogi_black_think_start_ms", null, null, 0);
@@ -188,8 +189,8 @@ public class GameActivity extends Activity {
       mMoveCookies = (ArrayList<Integer>)b.getSerializable("shogi_move_cookies");
     }
     
-    mFlipScreen = prefs.getBoolean("flip_screen", false);
-    mPlayerTypes = prefs.getString("player_types", "HC");
+    mFlipScreen = mPrefs.getBoolean("flip_screen", false);
+    mPlayerTypes = mPrefs.getString("player_types", "HC");
     mHumanPlayers = new ArrayList<Player>();
     if (mPlayerTypes.charAt(0) == 'H') {
       mHumanPlayers.add(Player.BLACK);
@@ -197,7 +198,7 @@ public class GameActivity extends Activity {
     if (mPlayerTypes.charAt(1) == 'H') {
       mHumanPlayers.add(Player.WHITE);      
     }
-    mComputerLevel = Integer.parseInt(prefs.getString("computer_difficulty", "1"));
+    mComputerLevel = Integer.parseInt(mPrefs.getString("computer_difficulty", "1"));
 
     mHandicap = (Handicap)getIntent().getSerializableExtra("handicap");
     if (mHandicap == null) mHandicap = Handicap.NONE;
@@ -497,7 +498,9 @@ public class GameActivity extends Activity {
         mFlipScreen = !mFlipScreen;
         mBoardView.setFlipScreen(mFlipScreen);
         mStatusView.setFlipScreen(mFlipScreen);
+        SharedPreferences.Editor editor = mPrefs.edit();
+        editor.putBoolean("flip_screen", mFlipScreen);
+        editor.commit();
     }
-
 
 }
