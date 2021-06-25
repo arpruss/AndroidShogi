@@ -419,10 +419,9 @@ public class BoardView extends View implements View.OnTouchListener {
     // Implementation details
     //
 
-    // Bitmap for all the pieces. mWhiteBitmaps[i] is the same as
-    // mBlackBitmapsmaps[i], except upside down.
-    private BitmapDrawable mBlackBitmaps[];
-    private BitmapDrawable mWhiteBitmaps[];
+    // Bitmap for all the pieces.
+    //   First index is orientation (0=upward, 1=downward), second is color (0=black, 1=white)
+    private BitmapDrawable mBitmaps[][][];
 
     private boolean mFlipped;        // if true, flip the board upside down.
     private Player mCurrentPlayer;   // Player currently holding the turn
@@ -698,7 +697,7 @@ public class BoardView extends View implements View.OnTouchListener {
             int piece,
             float sx, float sy, int alpha) {
         boolean isBlack = (Board.player(piece) == Player.BLACK);
-        BitmapDrawable[] bitmaps = (isBlack != mFlipped) ? mBlackBitmaps : mWhiteBitmaps;
+        BitmapDrawable[] bitmaps = mBitmaps[isBlack != mFlipped ? 0 : 1][isBlack ? 0 : 1];
         BitmapDrawable b = bitmaps[Board.type(piece)];
         b.setBounds((int) sx, (int) sy,
                 (int) (sx + layout.getSquareDim()), (int) (sy + layout.getSquareDim()));
@@ -732,8 +731,7 @@ public class BoardView extends View implements View.OnTouchListener {
         final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
         final String prefix = prefs.getString("piece_style", "kinki_simple");
         final Resources r = getResources();
-        mBlackBitmaps = new BitmapDrawable[Piece.NUM_TYPES];
-        mWhiteBitmaps = new BitmapDrawable[Piece.NUM_TYPES];
+        mBitmaps = new BitmapDrawable[2][2][Piece.NUM_TYPES];
         String koma_names[] = {
                 null,
                 "fu", "kyo", "kei", "gin", "kin", "kaku", "hi", "ou",
@@ -746,11 +744,13 @@ public class BoardView extends View implements View.OnTouchListener {
         for (int i = 1; i < Piece.NUM_TYPES; ++i) {
             if (koma_names[i] == null) continue;
             int id = r.getIdentifier(String.format("@mobi.omegacentauri.shogi:drawable/%s_%s", prefix, koma_names[i]), null, null);
-            Bitmap blackBm = BitmapFactory.decodeResource(r, id);
-            mBlackBitmaps[i] = new BitmapDrawable(getResources(), blackBm);
-            Bitmap whiteBm = Bitmap.createBitmap(blackBm, 0, 0, blackBm.getWidth(), blackBm.getHeight(),
+            Bitmap base = BitmapFactory.decodeResource(r, id);
+            mBitmaps[0][1][i] = new BitmapDrawable(getResources(), base);
+            Bitmap flipped = Bitmap.createBitmap(base, 0, 0, base.getWidth(), base.getHeight(),
                     flip, false);
-            mWhiteBitmaps[i] = new BitmapDrawable(getResources(), whiteBm);
+            mBitmaps[1][1][i] = new BitmapDrawable(getResources(), flipped);
+            mBitmaps[0][0][i] = mBitmaps[0][1][i];
+            mBitmaps[1][0][i] = mBitmaps[1][1][i];
         }
     }
 

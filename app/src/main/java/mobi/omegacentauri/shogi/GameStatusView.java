@@ -131,8 +131,10 @@ public class GameStatusView extends LinearLayout {
       int n = Math.min(mPlayList.size(), 6);
       StringBuilder b = new StringBuilder();
       boolean first = true;
+      String separator = (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.JELLY_BEAN || mPlayHistory.getMaxLines() == 1)
+                ? ", " : "\n";
       for (int i = mPlayList.size() - n; i < mPlayList.size(); ++i) {
-        if (!first) b.append(", ");
+        if (!first) b.append(separator);
         b.append(i + 1).append(":");
         b.append((i % 2 == 0) ? "◆" : "◇");
         b.append(mPlayList.get(i));
