@@ -711,7 +711,7 @@ public class BoardView extends View implements View.OnTouchListener {
                                          int piece, int n, float sx, float sy, int alpha) {
         drawPiece(canvas, layout, piece, sx, sy, alpha);
         if (n > 1) {
-            int fontSize = 14;
+            int fontSize = (int)(.35f*layout.getSquareDim());
             Paint p = new Paint();
             p.setTextSize(fontSize);
             p.setColor(0xffeeeeee);
