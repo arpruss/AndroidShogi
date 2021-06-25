@@ -78,8 +78,8 @@ public class GameStatusView extends LinearLayout {
   }
 
     private void setPlayerNames() {
-        mBlackPlayerName = (mFlipScreen ? "▼" : "▲") + mBaseBlackPlayerName;
-        mWhitePlayerName = (mFlipScreen ? "△" : "▽") + mBaseWhitePlayerName;
+        mBlackPlayerName =  (!mFlipScreen ? "△" : "▽") + mBaseBlackPlayerName;
+        mWhitePlayerName = (!mFlipScreen ? "▼" : "▲") + mBaseWhitePlayerName;
     }
 
     public void setFlipScreen(boolean flipScreen) {
@@ -136,7 +136,7 @@ public class GameStatusView extends LinearLayout {
       for (int i = mPlayList.size() - n; i < mPlayList.size(); ++i) {
         if (!first) b.append(separator);
         b.append(i + 1).append(":");
-        b.append((i % 2 == 0) ? "◆" : "◇");
+        b.append((i % 2 == 0) ? "◇" : "◆");
         b.append(mPlayList.get(i));
         first = false;
       }

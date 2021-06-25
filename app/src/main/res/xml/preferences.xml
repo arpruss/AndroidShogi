@@ -20,6 +20,11 @@
      android:defaultValue="/sdcard/ShogiLog"
      android:title="@string/game_log_dir"
      />
+  <CheckBoxPreference
+    android:key="darken_black"
+    android:defaultValue="false"
+    android:title="@string/darken_black"
+    />
   <PreferenceCategory android:title="Advanced settings"/>
   <ListPreference
     android:title="@string/log_save_format"

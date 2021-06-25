@@ -8,6 +8,7 @@ import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.graphics.LightingColorFilter;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Paint.Style;
@@ -730,6 +731,7 @@ public class BoardView extends View implements View.OnTouchListener {
     private final void initializePieceBitmaps(Context context) {
         final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
         final String prefix = prefs.getString("piece_style", "kinki_simple");
+        boolean darkenBlack = prefs.getBoolean("darken_black", false);
         final Resources r = getResources();
         mBitmaps = new BitmapDrawable[2][2][Piece.NUM_TYPES];
         String koma_names[] = {
@@ -749,8 +751,23 @@ public class BoardView extends View implements View.OnTouchListener {
             Bitmap flipped = Bitmap.createBitmap(base, 0, 0, base.getWidth(), base.getHeight(),
                     flip, false);
             mBitmaps[1][1][i] = new BitmapDrawable(getResources(), flipped);
-            mBitmaps[0][0][i] = mBitmaps[0][1][i];
-            mBitmaps[1][0][i] = mBitmaps[1][1][i];
+            if (darkenBlack) {
+                Bitmap baseBlack = Bitmap.createBitmap(base.getWidth(), base.getHeight(), Bitmap.Config.ARGB_8888);
+                Canvas c = new Canvas(baseBlack);
+                Paint p = new Paint();
+                p.setColorFilter(new LightingColorFilter(0xFFD0D0D0, 0));
+                c.drawBitmap(base, 0,0, p);
+                mBitmaps[0][0][i] = new BitmapDrawable(getResources(), baseBlack);
+                Bitmap flippedBlack = Bitmap.createBitmap(base.getWidth(), base.getHeight(), Bitmap.Config.ARGB_8888);
+                c = new Canvas(flippedBlack);
+                c.drawBitmap(flipped, 0, 0, p);
+                mBitmaps[1][0][i] = new BitmapDrawable(getResources(), flippedBlack);
+            }
+            else {
+                mBitmaps[0][0][i] = mBitmaps[0][1][i];
+                mBitmaps[1][0][i] = mBitmaps[1][1][i];
+
+            }
         }
     }
 
