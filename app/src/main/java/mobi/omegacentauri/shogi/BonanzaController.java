@@ -20,6 +20,24 @@ import android.util.Log;
 public class BonanzaController {
   private static final String TAG = "BonanzaController";
   private final int mComputerDifficulty;
+  private static final int maxTime[][] = new int[][] {
+          {60,1},
+          {60,1},
+          {60,1},
+          {60,1},
+          {60,1}, /*4*/
+          {2*60,10},
+          {5*60,20},
+          {10*60,40},
+          {15*60,60},
+          {30*60,60},
+          {60*60,60}, /* 10 */
+          {2*60*60,60},
+          {3*60,60,60},
+          {4*60,60,60},
+          {5*60,60,60},
+          {6*60,60,60} /* 15 */
+  };
   private Handler mOutputHandler;  // for reporting status to the caller
   private Handler mInputHandler;   // for sending commands to the controller thread 
   private HandlerThread mThread;
@@ -264,7 +282,8 @@ public class BonanzaController {
       throw new AssertionError("BOARD==null");
     }
     mInstanceId = BonanzaJNI.startGame(
-        resumeInstanceId, board, (nextPlayer == Player.BLACK) ? 0 : 1, mComputerDifficulty, 60, 1, jr);
+        resumeInstanceId, board, (nextPlayer == Player.BLACK) ? 0 : 1, mComputerDifficulty,
+            maxTime[mComputerDifficulty][0], maxTime[mComputerDifficulty][1], jr);
     if (jr.status != BonanzaJNI.R_OK) {
       throw new AssertionError(String.format("startGame failed: %d %s", jr.status, jr.error));
     }

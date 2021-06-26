@@ -7,22 +7,6 @@
     <item>◆コンピュータ ◇コンピュータ</item>
   </string-array>
 
-  <string-array name="computer_levels">
-    <item>レベル 0 (弱)</item>
-    <item>レベル 1</item>
-    <item>レベル 2</item>
-    <item>レベル 3</item>
-    <item>レベル 4 (強)</item>
-  </string-array>
-
-  <string-array name="computer_level_names">
-    <item>レベル0</item>
-    <item>レベル1</item>
-    <item>レベル2</item>
-    <item>レベル3</item>
-    <item>レベル4</item>
-  </string-array>
-
   <string-array name="handicap_types">
     <item>平手</item>
     <item>左香落</item>

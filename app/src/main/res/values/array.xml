@@ -1,204 +1,237 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <string-array name="player_types">
-    <item>◆Human ◇Computer</item>
-    <item>◆Computer ◇Human</item>
-    <item>◆Human ◇Human</item>
-    <item>◆Computer ◇Computer</item>
-  </string-array>
+    <string-array name="player_types">
+        <item>◆Human ◇Computer</item>
+        <item>◆Computer ◇Human</item>
+        <item>◆Human ◇Human</item>
+        <item>◆Computer ◇Computer</item>
+    </string-array>
 
-  <string-array name="player_type_values">
-    <item>HC</item>
-    <item>CH</item>
-    <item>HH</item>
-    <item>CC</item>
-  </string-array>
+    <string-array name="player_type_values">
+        <item>HC</item>
+        <item>CH</item>
+        <item>HH</item>
+        <item>CC</item>
+    </string-array>
 
-  <string-array name="computer_levels">
-    <item>Level 0 (easy)</item>
-    <item>Level 1</item>
-    <item>Level 2</item>
-    <item>Level 3</item>
-    <item>Level 4 (difficult)</item>
-  </string-array>
-  <string-array name="computer_level_names">
-    <item>Lv 0</item>
-    <item>Lv 1</item>
-    <item>Lv 2</item>
-    <item>Lv 3</item>
-    <item>Lv 4</item>
-  </string-array>
-  <string-array name="computer_level_values">
-    <item>0</item>
-    <item>1</item>
-    <item>2</item>
-    <item>3</item>
-    <item>4</item>
-  </string-array>
+    <string-array name="computer_levels">
+        <item>Level 0 (fast, easy)</item>
+        <item>Level 1 (fast)</item>
+        <item>Level 2 (fast)</item>
+        <item>Level 3 (fast)</item>
+        <item>Level 4 (fast, difficult)</item>
+        <item>Level 5 (2 min/game)</item>
+        <item>Level 6 (5 min/game)</item>
+        <item>Level 7 (10 min/game)</item>
+        <item>Level 8 (15 min/game)</item>
+        <item>Level 9 (30 min/game)</item>
+        <item>Level 10 (1 hr/game)</item>
+        <item>Level 11 (2 hrs/game)</item>
+        <item>Level 12 (3 hrs/game)</item>
+        <item>Level 13 (4 hrs/game)</item>
+        <item>Level 14 (5 hrs/game)</item>
+        <item>Level 15 (6 hrs/game)</item>
+    </string-array>
+    <string-array name="computer_level_names">
+        <item>Lv 0</item>
+        <item>Lv 1</item>
+        <item>Lv 2</item>
+        <item>Lv 3</item>
+        <item>Lv 4</item>
+        <item>Lv 5</item>
+        <item>Lv 6</item>
+        <item>Lv 7</item>
+        <item>Lv 8</item>
+        <item>Lv 9</item>
+        <item>Lv 10</item>
+        <item>Lv 11</item>
+        <item>Lv 12</item>
+        <item>Lv 13</item>
+        <item>Lv 14</item>
+        <item>Lv 15</item>
+    </string-array>
+    <string-array name="computer_level_values">
+        <item>0</item>
+        <item>1</item>
+        <item>2</item>
+        <item>3</item>
+        <item>4</item>
+        <item>5</item>
+        <item>6</item>
+        <item>7</item>
+        <item>8</item>
+        <item>9</item>
+        <item>10</item>
+        <item>11</item>
+        <item>12</item>
+        <item>13</item>
+        <item>14</item>
+        <item>15</item>
+    </string-array>
 
-  <string-array name="handicap_types">
-    <item>None</item>
-    <item>Left Kyo (Lance)</item>
-    <item>Kaku (Bishop)</item>
-    <item>Hi (Rook)</item>
-    <item>HiKyo (Rook+Left Lance)</item>
-    <item>HiKaku (Rook+Bishop)</item>
-    <item>4 pieces (Rook+Bishop+Both Lances)</item>
-    <item>6 pieces (Rook+Bishop+Both Lances and Knights)</item>
-  </string-array>
+    <string-array name="handicap_types">
+        <item>None</item>
+        <item>Left Kyo (Lance)</item>
+        <item>Kaku (Bishop)</item>
+        <item>Hi (Rook)</item>
+        <item>HiKyo (Rook+Left Lance)</item>
+        <item>HiKaku (Rook+Bishop)</item>
+        <item>4 pieces (Rook+Bishop+Both Lances)</item>
+        <item>6 pieces (Rook+Bishop+Both Lances and Knights)</item>
+    </string-array>
 
-  <string-array name="handicap_type_values">
-    <item>0</item>
-    <item>1</item>
-    <item>2</item>
-    <item>3</item>
-    <item>4</item>
-    <item>5</item>
-    <item>6</item>
-    <item>7</item>
-  </string-array>
+    <string-array name="handicap_type_values">
+        <item>0</item>
+        <item>1</item>
+        <item>2</item>
+        <item>3</item>
+        <item>4</item>
+        <item>5</item>
+        <item>6</item>
+        <item>7</item>
+    </string-array>
 
-  <string-array name="max_undos">
-    <item>Disallowed</item>
-    <item>1</item>
-    <item>2</item>
-    <item>3</item>
-    <item>4</item>
-    <item>Unlimited</item>
-  </string-array>
+    <string-array name="max_undos">
+        <item>Disallowed</item>
+        <item>1</item>
+        <item>2</item>
+        <item>3</item>
+        <item>4</item>
+        <item>Unlimited</item>
+    </string-array>
 
-  <string-array name="max_undo_values">
-    <item>0</item>
-    <item>1</item>
-    <item>2</item>
-    <item>3</item>
-    <item>4</item>
-    <item>99999</item>
-  </string-array>
+    <string-array name="max_undo_values">
+        <item>0</item>
+        <item>1</item>
+        <item>2</item>
+        <item>3</item>
+        <item>4</item>
+        <item>99999</item>
+    </string-array>
 
-  <string-array name="piece_style">
-    <item>Animal</item>
-    <item>Kinki</item>
-    <item>Kinki (simple)</item>
-    <item>Chess</item>
-    <item>Western (Duniho/Marroquin)</item>
-  </string-array>
+    <string-array name="piece_style">
+        <item>Animal</item>
+        <item>Kinki</item>
+        <item>Kinki (simple)</item>
+        <item>Chess</item>
+        <item>Western (Duniho/Marroquin)</item>
+    </string-array>
 
-  <string-array name="piece_style_values">
-      <item>animal</item>
-    <item>kinki</item>
-    <item>kinki_simple</item>
-    <item>nn</item>
-    <item>dm</item>
-  </string-array>
+    <string-array name="piece_style_values">
+        <item>animal</item>
+        <item>kinki</item>
+        <item>kinki_simple</item>
+        <item>nn</item>
+        <item>dm</item>
+    </string-array>
 
-  <string-array name="log_save_format">
-    <item>KIF (MS-DOS)</item>
-    <item>KIF (UTF-8)</item>
-  </string-array>
-  <string-array name="log_save_format_values">
-    <item>kif_dos</item>
-    <item>kif_utf8</item>
-  </string-array>
+    <string-array name="log_save_format">
+        <item>KIF (MS-DOS)</item>
+        <item>KIF (UTF-8)</item>
+    </string-array>
+    <string-array name="log_save_format_values">
+        <item>kif_dos</item>
+        <item>kif_utf8</item>
+    </string-array>
 
-  <string-array name="opening_moves_values">
-    <item>(全て)</item>
-	<item>矢倉</item>
-    <item>角換わり</item>
-    <item>横歩取り</item>
-    <item>相掛かり</item>
-    <item>ひねり飛車</item>
-    <item>居飛車力戦</item>
-    <item>四間飛車</item>
-    <item>三間飛車</item>
-    <item>中飛車</item>
-    <item>向飛車</item>
-    <item>陽動振飛車</item>
-    <item>相振飛車</item>
-    <item>その他</item>
-  </string-array>
+    <string-array name="opening_moves_values">
+        <item>(全て)</item>
+        <item>矢倉</item>
+        <item>角換わり</item>
+        <item>横歩取り</item>
+        <item>相掛かり</item>
+        <item>ひねり飛車</item>
+        <item>居飛車力戦</item>
+        <item>四間飛車</item>
+        <item>三間飛車</item>
+        <item>中飛車</item>
+        <item>向飛車</item>
+        <item>陽動振飛車</item>
+        <item>相振飛車</item>
+        <item>その他</item>
+    </string-array>
 
-  <string-array name="tournament_values">
-    <item>(全て)</item>
-    <item>順位戦</item>
-    <item>名人戦</item>
-    <item>竜王戦</item>
-    <item>王将戦</item>
-    <item>王位戦</item>
-    <item>王座戦</item>
-    <item>棋聖戦</item>
-    <item>棋王戦</item>
-    <item>>朝日OP</item>
-    <item>銀河戦</item>
-    <item>NHK杯</item>
-    <item>ＪＴ杯</item>
-  	<item>新人王戦</item>
-  	<item>達人戦</item>
-    <item>女流名人位戦</item>
-    <item>女流王将戦</item>
-    <item>女流王位戦</item>
-    <item>倉敷藤花戦</item>
-    <item>レディースOP</item>
-   	<item>鹿島杯</item>
-  	<item>近将杯</item>
-	<item>三段リーグ</item>
-	<item>奨励会</item>
-	<item>女流育成会</item>
-	<item>その他新聞棋戦</item>
-	<item>その他</item>
-	<item>十段戦</item>
-	<item>九段戦</item>
-	<item>全日本選手権</item>
-	<item>全日本プロ</item>
-	<item>早指戦</item>
-	<item>早指新鋭戦</item>
-	<item>勝抜戦</item>
-	<item>東京新聞杯</item>
-	<item>三社杯</item>
-	<item>早指王位戦</item>
-	<item>産経杯</item>
-	<item>名棋戦</item>
-	<item>若駒戦</item>
-	<item>最強者決定戦</item>
-	<item>古豪新鋭戦</item>
-	<item>日本一杯</item>
-	<item>九八七段戦</item>
-	<item>六五四段戦</item>
-	<item>天王戦</item>
-	<item>連盟杯</item>
-	<item>東西対抗勝継戦</item>
-	<item>若獅子戦</item>
-	<item>名将戦</item>
-	<item>IBM杯</item>
-	<item>ＧＣ戦</item>
-	<item>平成最強戦</item>
-	<item>レーティング戦</item>
-	<item>アマ名人戦</item>
-	<item>アマ竜王戦</item>
-	<item>アマ王将戦</item>
-	<item>朝日アマ名人戦</item>
-	<item>赤旗名人戦</item>
-	<item>支部対抗戦</item>
-	<item>シニア名人戦</item>
-	<item>オール学生戦</item>
-	<item>学生選手権</item>
-	<item>学生名人戦</item>
-	<item>学生王将戦</item>
-	<item>学生王座戦</item>
-	<item>高校選手権</item>
-	<item>高校竜王戦</item>
-	<item>高校新人戦</item>
-	<item>中学生選抜戦</item>
-	<item>中学生名人戦</item>
-	<item>中学生王将戦</item>
-	<item>小学生名人戦</item>
-	<item>アマ女王戦</item>
-	<item>女流アマ名人戦</item>
-	<item>関西女流アマ名人戦</item>
-    <item>学生女流名人戦</item>
-    <item>高校女流名人戦</item>
-    <item>高校女流新人戦</item>
-    <item>中学生女子選抜戦</item>
-  </string-array>
-  
+    <string-array name="tournament_values">
+        <item>(全て)</item>
+        <item>順位戦</item>
+        <item>名人戦</item>
+        <item>竜王戦</item>
+        <item>王将戦</item>
+        <item>王位戦</item>
+        <item>王座戦</item>
+        <item>棋聖戦</item>
+        <item>棋王戦</item>
+        <item>>朝日OP</item>
+        <item>銀河戦</item>
+        <item>NHK杯</item>
+        <item>ＪＴ杯</item>
+        <item>新人王戦</item>
+        <item>達人戦</item>
+        <item>女流名人位戦</item>
+        <item>女流王将戦</item>
+        <item>女流王位戦</item>
+        <item>倉敷藤花戦</item>
+        <item>レディースOP</item>
+        <item>鹿島杯</item>
+        <item>近将杯</item>
+        <item>三段リーグ</item>
+        <item>奨励会</item>
+        <item>女流育成会</item>
+        <item>その他新聞棋戦</item>
+        <item>その他</item>
+        <item>十段戦</item>
+        <item>九段戦</item>
+        <item>全日本選手権</item>
+        <item>全日本プロ</item>
+        <item>早指戦</item>
+        <item>早指新鋭戦</item>
+        <item>勝抜戦</item>
+        <item>東京新聞杯</item>
+        <item>三社杯</item>
+        <item>早指王位戦</item>
+        <item>産経杯</item>
+        <item>名棋戦</item>
+        <item>若駒戦</item>
+        <item>最強者決定戦</item>
+        <item>古豪新鋭戦</item>
+        <item>日本一杯</item>
+        <item>九八七段戦</item>
+        <item>六五四段戦</item>
+        <item>天王戦</item>
+        <item>連盟杯</item>
+        <item>東西対抗勝継戦</item>
+        <item>若獅子戦</item>
+        <item>名将戦</item>
+        <item>IBM杯</item>
+        <item>ＧＣ戦</item>
+        <item>平成最強戦</item>
+        <item>レーティング戦</item>
+        <item>アマ名人戦</item>
+        <item>アマ竜王戦</item>
+        <item>アマ王将戦</item>
+        <item>朝日アマ名人戦</item>
+        <item>赤旗名人戦</item>
+        <item>支部対抗戦</item>
+        <item>シニア名人戦</item>
+        <item>オール学生戦</item>
+        <item>学生選手権</item>
+        <item>学生名人戦</item>
+        <item>学生王将戦</item>
+        <item>学生王座戦</item>
+        <item>高校選手権</item>
+        <item>高校竜王戦</item>
+        <item>高校新人戦</item>
+        <item>中学生選抜戦</item>
+        <item>中学生名人戦</item>
+        <item>中学生王将戦</item>
+        <item>小学生名人戦</item>
+        <item>アマ女王戦</item>
+        <item>女流アマ名人戦</item>
+        <item>関西女流アマ名人戦</item>
+        <item>学生女流名人戦</item>
+        <item>高校女流名人戦</item>
+        <item>高校女流新人戦</item>
+        <item>中学生女子選抜戦</item>
+    </string-array>
+
 </resources>
