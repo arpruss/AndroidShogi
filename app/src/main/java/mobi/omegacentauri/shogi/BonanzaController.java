@@ -282,11 +282,9 @@ public class BonanzaController {
         if (board == null) {
             throw new AssertionError("BOARD==null");
         }
-        Log.v("shogi", "res "+resumeInstanceId);
         mInstanceId = BonanzaJNI.startGame(
                 resumeInstanceId, board, (nextPlayer == Player.BLACK) ? 0 : 1, mComputerDifficulty,
                 maxTime[mComputerDifficulty][0], maxTime[mComputerDifficulty][1], jr);
-        Log.v("shogi", "inst "+mInstanceId);
         if (jr.status != BonanzaJNI.R_OK) {
             throw new AssertionError(String.format("startGame failed: %d %s", jr.status, jr.error));
         }

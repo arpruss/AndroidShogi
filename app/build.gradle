@@ -1,14 +1,5 @@
 apply plugin: 'com.android.application'
 android {
-    /*
-    signingConfigs {
-        shogi {
-            keyAlias 'shogi'
-            keyPassword 'shogi'
-            storeFile file('shogi.key')
-            storePassword 'shogi'
-        }
-    } */
     compileSdkVersion 26
     buildToolsVersion "28.0.3"
     defaultConfig {
@@ -45,11 +36,4 @@ android {
         checkReleaseBuilds false
         abortOnError false
     }
-}
-
-dependencies {
-    implementation files('../libs/httpcore-4.4.14.jar')
-    implementation files('../libs/httpclient-4.5.13.jar')
-    implementation files('../libs/jsoup-1.6.1.jar')
-    implementation files('../libs/juniversalchardet-1.0.3.jar')
 }

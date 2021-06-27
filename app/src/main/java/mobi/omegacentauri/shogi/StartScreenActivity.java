@@ -186,7 +186,6 @@ public class StartScreenActivity extends Activity {
     b.initialize(h);
     intent.putExtra("initial_board", b);
     intent.putExtra("handicap", h);
-    intent.putExtra("new_game", true);
     startActivity(intent);
   }
 

@@ -120,10 +120,6 @@
     </content>
     <orderEntry type="jdk" jdkName="Android API 26 Platform" jdkType="Android SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" name="Gradle: __local_aars__:C.\cygwin64\home\Alexander_Pruss\android\Shogi\libs\httpcore-4.4.14.jar:unspecified@jar" level="project" />
-    <orderEntry type="library" name="Gradle: __local_aars__:C.\cygwin64\home\Alexander_Pruss\android\Shogi\libs\httpclient-4.5.13.jar:unspecified@jar" level="project" />
-    <orderEntry type="library" name="Gradle: __local_aars__:C.\cygwin64\home\Alexander_Pruss\android\Shogi\libs\jsoup-1.6.1.jar:unspecified@jar" level="project" />
-    <orderEntry type="library" name="Gradle: __local_aars__:C.\cygwin64\home\Alexander_Pruss\android\Shogi\libs\juniversalchardet-1.0.3.jar:unspecified@jar" level="project" />
     <orderEntry type="library" name="Gradle: android-android-26" level="project" />
   </component>
 </module>

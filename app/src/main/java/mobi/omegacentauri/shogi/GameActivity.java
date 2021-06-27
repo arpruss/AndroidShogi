@@ -243,7 +243,6 @@ public class GameActivity extends Activity {
     if (mPlays == null) {
       mPlays = new ArrayList<Play>();
       mMoveCookies = new ArrayList<Integer>();
-      Log.v("shogi", "clearing plays");
     }
   }
 
