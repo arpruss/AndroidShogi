@@ -84,8 +84,10 @@ public class GameActivity extends Activity {
     mActivity = this;
     mGameLogList = GameLogListManager.getInstance();
     setContentView(R.layout.game);
-
     initializeInstanceState(savedInstanceState);
+    if (savedInstanceState == null) {
+      Log.v("shogi", "null savedInstanceState");
+    }
     mStatusView = (GameStatusView)findViewById(R.id.gamestatusview);
     mStatusView.initialize(
         playerName(mPlayerTypes.charAt(0), mComputerLevel),
@@ -94,6 +96,7 @@ public class GameActivity extends Activity {
 
     mBoardView = (BoardView)findViewById(R.id.boardview);
     mBoardView.initialize(mViewListener, mHumanPlayers, mFlipScreen);
+    mBoardView.update(mGameState, null, mBoard, mNextPlayer, null, false);
     mController = new BonanzaController(mEventHandler, mComputerLevel);
     mController.start(savedInstanceState, mBoard, mNextPlayer);
 
@@ -106,6 +109,8 @@ public class GameActivity extends Activity {
   @Override
   public void onSaveInstanceState(Bundle bundle) {
     saveInstanceState(bundle);
+    for (int i=0;i<9; i++)
+      Log.v("shogi save "+i,""+mBoard.getPiece(0,i));
     mController.saveInstanceState(bundle);
   }
 
@@ -168,6 +173,7 @@ public class GameActivity extends Activity {
     b.putLong("shogi_next_player", (mNextPlayer == Player.BLACK) ? 0 : 1);
     b.putSerializable("shogi_moves", mPlays);
     b.putSerializable("shogi_move_cookies", mMoveCookies);
+    b.putSerializable("saved_board", mBoard);
   }
   
   @SuppressWarnings(value="`unchecked")
@@ -183,12 +189,12 @@ public class GameActivity extends Activity {
     long nextPlayer = initializeLong(b, "shogi_next_player", null, null, -1);
     if (nextPlayer >= 0) {
       mNextPlayer = (nextPlayer == 0 ? Player.BLACK : Player.WHITE);
-    } 
-    if (b != null) {
-      mPlays = (ArrayList<Play>)b.getSerializable("shogi_moves");
-      mMoveCookies = (ArrayList<Integer>)b.getSerializable("shogi_move_cookies");
     }
-    
+    if (b != null) {
+      mPlays = (ArrayList<Play>) b.getSerializable("shogi_moves");
+      mMoveCookies = (ArrayList<Integer>) b.getSerializable("shogi_move_cookies");
+    }
+
     mFlipScreen = mPrefs.getBoolean("flip_screen", false);
     mPlayerTypes = mPrefs.getString("player_types", "HC");
     mHumanPlayers = new ArrayList<Player>();
@@ -206,9 +212,15 @@ public class GameActivity extends Activity {
     // The "initial_board" intent extra is always set (the handicap setting is reported here).
     //
     // Note: if we are resuming via saveInstanceState (e.g., screen rotation), the initial
-    // value of mBoard is irrelevant. mController.start() will retrieve the board state
-    // just before interruption and report it via the event listener.
-    mBoard = (Board)getIntent().getSerializableExtra("initial_board");
+    // value of mBoard is utimately irrelevant. mController.start() will retrieve the board state
+    // just before interruption and report it via the event listener. However, we use a saved
+    // board state just in case the engine is thinking, so the user doesn't have to wait for the
+    // update.
+    mBoard = null;
+    if (b != null)
+      mBoard = (Board)b.getSerializable("saved_board");
+    if (mBoard == null)
+      mBoard = (Board)getIntent().getSerializableExtra("initial_board");
     
     // Resuming a saved game will set "moves" and "next_player" intent extras.
     if (mNextPlayer == null) {
@@ -231,6 +243,7 @@ public class GameActivity extends Activity {
     if (mPlays == null) {
       mPlays = new ArrayList<Play>();
       mMoveCookies = new ArrayList<Integer>();
+      Log.v("shogi", "clearing plays");
     }
   }
 

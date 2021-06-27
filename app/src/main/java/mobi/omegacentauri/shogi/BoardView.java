@@ -531,7 +531,7 @@ public class BoardView extends View implements View.OnTouchListener {
                 dim = height;
                 mCapturedWhite = new Rect(0, 0, dim / 10, dim);
                 mCapturedBlack = new Rect(dim * 11 / 10 + sep * 2, 0, dim * 12 / 10 + sep * 2, dim);
-                mBoard = new Rect(dim / 10 + sep, 0, dim * 11 / 10 + sep, dim);
+                mBoard = new Rect(dim * 14 / 100, 0, dim * 11 / 10 + sep, dim);
             }
             if (mFlipped) {
                 Rect tmp = mCapturedWhite;
