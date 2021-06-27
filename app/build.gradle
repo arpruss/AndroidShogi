@@ -17,9 +17,6 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.txt'
         }
     }
-    dependencies {
-        implementation fileTree(dir: 'libs', include: ['*.jar'])
-    }
     externalNativeBuild {
         ndkBuild {
             path 'src/main/cpp/Android.mk'
@@ -28,7 +25,12 @@ android {
     packagingOptions {
         exclude 'META-INF/DEPENDENCIES'
     }
+
+    dependencies {
+        implementation files('../libs/juniversalchardet-1.0.3.jar')
+    }
 }
+
 
 
 android {

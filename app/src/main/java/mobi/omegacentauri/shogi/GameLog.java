@@ -235,7 +235,7 @@ public class GameLog implements Serializable {
     return log;
   }
 
-  /** 
+  /**
    * Parse an embedded KIF file downloaded from http://wiki.optus.nu/.
    * Such a file can be created by saving a "テキスト表示" link directly to a file.
    *
@@ -269,7 +269,7 @@ public class GameLog implements Serializable {
     if (!kifFound) return null;
     return doParseKif(path, new StringReader(output.toString()));
   }
-  
+
   static final boolean ASSUME_SANE_KIF_READER = false;
     
   
@@ -329,15 +329,15 @@ public class GameLog implements Serializable {
     stream.close();
   }
   
-  /** 
-   * Given a KIF file encoded in UTF-8, parse it. If this method doesn't throw 
+  /**
+   * Given a KIF file encoded in UTF-8, parse it. If this method doesn't throw
    * an exception, it always return a non-null GameLog object.
    */
   public static GameLog parseKif(File path, InputStream in) throws ParseException, IOException {
     Reader stream = Util.inputStreamToReader(in, "SHIFT-JIS");
     return doParseKif(path, stream);
   }
-  
+
   /**
    * @param path The local sdcard path in which the kif data is stored. Should
    * be null if the data is not on sdcard.

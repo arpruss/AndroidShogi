@@ -77,10 +77,16 @@ public class GameActivity extends Activity {
   private ArrayList<Play> mPlays;
   private ArrayList<Integer> mMoveCookies;
   private SharedPreferences mPrefs;
+  private BonanzaInitializeThread bonanzaInitializeThread;
 
   @Override
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
+
+      bonanzaInitializeThread = new BonanzaInitializeThread();
+      bonanzaInitializeThread.start();
+
+
     mActivity = this;
     mGameLogList = GameLogListManager.getInstance();
     setContentView(R.layout.game);
@@ -514,5 +520,11 @@ public class GameActivity extends Activity {
         editor.putBoolean("flip_screen", mFlipScreen);
         editor.commit();
     }
+
+  private class BonanzaInitializeThread extends Thread {
+    @Override public void run() {
+      BonanzaJNI.initialize(getExternalFilesDir(null).getAbsolutePath());
+    }
+  }
 
 }

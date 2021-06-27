@@ -70,7 +70,7 @@ public class BonanzaJNI {
    * @param next_turn If 0, Black plays the first turn. If 1, the WHITE plays the first turn
    *   in the game. This param is non-zero only when resuming a saved game midway.
    *
-   * @param difficulty 1==weak, 5==strong
+   * @param difficulty 0==weak, 4==strong
    * @param result (output)  filled with the initial board configuration.
    * @return The game's instance ID. When the game has resumed 
    * resumeInstanceId, the method return its value. Otherwise it returns a newly
