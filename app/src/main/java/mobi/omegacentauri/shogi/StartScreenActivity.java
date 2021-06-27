@@ -109,8 +109,8 @@ public class StartScreenActivity extends Activity {
     if (hasRequiredFiles(mExternalDir)) {
       downloadButton.setVisibility(View.GONE);
       newGameButton.setVisibility(View.VISIBLE);
-//      bonanzaInitializeThread = new BonanzaInitializeThread();
-//      bonanzaInitializeThread.start();
+      bonanzaInitializeThread = new BonanzaInitializeThread();
+      bonanzaInitializeThread.start();
     }
     else {
       downloadButton.setVisibility(View.VISIBLE);

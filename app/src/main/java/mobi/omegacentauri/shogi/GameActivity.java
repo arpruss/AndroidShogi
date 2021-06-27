@@ -77,15 +77,12 @@ public class GameActivity extends Activity {
   private ArrayList<Play> mPlays;
   private ArrayList<Integer> mMoveCookies;
   private SharedPreferences mPrefs;
-  private BonanzaInitializeThread bonanzaInitializeThread;
 
   @Override
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
-
-      bonanzaInitializeThread = new BonanzaInitializeThread();
-      bonanzaInitializeThread.start();
-
+// this is usually unnecessary, but just in case something got pushed out of memory...
+    BonanzaJNI.initialize(getExternalFilesDir(null).getAbsolutePath());
 
     mActivity = this;
     mGameLogList = GameLogListManager.getInstance();
@@ -115,8 +112,6 @@ public class GameActivity extends Activity {
   @Override
   public void onSaveInstanceState(Bundle bundle) {
     saveInstanceState(bundle);
-    for (int i=0;i<9; i++)
-      Log.v("shogi save "+i,""+mBoard.getPiece(0,i));
     mController.saveInstanceState(bundle);
   }
 
@@ -176,6 +171,7 @@ public class GameActivity extends Activity {
     b.putLong("shogi_black_think_start_ms", mBlackThinkStartMs);	  	  
     b.putLong("shogi_white_think_start_ms", mWhiteThinkStartMs);
     b.putLong("shogi_start_time_ms", mStartTimeMs);
+      Log.v("shogi", "save next player "+mNextPlayer);
     b.putLong("shogi_next_player", (mNextPlayer == Player.BLACK) ? 0 : 1);
     b.putSerializable("shogi_moves", mPlays);
     b.putSerializable("shogi_move_cookies", mMoveCookies);
@@ -194,6 +190,7 @@ public class GameActivity extends Activity {
     mStartTimeMs = initializeLong(b, "shogi_start_time_ms", null, null, System.currentTimeMillis());
     long nextPlayer = initializeLong(b, "shogi_next_player", null, null, -1);
     if (nextPlayer >= 0) {
+      Log.v("shogi", "restore next player "+nextPlayer);
       mNextPlayer = (nextPlayer == 0 ? Player.BLACK : Player.WHITE);
     }
     if (b != null) {
@@ -521,10 +518,10 @@ public class GameActivity extends Activity {
         editor.commit();
     }
 
-  private class BonanzaInitializeThread extends Thread {
-    @Override public void run() {
-      BonanzaJNI.initialize(getExternalFilesDir(null).getAbsolutePath());
-    }
-  }
+//  private class BonanzaInitializeThread extends Thread {
+//    @Override public void run() {
+//      BonanzaJNI.initialize(getExternalFilesDir(null).getAbsolutePath());
+//    }
+//  }
 
 }

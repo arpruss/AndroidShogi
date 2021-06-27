@@ -300,8 +300,9 @@ void Java_mobi_omegacentauri_shogi_BonanzaJNI_initialize(
     JNIEnv *env,
     jclass unused_bonanza_class,
     jstring storage_dir) {
-  pthread_mutex_lock(&g_lock);
   if (!g_initialized) {
+    root_abort = 1; // just in case
+    pthread_mutex_lock(&g_lock);
     const char* tmp = (*env)->GetStringUTFChars(env, storage_dir, NULL);
     g_storage_dir = strdup(tmp);
     (*env)->ReleaseStringUTFChars(env, storage_dir, tmp);
@@ -312,8 +313,8 @@ void Java_mobi_omegacentauri_shogi_BonanzaJNI_initialize(
     }
     g_initialized = 1;
     LOG_DEBUG("Initialized Bonanza, dir=%s", g_storage_dir);
+    pthread_mutex_unlock(&g_lock);
   }
-  pthread_mutex_unlock(&g_lock);
 }
 
 jint Java_mobi_omegacentauri_shogi_BonanzaJNI_startGame(
