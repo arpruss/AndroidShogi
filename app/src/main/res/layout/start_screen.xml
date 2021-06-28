@@ -54,6 +54,15 @@
         android:layout_height="50sp"
         android:layout_weight="1"
         android:text="@string/help" />
-
   </LinearLayout>
+
+  <TextView
+      android:id="@+id/download_message"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:textSize = "14sp"
+      android:layout_weight="0"
+      android:visibility="gone"
+      android:text = "@string/download_message"
+      />
 </LinearLayout>

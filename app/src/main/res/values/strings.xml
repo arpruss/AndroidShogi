@@ -26,7 +26,7 @@
     <string name="handicap">Handicap</string>
     <string name="resume_play">Replay saved game</string>
     <string name="reload">Reload</string>
-    <string name="game_logs">Game logs</string>
+    <string name="game_logs">Game Logs</string>
     <string name="visit_optus">Visit DB</string>
     <string name="replay_game">Replay game</string>
     <string name="log_properties">Properties</string>
@@ -76,4 +76,5 @@
     <string name="engine_data_download">Download Data</string>
     <string name="options">Options</string>
     <string name="darken_black">Darken black pieces</string>
+    <string name="download_message">To play, you need to download Bonanza engine data. This is a 41mb compressed download, which will take up 180mb on your device.</string>
 </resources>

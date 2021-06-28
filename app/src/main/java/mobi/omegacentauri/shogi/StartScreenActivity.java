@@ -7,7 +7,9 @@ import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.ActivityInfo;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.util.Log;
@@ -41,6 +43,9 @@ public class StartScreenActivity extends Activity {
   private Button newGameButton;
   private Button downloadButton;
   private BonanzaInitializeThread bonanzaInitializeThread = null;
+  private Button pickLogButton;
+  private static final String downloadAddress = "https://pruss.mobi/dl/shogi-data.zip";
+  //"https://github.com/arpruss/AndroidShogiData/blob/master/assets/shogi-data.zip?raw=true";
 
   @Override
   public void onCreate(Bundle savedInstanceState) {
@@ -51,9 +56,6 @@ public class StartScreenActivity extends Activity {
       FatalError("Please mount the sdcard on the device");
       finish();
       return;
-    }
-    else if (!hasRequiredFiles(mExternalDir)) {
-      downloadData();
     }
 
     mPrefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
@@ -68,7 +70,7 @@ public class StartScreenActivity extends Activity {
       public void onClick(View v) { downloadData(); }
     });
 
-    Button pickLogButton = (Button)findViewById(R.id.pick_log_button);
+    pickLogButton = (Button)findViewById(R.id.pick_log_button);
     pickLogButton.setOnClickListener(new Button.OnClickListener() {
       public void onClick(View v) {
         startActivity(new Intent(v.getContext(), GameLogListActivity.class));
@@ -89,15 +91,14 @@ public class StartScreenActivity extends Activity {
       }
     });
 
-
     checkIfReady();
   }
 
   public void downloadData() {
-    ZipDownloader zd = new ZipDownloader(this, mExternalDir, REQUIRED_FILES);
+    ZipDownloader zd = new ZipDownloader(this, mExternalDir, REQUIRED_FILES, 188579590);
     try {
       Log.v("Shogi", "downloading");
-      zd.execute(new URL("https://github.com/arpruss/AndroidShogiData/blob/master/assets/shogi-data.zip?raw=true"));
+      zd.execute(new URL(downloadAddress));
     } catch (MalformedURLException e) {
       Log.v("Shogi", ""+e);
     }
@@ -108,13 +109,17 @@ public class StartScreenActivity extends Activity {
       return;
     if (hasRequiredFiles(mExternalDir)) {
       downloadButton.setVisibility(View.GONE);
+      pickLogButton.setVisibility(View.VISIBLE);
       newGameButton.setVisibility(View.VISIBLE);
       bonanzaInitializeThread = new BonanzaInitializeThread();
       bonanzaInitializeThread.start();
+      findViewById(R.id.download_message).setVisibility(View.GONE);
     }
     else {
       downloadButton.setVisibility(View.VISIBLE);
+      pickLogButton.setVisibility(View.GONE);
       newGameButton.setVisibility(View.GONE);
+      findViewById(R.id.download_message).setVisibility(View.VISIBLE);
     }
   }
 
@@ -213,30 +218,41 @@ public class StartScreenActivity extends Activity {
   }
 
   private class ZipDownloader extends AsyncTask<URL, Integer, Long> {
-    long totalSize = 0;
+    int totalSize = 0;
     int files = 0;
     Activity mActivity;
     File mDir;
     String[] mFilesList;
     ProgressDialog progress;
+    int mSize;
+    private int mOldOrientation;
 
-    public ZipDownloader(Activity activity, File dir, String[] filesList) {
+    public ZipDownloader(Activity activity, File dir, String[] filesList, int size) {
       mActivity = activity;
       mDir = dir;
       mFilesList = filesList;
+      mSize = size;
     }
 
       @Override
       protected void onPreExecute()
       {
           super.onPreExecute();
+          mOldOrientation = getRequestedOrientation();
+          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LOCKED);
+          }
+          else {
+            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_NOSENSOR);
+          }
           progress = new ProgressDialog(mActivity);
           progress.setMessage("Downloading engine data ...");
           progress.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
           progress.setIndeterminate(false);
           progress.setCancelable(false);
-          progress.setMax(mFilesList.length);
+          progress.setMax(mSize);
           progress.show();
+
       }
 
     @Override
@@ -245,7 +261,7 @@ public class StartScreenActivity extends Activity {
       long totalSize = 0;
       for (int i=0; i<urls.length; i++) {
         try {
-          totalSize += downloadZip(urls[i].openStream());
+          downloadZip(urls[i].openStream());
         } catch (IOException e) {
           return (long)(-1);
         }
@@ -273,11 +289,10 @@ public class StartScreenActivity extends Activity {
 
       File dir = getExternalFilesDir(null);
       ZipInputStream zis = new ZipInputStream(new BufferedInputStream(inputStream));
-      long totalSize = 0;
 
       ZipEntry entry;
       while((entry = zis.getNextEntry()) != null) {
-        publishProgress(files, 0);
+        publishProgress(files, totalSize);
         String name = entry.getName();
         int fileNum = -1;
         for (int i = 0 ; i < mFilesList.length; i++) {
@@ -308,7 +323,8 @@ public class StartScreenActivity extends Activity {
         while ((n=zis.read(buf)) > 0) {
           out.write(buf, 0, n);
           copied += n;
-          publishProgress(files, copied);
+          totalSize += n;
+          publishProgress(files, totalSize);
         }
         out.close();
         try {
@@ -331,18 +347,13 @@ public class StartScreenActivity extends Activity {
         clearFiles();
         finish();
       }
+      setRequestedOrientation(mOldOrientation);
       checkIfReady();
     }
 
     protected void onProgressUpdate(Integer... pos) {
-      progress.setProgress(pos[0]);
-      if (pos[1] > 1024*1024) {
-          int mb = pos[1] / (1024*1024);
-          int decimal = (pos[1] * 10 / (1024*1024)) % 10;
-          progress.setMessage("Downloading "+mb+"."+decimal+" mb");
-      }
-      else
-        progress.setMessage("Downloading "+pos[1]+" bytes");
+      progress.setProgress(pos[1]);
+      progress.setMessage("Downloading file "+(pos[0]+1)+" of "+mFilesList.length);
       progress.show();
     }
 
