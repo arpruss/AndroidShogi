@@ -25,7 +25,8 @@
                     android:id="@+id/status_game_status"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textSize="12sp" />
+                    android:textStyle="bold"
+                    android:textSize="14sp" />
 
             <LinearLayout
                 android:layout_width="wrap_content"

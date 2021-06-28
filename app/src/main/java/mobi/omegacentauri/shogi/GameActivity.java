@@ -100,8 +100,13 @@ public class GameActivity extends Activity {
     mBoardView = (BoardView)findViewById(R.id.boardview);
     mBoardView.initialize(mViewListener, mHumanPlayers, mFlipScreen);
     mBoardView.update(mGameState, null, mBoard, mNextPlayer, null, false);
+    mStatusView.update(mGameState,
+            mBoard, mBoard,
+            mPlays, mNextPlayer, null);
+    mStatusView.updateThinkTimes(mBlackThinkTimeMs, mWhiteThinkTimeMs);
     mController = new BonanzaController(mEventHandler, mComputerLevel);
-    mController.start(savedInstanceState, mBoard, mNextPlayer);
+    if (mGameState == GameState.ACTIVE)
+        mController.start(savedInstanceState, mBoard, mNextPlayer);
 
     schedulePeriodicTimer();
     // mController will call back via mControllerHandler when Bonanza is 
@@ -176,6 +181,7 @@ public class GameActivity extends Activity {
     b.putSerializable("shogi_moves", mPlays);
     b.putSerializable("shogi_move_cookies", mMoveCookies);
     b.putSerializable("saved_board", mBoard);
+    b.putSerializable("game_state", mGameState);
   }
   
   @SuppressWarnings(value="`unchecked")
@@ -193,10 +199,14 @@ public class GameActivity extends Activity {
       Log.v("shogi", "restore next player "+nextPlayer);
       mNextPlayer = (nextPlayer == 0 ? Player.BLACK : Player.WHITE);
     }
+    mGameState = null;
     if (b != null) {
       mPlays = (ArrayList<Play>) b.getSerializable("shogi_moves");
       mMoveCookies = (ArrayList<Integer>) b.getSerializable("shogi_move_cookies");
+      mGameState = (GameState) b.getSerializable("game_state");
     }
+    if (mGameState == null)
+      mGameState = GameState.ACTIVE;
 
     mFlipScreen = mPrefs.getBoolean("flip_screen", false);
     mPlayerTypes = mPrefs.getString("player_types", "HC");
@@ -215,7 +225,7 @@ public class GameActivity extends Activity {
     // The "initial_board" intent extra is always set (the handicap setting is reported here).
     //
     // Note: if we are resuming via saveInstanceState (e.g., screen rotation), the initial
-    // value of mBoard is utimately irrelevant. mController.start() will retrieve the board state
+    // value of mBoard is ultimately irrelevant. mController.start() will retrieve the board state
     // just before interruption and report it via the event listener. However, we use a saved
     // board state just in case the engine is thinking, so the user doesn't have to wait for the
     // update.
@@ -266,16 +276,21 @@ public class GameActivity extends Activity {
   // Periodic status update
   //
   private final Runnable mTimerHandler = new Runnable() {
-    public void run() { 
-      long now = System.currentTimeMillis();
-      long totalBlack = mBlackThinkTimeMs;
-      long totalWhite = mWhiteThinkTimeMs;
-      if (mNextPlayer == Player.BLACK) {
-        totalBlack += (now - mBlackThinkStartMs); 
-      } else if (mNextPlayer == Player.WHITE) {
-        totalWhite += (now - mWhiteThinkStartMs);
+    public void run() {
+      if (mGameState == GameState.ACTIVE) {
+        long now = System.currentTimeMillis();
+        long totalBlack = mBlackThinkTimeMs;
+        long totalWhite = mWhiteThinkTimeMs;
+        if (mNextPlayer == Player.BLACK) {
+          totalBlack += (now - mBlackThinkStartMs);
+        } else if (mNextPlayer == Player.WHITE) {
+          totalWhite += (now - mWhiteThinkStartMs);
+        }
+        mStatusView.updateThinkTimes(totalBlack, totalWhite);
       }
-      mStatusView.updateThinkTimes(totalBlack, totalWhite);
+      else {
+        mStatusView.updateThinkTimes(mBlackThinkTimeMs, mWhiteThinkTimeMs);
+      }
       if (!mDestroyed) schedulePeriodicTimer();
     }
   };
