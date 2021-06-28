@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mobi.omegacentauri.shogi.GameStatusView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/gamestatusview"
+    android:layout_width="wrap_content"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="fill_parent"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/status_game_status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textStyle="bold"
+            android:textSize="14sp" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/status_black_time"
+                android:layout_width="70sp"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical|right"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/status_black_player_name"
+                android:layout_width="80sp"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical|left"
+                android:textSize="14sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/status_white_time"
+                android:layout_width="70sp"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical|right"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/status_white_player_name"
+                android:layout_width="80sp"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical|left"
+                android:textSize="14sp" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/status_play_history"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="100"
+            android:gravity="right"
+            android:textSize="12sp" />
+        <TextView
+            android:id="@+id/undo_text_button"
+            android:layout_width="40sp"
+            android:layout_height="wrap_content"
+            android:layout_marginRight="10sp"
+            android:clickable="true"
+            android:gravity="center"
+            android:onClick="undoClick"
+            android:text="⎌"
+            android:textSize="25sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="40sp"
+            android:layout_height="wrap_content"
+            android:clickable="true"
+            android:gravity="center"
+            android:onClick="flipClick"
+            android:text="↕"
+            android:textSize="25sp"
+            android:textStyle="bold" />
+
+
+    </LinearLayout>
+</mobi.omegacentauri.shogi.GameStatusView>
