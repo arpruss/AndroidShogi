@@ -21,7 +21,7 @@ import android.util.Log;
  * event loop thread; it calls Context.getCacheDir, which doesn't look MT safe.
  */
 public class ExternalCacheManager {
-  private static final String TAG = "ExtenalCacheManager"; 
+  private static final String TAG = "ExternalCacheManager";
   private final File mDir;
   private final Context mContext;
   public static final int MAX_STATIC_PAGE_CACHE_STALENESS_MS = 7 * 24 * 3600 * 1000; // 1 week
