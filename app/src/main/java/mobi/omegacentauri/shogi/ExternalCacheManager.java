@@ -25,7 +25,7 @@ public class ExternalCacheManager {
   private final File mDir;
   private final Context mContext;
   public static final int MAX_STATIC_PAGE_CACHE_STALENESS_MS = 7 * 24 * 3600 * 1000; // 1 week
-  public static final int MAX_QUERY_CACHE_STALENSS_MS = 24 * 3600 * 1000; // 1 day
+  public static final int MAX_QUERY_CACHE_STALENESS_MS = 24 * 3600 * 1000; // 1 day
   
   // Cache key -> last access time
   private HashMap<String, Long> mLastAccessTimes;

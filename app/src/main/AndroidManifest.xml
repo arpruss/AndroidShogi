@@ -1,44 +1,43 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-      package="mobi.omegacentauri.shogi"
-      android:label="AndroidShogi"
-      android:versionCode="17"
-      android:versionName="2.7"
-      android:installLocation="preferExternal"
-      >
-    <uses-sdk
-      android:minSdkVersion="8"
-      android:targetSdkVersion="8"/>
+    package="mobi.omegacentauri.shogi"
+    android:installLocation="preferExternal"
+    android:label="AndroidShogi"
+    android:versionCode="300"
+    android:versionName="3.00">
+
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <application android:icon="@drawable/kinki_simple_hi"
-                 android:label="@string/app_name"
-        android:theme="@android:style/Theme.Black"
-                 >
-        <activity android:name=".StartScreenActivity"
-                  android:alwaysRetainTaskState="true">
+
+    <application
+        android:icon="@drawable/kinki_simple_hi"
+        android:label="@string/app_name"
+        android:theme="@android:style/Theme.Black">
+        <activity
+            android:name=".StartScreenActivity"
+            android:alwaysRetainTaskState="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".GameActivity"
-		              android:theme="@android:style/Theme.NoTitleBar"
-                  android:label="@string/app_name">
-        </activity>
-        <activity android:name=".ReplayGameActivity"
-            		  android:theme="@android:style/Theme.NoTitleBar"
-                  android:label="@string/app_name">
-        </activity>
-        <activity android:name=".GameLogListActivity"
-                  android:label="@string/app_name">
-        </activity>
-        <activity android:name=".ShogiPreferenceActivity"
-                  android:label="@string/app_name">
-        </activity>
-        <activity android:name=".HelpActivity"
-                  android:label="@string/app_name">
-        </activity>
+        <activity
+            android:name=".GameActivity"
+            android:label="@string/app_name"
+            android:theme="@android:style/Theme.NoTitleBar"></activity>
+        <activity
+            android:name=".ReplayGameActivity"
+            android:label="@string/app_name"
+            android:theme="@android:style/Theme.NoTitleBar"></activity>
+        <activity
+            android:name=".GameLogListActivity"
+            android:label="@string/app_name"></activity>
+        <activity
+            android:name=".ShogiPreferenceActivity"
+            android:label="@string/app_name"></activity>
+        <activity
+            android:name=".HelpActivity"
+            android:label="@string/app_name"></activity>
     </application>
 
 

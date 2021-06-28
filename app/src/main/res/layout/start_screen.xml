@@ -29,7 +29,7 @@
     <Button
         android:id="@+id/new_game_button"
         android:layout_width="0dp"
-        android:layout_height="50sp"
+        android:layout_height="55sp"
         android:layout_weight="1"
         android:visibility="gone"
         android:text="@string/new_game" />
@@ -37,21 +37,21 @@
     <Button
       android:id="@+id/pick_log_button"
       android:layout_width="0dp"
-        android:layout_height="50sp"
+        android:layout_height="55sp"
       android:layout_weight="1"
       android:text="@string/game_logs" />
 
   <Button
       android:id="@+id/options_button"
       android:layout_width="0dp"
-      android:layout_height="50sp"
+      android:layout_height="55sp"
       android:layout_weight="1"
       android:text="@string/options" />
 
     <Button
         android:id="@+id/help_button"
         android:layout_width="0dp"
-        android:layout_height="50sp"
+        android:layout_height="55sp"
         android:layout_weight="1"
         android:text="@string/help" />
   </LinearLayout>

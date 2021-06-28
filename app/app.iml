@@ -118,9 +118,9 @@
       <excludeFolder url="file://$MODULE_DIR$/build/reports" />
       <excludeFolder url="file://$MODULE_DIR$/build/tmp" />
     </content>
-    <orderEntry type="jdk" jdkName="Android API 26 Platform" jdkType="Android SDK" />
+    <orderEntry type="jdk" jdkName="Android API 30 Platform" jdkType="Android SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="Gradle: __local_aars__:C.\cygwin64\home\Alexander_Pruss\android\Shogi\libs\juniversalchardet-1.0.3.jar:unspecified@jar" level="project" />
-    <orderEntry type="library" name="Gradle: android-android-26" level="project" />
+    <orderEntry type="library" name="Gradle: android-android-30" level="project" />
   </component>
 </module>
