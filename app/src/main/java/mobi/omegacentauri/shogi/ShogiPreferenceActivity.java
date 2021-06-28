@@ -20,24 +20,4 @@ public class ShogiPreferenceActivity extends PreferenceActivity {
     super.onCreate(savedInstanceState);
     addPreferencesFromResource(R.xml.preferences);
   }
-  
-  @Override public boolean onCreateOptionsMenu(Menu menu) {
-    MenuInflater inflater = getMenuInflater();
-    inflater.inflate(R.menu.preferences_menu, menu);
-    return true;
-  }
-  
-  @Override public boolean onOptionsItemSelected(MenuItem item) {
-    switch (item.getItemId()) {
-      case R.id.reset_preferences:
-        PreferenceManager.getDefaultSharedPreferences(getBaseContext())
-          .edit().clear().commit();
-        return true;
-      case R.id.preferences_help_menu_id:
-        startActivity(new Intent(this, HelpActivity.class));
-        return true;
-      default:    
-        return super.onOptionsItemSelected(item);
-    }
-  }
 }

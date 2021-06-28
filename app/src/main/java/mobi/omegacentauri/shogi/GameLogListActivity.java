@@ -143,25 +143,9 @@ public class GameLogListActivity extends GenericListActivity<GameLog> {
     }
   }  
 
-  private Menu mOptionsMenu;
-  
-  @Override 
-  public boolean onCreateOptionsMenu(Menu menu) {
-    MenuInflater inflater = getMenuInflater();
-    inflater.inflate(R.menu.game_log_list_option_menu, menu);
-    mOptionsMenu = menu;
-    updateUndoMenu();
-    return true;
-  }
 
   static final int DIALOG_LOG_PROPERTIES = 1;
   
-  private final ArrayList<GameLogListManager.UndoToken> mUndoTokens = new ArrayList<GameLogListManager.UndoToken>();
-  private void addUndoToken(GameLogListManager.UndoToken undoToken) {
-    mUndoTokens.add(undoToken);
-    updateUndoMenu();
-  }
-
   private class DeleteLogTask extends AsyncTask<GameLog, String, GameLogListManager.UndoToken> {
     private final Activity mActivity;
     DeleteLogTask(Activity a) { mActivity = a; }
@@ -174,7 +158,6 @@ public class GameLogListActivity extends GenericListActivity<GameLog> {
     @Override
     protected void onPostExecute(GameLogListManager.UndoToken undo) {
       if (undo != null) { // no error happened
-        addUndoToken(undo);
         startListing(GameLogListManager.Mode.READ_SDCARD_SUMMARY);
       }
     }
@@ -248,37 +231,4 @@ public class GameLogListActivity extends GenericListActivity<GameLog> {
     }
   }
   
-  private void updateUndoMenu() {
-    if (mOptionsMenu != null) {
-      boolean enabled = !mUndoTokens.isEmpty();
-      mOptionsMenu.findItem(R.id.menu_undo).setEnabled(enabled);
-    }
-  }
-  
-  @Override public boolean onOptionsItemSelected(MenuItem item) {
-    switch (item.getItemId()) {
-    case R.id.menu_reload:
-      startListing(GameLogListManager.Mode.RESET_SDCARD_SUMMARY);
-      return true;
-    case R.id.menu_undo:
-      if (!mUndoTokens.isEmpty()) {
-        final int lastIndex = mUndoTokens.size() - 1;
-        final GameLogListManager.UndoToken undo = mUndoTokens.remove(lastIndex);
-        new UndoTask(this).execute(undo);
-      }
-      updateUndoMenu();
-      return true;
-    case R.id.menu_sort_by_date:
-      setSorter(GameLog.SORT_BY_DATE);
-      return true;
-    case R.id.menu_sort_by_black_player:
-      setSorter(GameLog.SORT_BY_BLACK_PLAYER);
-      return true;
-    case R.id.menu_sort_by_white_player:
-      setSorter(GameLog.SORT_BY_WHITE_PLAYER);
-      return true;
-    default:    
-      return super.onOptionsItemSelected(item);
-    }
-  }
 }
