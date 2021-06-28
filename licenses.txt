@@ -1,4 +1,4 @@
- All files, except under libs/*, cpp/* and res/drawable*/* are distributed under
+ All files, except under images/*, libs/*, cpp/* and res/drawable*/* are distributed under
  Apache license below:
 
  Copyright 2011-21 Yasushi Saito and Alexander Pruss
@@ -35,7 +35,7 @@ Animal icons are licensed under Creative Commons 3.0 Attribution https://creativ
 
 animal_fu/to Chick "chick by sandra from the Noun Project" https://thenounproject.com/search/?q=chick&i=1500444
 animal_ou Lion "lion face by Icons Producer from the Noun Project" https://thenounproject.com/iconsproducer/collection/lion-face-icon/?i=1979240
-animal_hi/ryu Giraffe "Giraffe by Kantor Tegalsari from the Noun Project" https://thenounproject.com/search/?q=giraffe&i=2192507
+animal_hi/ryu Giraffe "Giraffe by Icons Producer from the Noun Project" https://thenounproject.com/search/?q=giraffe+head&i=1993241
 animal_kaku/uma Elephant "elephant face by Icons Producer from the Noun Project" https://thenounproject.com/search/?q=elephant&i=1557800
 animal_kin "Dog by Andrea Harris from the Noun Project" https://thenounproject.com/search/?q=dog&i=246741
 animal_gin/nari_gin "Cat by ibrandify from the Noun Project" https://thenounproject.com/search/?q=cat&i=3027860
