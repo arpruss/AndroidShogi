@@ -76,5 +76,6 @@
     <string name="engine_data_download">Download Data</string>
     <string name="options">Options</string>
     <string name="darken_black">Darken black pieces</string>
-    <string name="download_message">To play, you need to download Bonanza engine data. This is a 41mb compressed download, which will take up 180mb on your device.</string>
+    <string name="download_message">To play, you need to download Bonanza engine data.
+        This is a 30mb compressed download, which will take up 180mb on your device.</string>
 </resources>

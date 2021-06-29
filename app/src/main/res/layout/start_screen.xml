@@ -22,7 +22,7 @@
   <Button
       android:id="@+id/data_download_button"
       android:layout_width="0dp"
-      android:layout_height="50sp"
+      android:layout_height="55sp"
       android:layout_weight="1"
       android:text="@string/engine_data_download" />
 
