@@ -28,6 +28,7 @@ android {
 
     dependencies {
         implementation files('../libs/juniversalchardet-1.0.3.jar')
+        implementation files('../libs/xz-1.9.jar')
     }
 }
 

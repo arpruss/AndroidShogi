@@ -26,6 +26,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
+import org.tukaani.xz.XZInputStream;
 
 /**
  * The activity launched when the Shogi application starts
@@ -358,4 +359,163 @@ public class StartScreenActivity extends Activity {
     }
 
   }
+
+
+  private class XZDownloader extends AsyncTask<XZDataFile, Integer, Long> {
+    long downloadedSize;
+    long totalSize;
+    int downloadedFiles = 0;
+    int totalFiles;
+    Activity mActivity;
+    File mDir;
+    ProgressDialog progress;
+    int mSize;
+    private int mOldOrientation;
+    private XZDataFile[] mFiles;
+
+    public XZDownloader(Activity activity, File dir) {
+      mActivity = activity;
+      mDir = dir;
+    }
+
+    @Override
+    protected void onPreExecute()
+    {
+      super.onPreExecute();
+      mOldOrientation = getRequestedOrientation();
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LOCKED);
+      }
+      else {
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_NOSENSOR);
+      }
+      progress = new ProgressDialog(mActivity);
+      progress.setMessage("Downloading engine data ...");
+      progress.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+      progress.setIndeterminate(false);
+      progress.setCancelable(false);
+      progress.setMax(mSize);
+      progress.show();
+
+    }
+
+    @Override
+    protected Long doInBackground(XZDataFile... dataFiles) {
+      mFiles = dataFiles;
+      clearFiles();
+      totalFiles = dataFiles.length;
+      totalSize = 0;
+      for (int i=0; i<totalFiles; i++)
+        totalSize += dataFiles[i].uncompressedSize;
+      downloadedSize = 0;
+      downloadedFiles = 0;
+      for (int i=0; i<totalFiles; i++) {
+        try {
+          downloadXZ(dataFiles[i].url.openStream());
+        } catch (IOException e) {
+          return (long)(-1);
+        }
+      }
+      return downloadedFiles == totalFiles ? totalSize : -1;
+    }
+
+    private void clearFiles() {
+      for (int i=0; i<mFiles.length; i++) {
+        try {
+          new File(mDir + "/" + mFiles[i].filename).delete();
+        }
+        catch (Exception e) {
+        }
+        try {
+          new File(mDir + "/" + mFiles[i].filename+".download").delete();
+        }
+        catch (Exception e) {
+        }
+      }
+    }
+
+    private long downloadXZ(InputStream inputStream) throws IOException {
+      XZInputStream xs = new XZInputStream (new BufferedInputStream(inputStream));
+
+      while((entry = zis.getNextEntry()) != null) {
+        publishProgress(files, totalSize);
+        String name = entry.getName();
+        int fileNum = -1;
+        for (int i = 0 ; i < mFilesList.length; i++) {
+          if (mFilesList[i].equals(name)) {
+            fileNum = i;
+            break;
+          }
+        }
+        if (fileNum < 0)
+          break;
+
+        File outFile = new File(mDir + "/" + name);
+        File tempFile = new File(mDir + "/" + name + ".download");
+        try {
+          tempFile.delete();
+        }
+        catch(Exception e) {
+        }
+        try {
+          outFile.delete();
+        }
+        catch(Exception e) {
+        }
+        FileOutputStream out = new FileOutputStream(tempFile);
+        byte[] buf = new byte[32768];
+        int copied = 0;
+        int n;
+        while ((n=zis.read(buf)) > 0) {
+          out.write(buf, 0, n);
+          copied += n;
+          totalSize += n;
+          publishProgress(files, totalSize);
+        }
+        out.close();
+        try {
+          tempFile.renameTo(outFile);
+        }
+        catch(Exception e) {
+          tempFile.delete();
+          throw(e);
+        }
+        files++;
+        totalSize += copied;
+      }
+      return totalSize;
+    }
+
+    protected void onPostExecute(Long result) {
+      progress.dismiss();
+      if (result < 0) {
+        Toast.makeText(mActivity, "Error downloading", Toast.LENGTH_LONG).show();
+        clearFiles();
+        finish();
+      }
+      setRequestedOrientation(mOldOrientation);
+      checkIfReady();
+    }
+
+    protected void onProgressUpdate(Long... pos) {
+      progress.setProgress(pos[1]);
+      progress.setMessage("Downloading file "+(pos[0]+1)+" of "+mFilesList.length);
+      progress.show();
+    }
+
+  }
+
+  static class XZDataFile {
+    URL url;
+    String filename;
+    long uncompressedSize;
+
+    public XZDataFile(URL url, String filename, long uncompressedSize) {
+      this.url = url;
+      this.filename = filename;
+      this.uncompressedSize = uncompressedSize;
+    }
+  }
 }
+
+
