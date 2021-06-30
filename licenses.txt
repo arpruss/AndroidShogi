@@ -30,7 +30,6 @@ The juniversalchardet library is under the Mozilla Public License 1.1.The Initia
  the Initial Developer. All Rights Reserved.
  Contributor(s): Kohei TAKETA <k-tak@void.in> (Java port)
 
-
 Animal icons are licensed under Creative Commons 3.0 Attribution https://creativecommons.org/licenses/by/3.0/
 
 animal_fu/to Chick "chick by sandra from the Noun Project" https://thenounproject.com/search/?q=chick&i=1500444
