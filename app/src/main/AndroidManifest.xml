@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="mobi.omegacentauri.shogi"
-    android:installLocation="preferExternal"
     android:label="AndroidShogi"
-    android:versionCode="300"
-    android:versionName="3.00">
+    android:versionCode="301"
+    android:versionName="3.01">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
@@ -12,7 +11,7 @@
     <application
         android:icon="@drawable/kinki_simple_hi"
         android:label="@string/app_name"
-        android:theme="@android:style/Theme.Black">
+        android:theme="@style/AppTheme">
         <activity
             android:name=".StartScreenActivity"
             android:alwaysRetainTaskState="true">
@@ -24,11 +23,11 @@
         <activity
             android:name=".GameActivity"
             android:label="@string/app_name"
-            android:theme="@android:style/Theme.NoTitleBar"></activity>
+            android:theme="@style/AppTheme.NoTitleBar"></activity>
         <activity
             android:name=".ReplayGameActivity"
             android:label="@string/app_name"
-            android:theme="@android:style/Theme.NoTitleBar"></activity>
+            android:theme="@style/AppTheme.NoTitleBar"></activity>
         <activity
             android:name=".GameLogListActivity"
             android:label="@string/app_name"></activity>

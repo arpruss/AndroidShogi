@@ -19,10 +19,12 @@ import android.graphics.Typeface;
 import android.graphics.drawable.BitmapDrawable;
 import android.preference.PreferenceManager;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
+import android.widget.FrameLayout;
 
-public class BoardView extends View implements View.OnTouchListener {
+public class BoardView extends FrameLayout implements View.OnTouchListener {
     static public final String TAG = "ShogiView";
 
     /**
@@ -525,6 +527,7 @@ public class BoardView extends View implements View.OnTouchListener {
                 mCapturedWhite = new Rect(0, 0, dim, dim / 10);
                 mCapturedBlack = new Rect(0, dim * 11 / 10 + sep * 2, dim, dim * 12 / 10 + sep * 2);
                 mBoard = new Rect(0, dim / 10 + sep, dim, dim * 11 / 10 + sep);
+                mHeight = mCapturedBlack.bottom;
             } else {
                 // Landscape layout. Captured pieces are shown at the left & right of the board
                 mPortrait = false;
@@ -532,6 +535,7 @@ public class BoardView extends View implements View.OnTouchListener {
                 mCapturedWhite = new Rect(0, 0, dim / 10, dim);
                 mCapturedBlack = new Rect(dim * 11 / 10 + sep * 2, 0, dim * 12 / 10 + sep * 2, dim);
                 mBoard = new Rect(dim * 14 / 100, 0, dim * 11 / 10 + sep, dim);
+                mWidth = mCapturedBlack.right;
             }
             if (mFlipped) {
                 Rect tmp = mCapturedWhite;
@@ -772,14 +776,27 @@ public class BoardView extends View implements View.OnTouchListener {
     }
 
     private final ScreenLayout getScreenLayout() {
+        return getScreenLayout(getWidth(), getHeight());
+    }
+
+    private final ScreenLayout getScreenLayout(int width, int height) {
         if (mCachedLayout != null &&
-                mCachedLayout.getScreenWidth() == getWidth() &&
-                mCachedLayout.getScreenHeight() == getHeight() &&
+                mCachedLayout.getScreenWidth() == width &&
+                mCachedLayout.getScreenHeight() == height &&
                 mCachedLayout.getFlipped() == mFlipped) {
             // reuse the cached value
         } else {
-            mCachedLayout = new ScreenLayout(getWidth(), getHeight(), mFlipped);
+            mCachedLayout = new ScreenLayout(width, height, mFlipped);
         }
         return mCachedLayout;
+    }
+
+    @Override protected void onMeasure (int widthMeasureSpec, int heightMeasureSpec) {
+        int originalWidth = MeasureSpec.getSize(widthMeasureSpec);
+        int originalHeight = MeasureSpec.getSize(heightMeasureSpec);
+        ScreenLayout layout = getScreenLayout(originalWidth, originalHeight);
+        super.onMeasure(
+                MeasureSpec.makeMeasureSpec(layout.getScreenWidth(), MeasureSpec.EXACTLY),
+                MeasureSpec.makeMeasureSpec(layout.getScreenHeight(), MeasureSpec.EXACTLY));
     }
 }

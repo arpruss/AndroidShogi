@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="40sp"
+    android:orientation="horizontal">
+
+    <Button
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:layout_marginLeft="0dp"
+        android:layout_marginRight="0dp"
+        android:paddingLeft="0dp"
+        android:paddingRight="0dp"
+        android:textScaleX="0.9"
+        android:onClick="play"
+        android:text="Play" />
+
+    <Button
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_marginLeft="0sp"
+        android:layout_marginRight="0sp"
+        android:layout_weight="1"
+        android:paddingLeft="0dp"
+        android:paddingRight="0dp"
+        android:textScaleX="0.9"
+        android:onClick="toSD"
+        android:text="→SD" />
+
+    <Button
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_marginLeft="0dp"
+        android:layout_marginRight="0dp"
+        android:paddingLeft="0dp"
+        android:paddingRight="0dp"
+        android:textScaleX="0.9"
+        android:layout_weight="1"
+        android:onClick="infoClick"
+        android:text="Info" />
+</LinearLayout>
