@@ -2,8 +2,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="mobi.omegacentauri.shogi"
     android:label="AndroidShogi"
-    android:versionCode="301"
-    android:versionName="3.01">
+    android:versionCode="302"
+
+    android:versionName="3.02">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
@@ -23,11 +24,11 @@
         <activity
             android:name=".GameActivity"
             android:label="@string/app_name"
-            android:theme="@style/AppTheme.NoTitleBar"></activity>
+            ></activity>
         <activity
             android:name=".ReplayGameActivity"
             android:label="@string/app_name"
-            android:theme="@style/AppTheme.NoTitleBar"></activity>
+            ></activity>
         <activity
             android:name=".GameLogListActivity"
             android:label="@string/app_name"></activity>

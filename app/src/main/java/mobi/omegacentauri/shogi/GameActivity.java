@@ -9,6 +9,7 @@ import android.app.Dialog;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -18,6 +19,7 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -86,6 +88,13 @@ public class GameActivity extends Activity {
 
     mActivity = this;
     mGameLogList = GameLogListManager.getInstance();
+    if (Build.VERSION.SDK_INT < 16) {
+      getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
+              WindowManager.LayoutParams.FLAG_FULLSCREEN);
+    }
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+      getActionBar().hide();
+    }
     setContentView(R.layout.game);
     initializeInstanceState(savedInstanceState);
     if (savedInstanceState == null) {

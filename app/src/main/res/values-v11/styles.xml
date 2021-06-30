@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="AppTheme.NoTitleBar" parent="@style/AppTheme">
+    <style name="AppTheme.Black.NoTitleBar" parent="@style/AppTheme.Black">
         <item name="android:windowActionBar">false</item>
         <item name="android:windowNoTitle">true</item>
         <item name="android:windowFullscreen">true</item>
