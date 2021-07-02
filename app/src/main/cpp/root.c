@@ -2,24 +2,18 @@
 #include <limits.h>
 #include "shogi.h"
 
-static int read_rest_list( tree_t * restrict ptree,
-			   unsigned int * restrict pmove_list );
-
-static int is_move_rest( unsigned int move,
-			 const unsigned int * restrict pmove_restraint );
+#if defined(USI) || defined(MNJ_LAN)
+static int is_move_ignore( unsigned int move );
+#endif
 
 int
-make_root_move_list( tree_t * restrict ptree, int flag )
+make_root_move_list( tree_t * restrict ptree )
 {
   unsigned int * restrict pmove;
-  unsigned int arestraint_list[ MAX_LEGAL_MOVES ];
   int asort[ MAX_LEGAL_MOVES ];
-  unsigned int move, move_best;
+  unsigned int move;
   int i, j, k, h, value, num_root_move, iret, value_pre_pv;
   int value_best;
-
-  if ( flag & flag_refer_rest ) { read_rest_list( ptree, arestraint_list ); }
-  else                          { arestraint_list[0] = 0; }
 
   pmove = ptree->move_last[0];
   ptree->move_last[1] = GenCaptures( root_turn, pmove );
@@ -28,58 +22,18 @@ make_root_move_list( tree_t * restrict ptree, int flag )
   num_root_move = (int)( ptree->move_last[1] - pmove );
 
   value_pre_pv = INT_MIN;
-  move_best    = 0;
   value_best   = 0;
   for ( i = 0; i < num_root_move; i++ )
     {
-      if ( ! ( game_status & flag_nopeek )
-	   && ( game_status & ( flag_puzzling | flag_pondering ) )
-	   && i != 0
-	   && ( i % 8 ) == 0 )
-	{
-	  iret = next_cmdline( 0 );
-	  if ( iret == -1 )
-	    {
-	      game_status |= flag_search_error;
-	      return 1;
-	    }
-	  else if ( iret == -2 )
-	    {
-	      out_warning( "%s", str_error );
-	      ShutdownClient;
-	    }
-	  else if ( game_status & flag_quit ) { return 1; }
-	  else if ( iret )
-	    {
-	      iret = procedure( ptree );
-	      if ( iret == -1 )
-		{
-		  game_status |= flag_search_error;
-		  next_cmdline( 1 );
-		  return 1;
-		}
-	      else if ( iret == -2 )
-		{
-		  out_warning( "%s", str_error );
-		  next_cmdline( 1 );
-		  ShutdownClient;
-		}
-	      else if ( iret == 1 ) { next_cmdline( 1 ); }
-
-	      if ( game_status & ( flag_quit | flag_quit_ponder
-				   | flag_suspend ) )
-		{
-		  return 1;
-		}
-	    }
-	}
-
       value = INT_MIN;
       move  = pmove[i];
 
       MakeMove( root_turn, move, 1 );
       if ( ! InCheck( root_turn )
-	   && ! is_move_rest( move, arestraint_list ) )
+#if defined(USI) || defined(MNJ_LAN)
+	   && ! is_move_ignore( move )
+#endif
+	   )
 	{
 	  iret = no_rep;
 	  if ( InCheck(Flip(root_turn)) )
@@ -97,11 +51,8 @@ make_root_move_list( tree_t * restrict ptree, int flag )
 	    ptree->current_move[1] = move;
 	    value = -search_quies( ptree, -score_bound, score_bound,
 				   Flip(root_turn), 2, 1 );
-	    if ( value > value_best )
-	      {
-		value_best = value;
-		move_best  = move;
-	      }
+
+	    if ( value > value_best ) { value_best = value; }
 	    if ( I2IsPromote(move) ) { value++; }
 	    if ( move == ptree->pv[0].a[1] )
 	      {
@@ -113,7 +64,6 @@ make_root_move_list( tree_t * restrict ptree, int flag )
       UnMakeMove( root_turn, move, 1 );
       asort[i] = value;
     }
-  if ( UToCap(move_best) ) { root_move_cap = 1; }
 
   /* shell sort */
   for ( k = SHELL_H_LEN - 1; k >= 0; k-- )
@@ -153,6 +103,9 @@ make_root_move_list( tree_t * restrict ptree, int flag )
       root_move_list[i].move   = pmove[i];
       root_move_list[i].nodes  = 0;
       root_move_list[i].status = 0;
+#if defined(DFPN_CLIENT)
+      root_move_list[i].dfpn_cresult = dfpn_client_na;
+#endif
     }
   if ( value_pre_pv != INT_MIN ) { asort[0] = value_pre_pv; }
   root_nmove = num_root_move;
@@ -204,46 +157,17 @@ make_root_move_list( tree_t * restrict ptree, int flag )
 }
 
 
-static int
-read_rest_list( tree_t * restrict ptree, unsigned int * restrict pmove_list )
+#if defined(USI) || defined(MNJ_LAN)
+static int CONV
+is_move_ignore( unsigned int move )
 {
-  FILE *pf;
-  int iret, imove;
-  char a[65536];
+  int i;
 
-  pf = file_open( "restraint.dat", "r" );
-  if ( pf == NULL ) { return -2; }
-
-  for ( imove = 0; imove < MAX_LEGAL_MOVES; imove++ )
+  for ( i = 0; moves_ignore[i] != MOVE_NA; i += 1 )
     {
-#if defined(_MSC_VER)
-      iret = fscanf_s( pf, "%s\n", a, 65536 );
-#else
-      iret = fscanf( pf, "%s\n", a );
-#endif
-      if ( iret != 1 ) { break; }
-      iret = interpret_CSA_move( ptree, pmove_list+imove, a );
-      if ( iret < 0 )
-	{
-	  file_close( pf );
-	  return iret;
-	}
+      if ( move == moves_ignore[i] ) { return 1; }
     }
-
-  pmove_list[imove] = 0;
-
-  return file_close( pf );
-}
-
-
-static int
-is_move_rest( unsigned int move,
-	      const unsigned int * restrict pmove_restraint )
-{
-  while ( *pmove_restraint )
-    {
-      if ( move == *pmove_restraint++ ) { return 1; }
-    }
-
+  
   return 0;
 }
+#endif

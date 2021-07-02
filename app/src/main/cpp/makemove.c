@@ -1,17 +1,17 @@
+#include <limits.h>
 #include <assert.h>
 #include <string.h>
 #include "shogi.h"
 
-#include "shogi_jni.h"
 #define DropB( PIECE, piece )  Xor( to, BB_B ## PIECE );                    \
                                HASH_KEY    ^= ( b_ ## piece ## _rand )[to]; \
                                HAND_B      -= flag_hand_ ## piece;          \
-                               BOARD[to]  = piece; 
+                               BOARD[to]  = piece
 
 #define DropW( PIECE, piece )  Xor( to, BB_W ## PIECE );                    \
                                HASH_KEY    ^= ( w_ ## piece ## _rand )[to]; \
                                HAND_W      -= flag_hand_ ## piece;          \
-                               BOARD[to]  = - piece;
+                               BOARD[to]  = - piece
 
 #define CapB( PIECE, piece, pro_piece )                   \
           Xor( to, BB_B ## PIECE );                       \
@@ -31,7 +31,7 @@
           HASH_KEY    ^= ( b_ ## pro_piece ## _rand )[to]     \
                        ^ ( b_ ## piece     ## _rand )[from];  \
           MATERIAL    += MT_PRO_ ## PIECE;                    \
-          BOARD[to] = pro_piece;
+          BOARD[to] = pro_piece
 
 #define NocapProW( PIECE, PRO_PIECE, piece, pro_piece )       \
           Xor( from, BB_W ## PIECE );                         \
@@ -39,26 +39,27 @@
           HASH_KEY    ^= ( w_ ## pro_piece ## _rand )[to]     \
                        ^ ( w_ ## piece     ## _rand )[from];  \
           MATERIAL    -= MT_PRO_ ## PIECE;                    \
-          BOARD[to]  = - pro_piece;
-
+          BOARD[to]  = - pro_piece
+ 
 #define NocapNoproB( PIECE, piece )                          \
           SetClear( BB_B ## PIECE );                         \
           HASH_KEY    ^= ( b_ ## piece ## _rand )[to]        \
                        ^ ( b_ ## piece ## _rand )[from];     \
-          BOARD[to] = piece;
+          BOARD[to] = piece
 
 #define NocapNoproW( PIECE, piece )                          \
           SetClear( BB_W ## PIECE );                         \
           HASH_KEY    ^= ( w_ ## piece ## _rand )[to]        \
                        ^ ( w_ ## piece ## _rand )[from];     \
-          BOARD[to] = - piece;
+          BOARD[to] = - piece
 
-void
+
+void CONV
 make_move_b( tree_t * restrict ptree, unsigned int move, int ply )
 {
   const int from = (int)I2From(move);
   const int to   = (int)I2To(move);
-  const int nrep  = root_nrep + ply - 1;
+  const int nrep = ptree->nrep + ply - 1;
 
   assert( UToCap(move) != king );
   assert( move );
@@ -67,7 +68,7 @@ make_move_b( tree_t * restrict ptree, unsigned int move, int ply )
   ptree->rep_board_list[nrep]    = HASH_KEY;
   ptree->rep_hand_list[nrep]     = HAND_B;
   ptree->save_material[ply]      = (short)MATERIAL;
-  ptree->stand_pat[ply+1]        = score_bound;
+  ptree->save_eval[ply+1]        = INT_MAX;
 
   if ( from >= nsquare )
     {
@@ -154,7 +155,7 @@ make_move_b( tree_t * restrict ptree, unsigned int move, int ply )
                        SetClear( BB_B_HDK );
                        SetClear( BB_B_RD );                break;
       }
-
+    
     if ( ipiece_cap )
       {
 	switch( ipiece_cap )
@@ -202,12 +203,12 @@ make_move_b( tree_t * restrict ptree, unsigned int move, int ply )
 }
 
 
-void
+void CONV
 make_move_w( tree_t * restrict ptree, unsigned int move, int ply )
 {
   const int from = (int)I2From(move);
   const int to   = (int)I2To(move);
-  const int nrep  = root_nrep + ply - 1;
+  const int nrep  = ptree->nrep + ply - 1;
 
   assert( UToCap(move) != king );
   assert( move );
@@ -216,7 +217,7 @@ make_move_w( tree_t * restrict ptree, unsigned int move, int ply )
   ptree->rep_board_list[nrep]    = HASH_KEY;
   ptree->rep_hand_list[nrep]     = HAND_B;
   ptree->save_material[ply]      = (short)MATERIAL;
-  ptree->stand_pat[ply+1]        = score_bound;
+  ptree->save_eval[ply+1]        = INT_MAX;
 
   if ( from >= nsquare )
     {
@@ -361,14 +362,12 @@ make_move_w( tree_t * restrict ptree, unsigned int move, int ply )
  * flag_time
  * flag_nomake_move
  * flag_history
- * flag_rejections
  */
-int
+int CONV
 make_move_root( tree_t * restrict ptree, unsigned int move, int flag )
 {
   int check, drawn, iret, i, n;
 
-  ptree->save_material[0] = (short)MATERIAL;
   MakeMove( root_turn, move, 1 );
 
   /* detect hang-king */
@@ -397,7 +396,7 @@ make_move_root( tree_t * restrict ptree, unsigned int move, int flag )
 	  str_error = str_perpet_check;
 	  UnMakeMove( root_turn, move, 1 );
 	  return -2;
-
+      
 	case four_fold_rep:
 	  drawn = 1;
 	  break;
@@ -413,11 +412,11 @@ make_move_root( tree_t * restrict ptree, unsigned int move, int flag )
 
   if ( drawn ) { game_status |= flag_drawn; }
 
-  /* renovate time */
+  /* update time */
   if ( flag & flag_time )
     {
-      iret = renovate_time( root_turn );
-      if ( iret < 0 ) { return iret; }
+      iret = update_time( root_turn );
+      if ( iret < 0 ) { return -1; }
     }
 
   root_turn = Flip( root_turn );
@@ -426,26 +425,10 @@ make_move_root( tree_t * restrict ptree, unsigned int move, int flag )
   if ( check && is_mate( ptree, 1 ) ) { game_status |= flag_mated; }
 
   /* save history */
-  if ( flag & flag_history )
-    {
-      /* save history for book learning */
-      if ( record_game.moves < HASH_REG_HIST_LEN )
-	{
-	  history_book_learn[ record_game.moves ].move_played = move;
-	  history_book_learn[ record_game.moves ].hand_played
-	    = ptree->rep_hand_list[ root_nrep ];
-	  history_book_learn[ record_game.moves ].key_played
-	    = (unsigned int)ptree->rep_board_list[ root_nrep ];
-	}
-
-      out_CSA( ptree, &record_game, move );
-    }
-
-  /* add rejections */
-  if ( flag & flag_rejections ) { add_rejections_root( ptree, move ); }
+  if ( flag & flag_history ) { out_CSA( ptree, &record_game, move ); }
 
   /* renew repetition table */
-  n = root_nrep;
+  n = ptree->nrep;
   if ( n >= REP_HIST_LEN - PLY_MAX -1 )
     {
       for ( i = 0; i < n; i++ )
@@ -454,15 +437,26 @@ make_move_root( tree_t * restrict ptree, unsigned int move, int flag )
 	  ptree->rep_hand_list[i]  = ptree->rep_hand_list[i+1];
 	}
     }
-  else { root_nrep++; }
+  else { ptree->nrep++; }
 
-  ptree->nsuc_check[PLY_MAX] = ptree->nsuc_check[0];
-  ptree->nsuc_check[0]       = ptree->nsuc_check[1];
-  ptree->nsuc_check[1]       = ptree->nsuc_check[2];
+  for ( i = 1; i < NUM_UNMAKE; i += 1 )
+    {
+      amove_save[i-1]            = amove_save[i];
+      amaterial_save[i-1]        = amaterial_save[i];
+      ansuc_check_save[i-1]      = ansuc_check_save[i];
+      alast_root_value_save[i-1] = alast_root_value_save[i];
+      alast_pv_save[i-1]         = alast_pv_save[i];
+    }
+  amove_save      [NUM_UNMAKE-1] = move;
+  amaterial_save  [NUM_UNMAKE-1] = ptree->save_material[1];
+  ansuc_check_save[NUM_UNMAKE-1] = ptree->nsuc_check[0];
+  ptree->nsuc_check[0]           = ptree->nsuc_check[1];
+  ptree->nsuc_check[1]           = ptree->nsuc_check[2];
 
-  /* renovate pv */
-  last_root_value_save = last_root_value;
-  last_pv_save         = last_pv;
+  /* update pv */
+  alast_root_value_save[NUM_UNMAKE-1] = last_root_value;
+  alast_pv_save[NUM_UNMAKE-1]         = last_pv;
+
   if ( last_pv.a[1] == move && last_pv.length >= 2 )
     {
       if ( last_pv.depth )
@@ -484,25 +478,74 @@ make_move_root( tree_t * restrict ptree, unsigned int move, int flag )
     last_root_value = 0;
   }
 
+#if defined(DFPN_CLIENT)
+  lock( &dfpn_client_lock );
+  snprintf( (char *)dfpn_client_signature, DFPN_CLIENT_SIZE_SIGNATURE,
+	    "%" PRIx64 "_%x_%x_%x", HASH_KEY, HAND_B, HAND_W, root_turn );
+  dfpn_client_signature[DFPN_CLIENT_SIZE_SIGNATURE-1] = '\0';
+  dfpn_client_rresult       = dfpn_client_na;
+  dfpn_client_num_cresult   = 0;
+  dfpn_client_flag_read     = 0;
+  dfpn_client_out( "%s %s\n", str_CSA_move(move), dfpn_client_signature );
+  unlock( &dfpn_client_lock );
+#endif
+
   return 1;
 }
 
 
-void
-unmake_move_root( tree_t * restrict ptree, unsigned int move )
+int CONV unmake_move_root( tree_t * restrict ptree )
 {
-  last_root_value = last_root_value_save;
-  last_pv         = last_pv_save;
+  unsigned int move;
+  int i;
 
-  ptree->nsuc_check[1] = ptree->nsuc_check[0];
-  ptree->nsuc_check[0] = ptree->nsuc_check[PLY_MAX];
+  if ( ptree->nrep == 0 || amove_save[NUM_UNMAKE-1] == MOVE_NA )
+    {
+      str_error = "no more undo infomation at root";
+      return -1;
+    }
 
-  root_nrep   -= 1;
+  ptree->nsuc_check[1]    = ptree->nsuc_check[0];
+  ptree->nsuc_check[0]    = ansuc_check_save[NUM_UNMAKE-1];
+  ptree->save_material[1] = (short)amaterial_save[NUM_UNMAKE-1];
+  move                    = amove_save[NUM_UNMAKE-1];
+  last_root_value         = alast_root_value_save[NUM_UNMAKE-1];
+  last_pv                 = alast_pv_save[NUM_UNMAKE-1];
+
+  ptree->nrep -= 1;
   game_status &= ~( flag_drawn | flag_mated );
-  root_turn   = Flip(root_turn);
+  root_turn    = Flip(root_turn);
 
-  ptree->save_material[1]      = ptree->save_material[0];
+  for ( i = NUM_UNMAKE-1; i > 0; i -= 1 )
+    {
+      amove_save[i]            = amove_save[i-1];
+      amaterial_save[i]        = amaterial_save[i-1];
+      ansuc_check_save[i]      = ansuc_check_save[i-1];
+      alast_root_value_save[i] = alast_root_value_save[i-1];
+      alast_pv_save[i]         = alast_pv_save[i-1];
+    }
+  amove_save[0]            = MOVE_NA;
+  amaterial_save[0]        = 0;
+  ansuc_check_save[0]      = 0;
+  alast_root_value_save[0] = 0;
+  alast_pv_save[0].a[0]    = 0;
+  alast_pv_save[0].a[1]    = 0;
+  alast_pv_save[0].depth   = 0;
+  alast_pv_save[0].length  = 0;
+
   UnMakeMove( root_turn, move, 1 );
 
-  sub_rejections_root( ptree, move );
+#if defined(DFPN_CLIENT)
+  lock( &dfpn_client_lock );
+  snprintf( (char *)dfpn_client_signature, DFPN_CLIENT_SIZE_SIGNATURE,
+	    "%" PRIx64 "_%x_%x_%x", HASH_KEY, HAND_B, HAND_W, root_turn );
+  dfpn_client_signature[DFPN_CLIENT_SIZE_SIGNATURE-1] = '\0';
+  dfpn_client_rresult       = dfpn_client_na;
+  dfpn_client_flag_read     = 0;
+  dfpn_client_num_cresult   = 0;
+  dfpn_client_out( "unmake\n" );
+  unlock( &dfpn_client_lock );
+#endif
+
+  return 1;
 }

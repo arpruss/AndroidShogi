@@ -29,7 +29,7 @@ import mobi.omegacentauri.shogi.BonanzaController;
  * The main activity that controls game play
  */
 public class GameActivity extends Activity {
-  private static final String TAG = "Shogi"; 
+  private static final String TAG = "Shogi";
 
   private static final int DIALOG_PROMOTE = 1235;
   private static final int DIALOG_CONFIRM_QUIT = 1236;
@@ -84,7 +84,7 @@ public class GameActivity extends Activity {
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
 // this is usually unnecessary, but just in case something got pushed out of memory...
-    BonanzaJNI.initialize(getExternalFilesDir(null).getAbsolutePath());
+    BonanzaJNI.initialize(StartScreenActivity.getExternalDir(this).getAbsolutePath());
 
     mActivity = this;
     mGameLogList = GameLogListManager.getInstance();

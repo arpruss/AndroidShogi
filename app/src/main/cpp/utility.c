@@ -2,16 +2,28 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
+#include <limits.h>
 #include "shogi.h"
-#include "shogi_jni.h"
 
-int
+
+int CONV
 ini_game( tree_t * restrict ptree, const min_posi_t *pmin_posi, int flag,
 	  const char *str_name1, const char *str_name2 )
 {
   bitboard_t bb;
   int piece;
   int sq, iret;
+
+#if defined(INANIWA_SHIFT)
+  if ( inaniwa_flag )
+    {
+      inaniwa_flag = 0;
+      ehash_clear();
+      iret = ini_trans_table();
+      if ( iret < 0 ) { return iret; }
+    }
+#endif
 
   if ( flag & flag_history )
     {
@@ -33,7 +45,7 @@ ini_game( tree_t * restrict ptree, const min_posi_t *pmin_posi, int flag,
   ptree->move_last[0]  = ptree->amove;
   ptree->nsuc_check[0] = 0;
   ptree->nsuc_check[1] = 0;
-  root_nrep            = 0;
+  ptree->nrep          = 0;
   root_turn            = pmin_posi->turn_to_move;
   HAND_B               = pmin_posi->hand_black;
   HAND_W               = pmin_posi->hand_white;
@@ -156,19 +168,19 @@ ini_game( tree_t * restrict ptree, const min_posi_t *pmin_posi, int flag,
   MATERIAL = eval_material( ptree );
   HASH_KEY = hash_func( ptree );
 
-  memset( ptree->history,         0, sizeof(ptree->history) );
-  memset( large_object->hash_rejections_parent, 0, sizeof(large_object->hash_rejections_parent) );
-  memset( large_object->hash_rejections,        0, sizeof(large_object->hash_rejections) );
+  memset( ptree->hist_good,       0, sizeof(ptree->hist_good) );
+  memset( ptree->hist_tried,      0, sizeof(ptree->hist_tried) );
 
-  game_status         &= ( flag_quiet | flag_reverse | flag_narrow_book
-			   | flag_time_extendable | flag_learning
-			   | flag_nobeep | flag_nostress | flag_nopeek
-			   | flag_noponder );
+  game_status &= ( flag_reverse | flag_narrow_book
+		   | flag_time_extendable | flag_learning
+		   | flag_nobeep | flag_nostress | flag_nopeek
+		   | flag_noponder | flag_noprompt | flag_sendpv
+		   | flag_nostdout | flag_nonewlog );
+
   sec_b_total     = 0;
   sec_w_total     = 0;
   sec_elapsed     = 0;
   last_root_value = 0;
-  n_nobook_move   = 0;
   last_pv.depth   = 0;
   last_pv.length  = 0;
   last_pv.a[0]    = 0;
@@ -195,7 +207,7 @@ ini_game( tree_t * restrict ptree, const min_posi_t *pmin_posi, int flag,
   nlance_box -= PopuCount( bb );
   nlance_box -= (int)I2HandLance(HAND_B);
   nlance_box -= (int)I2HandLance(HAND_W);
-
+  
   BBOr( bb, BB_BKNIGHT, BB_WKNIGHT );
   BBOr( bb, bb, BB_BPRO_KNIGHT );
   BBOr( bb, bb, BB_WPRO_KNIGHT );
@@ -241,20 +253,36 @@ ini_game( tree_t * restrict ptree, const min_posi_t *pmin_posi, int flag,
       return iret;
     }
 
+  /* connect to Tsumeshogi server */
+#if defined(DFPN_CLIENT)
+  lock( &dfpn_client_lock );
+  dfpn_client_start( ptree );
+  snprintf( (char *)dfpn_client_signature, DFPN_CLIENT_SIZE_SIGNATURE,
+	    "%" PRIx64 "_%x_%x_%x", HASH_KEY, HAND_B, HAND_W, root_turn );
+  dfpn_client_signature[DFPN_CLIENT_SIZE_SIGNATURE-1] = '\0';
+  dfpn_client_rresult       = dfpn_client_na;
+  dfpn_client_num_cresult   = 0;
+  dfpn_client_flag_read     = 0;
+  dfpn_client_out( "new %s\n", dfpn_client_signature );
+  unlock( &dfpn_client_lock );
+#endif
+
   return 1;
 }
 
 
-int
-gen_legal_moves( tree_t * restrict ptree, unsigned int *p0 )
+int CONV gen_legal_moves( tree_t * restrict ptree, unsigned int *p0, int flag )
 {
   unsigned int *p1;
   int i, j, n;
 
   p1 = GenCaptures( root_turn, p0 );
   p1 = GenNoCaptures( root_turn, p1 );
-  p1 = GenCapNoProEx2( root_turn, p1 );
-  p1 = GenNoCapNoProEx2( root_turn, p1 );
+  if ( flag )
+    {
+      p1 = GenCapNoProEx2( root_turn, p1 );
+      p1 = GenNoCapNoProEx2( root_turn, p1 );
+    }
   p1 = GenDrop( root_turn, p1 );
   n  = (int)( p1 - p0 );
 
@@ -300,7 +328,7 @@ gen_legal_moves( tree_t * restrict ptree, unsigned int *p0 )
   - detection of perpetual check is omitted.
   - weak moves are omitted.
 */
-int
+int CONV
 is_mate( tree_t * restrict ptree, int ply )
 {
   int iret = 0;
@@ -314,7 +342,7 @@ is_mate( tree_t * restrict ptree, int ply )
 }
 
 
-int
+int CONV
 is_hand_eq_supe( unsigned int u, unsigned int uref )
 {
 #if 1
@@ -348,14 +376,14 @@ is_hand_eq_supe( unsigned int u, unsigned int uref )
        && IsHandGold(u)   >= IsHandGold(uref)
        && IsHandBishop(u) >= IsHandBishop(uref)
        && IsHandRook(u)   >= IsHandRook(uref) ) { return 1; }
-
+  
   return 0;
 #endif
 }
 
 
 /* weak moves are omitted. */
-int
+int CONV
 detect_repetition( tree_t * restrict ptree, int ply, int turn, int nth )
 {
   const unsigned int *p;
@@ -363,7 +391,7 @@ detect_repetition( tree_t * restrict ptree, int ply, int turn, int nth )
   int n, i, imin, counter, irep, ncheck;
 
   ncheck = (int)ptree->nsuc_check[ply];
-  n      = root_nrep + ply - 1;
+  n      = ptree->nrep + ply - 1;
 
   /*if ( ncheck >= 6 )*/
   if ( ncheck >= nth * 2 )
@@ -445,21 +473,21 @@ detect_repetition( tree_t * restrict ptree, int ply, int turn, int nth )
 }
 
 
-int
+int CONV
 com_turn_start( tree_t * restrict ptree, int flag )
 {
   const char *str_move;
   unsigned int move, sec_total;
-  int iret, is_resign, value, ply;
+  int iret, is_resign, value;
 
   if ( ! ( flag & flag_from_ponder ) )
     {
       assert( ! ( game_status & mask_game_end ) );
-
+      
       time_start = time_turn_start;
-
+      
       game_status |=  flag_thinking;
-      iret         = iterate( ptree, flag );
+      iret         = iterate( ptree );
       game_status &= ~flag_thinking;
       if ( iret < 0 ) { return iret; }
     }
@@ -467,55 +495,12 @@ com_turn_start( tree_t * restrict ptree, int flag )
 
   move     = last_pv.a[1];
   value    = root_turn ? -last_root_value : last_root_value;
-  str_move = str_CSA_move( move );
-
-  // LOG_DEBUG("CompX: %x %s", move, str_move);
 
   if ( value < -resign_threshold && last_pv.type != pv_fail_high )
     {
-#if defined(DEKUNOBOU)
-      if ( dek_ngame )
-	{
-	  dek_lost += 1;
-	  Out( "Bonanza lost against Dekunobou\n" );
-	}
-#endif
       is_resign = 1;
     }
-  else {
-    is_resign = 0;
-
-#if defined(DEKUNOBOU)
-    if ( dek_ngame && ! is_resign
-	 && value > ( MT_CAP_DRAGON * 3 ) / 2
-	 && value > resign_threshold
-	 && value != score_inferior )
-      {
-	is_resign = 1;
-	dek_win  += 1;
-	Out( "Bonanza won against Dekunobou.\n" );
-      }
-    if ( dek_ngame && ! is_resign && value == -score_draw )
-      {
-	iret = make_move_root( ptree, move, ( flag_rep | flag_nomake_move ) );
-	if ( iret < 0 )
-	  {
-	    Out( "%s\n\n", str_move );
-	    return iret;
-	  }
-	else if ( iret == 2 )
-	  {
-	    is_resign = 1;
-	    Out( "The game with Dekunobou is drawn.\n" );
-	  }
-      }
-    if ( dek_ngame && ! is_resign && record_game.moves > 255 )
-      {
-	is_resign = 1;
-	Out( "The game with Dekunobou is interrupted...\n" );
-      }
-#endif
-  }
+  else { is_resign = 0; }
 
 #if defined(DBG_EASY)
   if ( easy_move && easy_move != move )
@@ -535,42 +520,58 @@ com_turn_start( tree_t * restrict ptree, int flag )
 	}
 #endif
       OutCsaShogi( "resign\n" );
-      OutDek( "%%TORYO\n" );
     }
   else {
-#if defined(CSA_LAN)
-    if ( sckt_csa != SCKT_NULL )
+#if defined(USI)
+    if ( usi_mode != usi_off )
       {
-	iret = sckt_out( sckt_csa, "%c%s\n", ach_turn[root_turn], str_move );
-	if ( iret < 0 ) { return iret; }
+	char buf[6];
+	csa2usi( ptree, str_CSA_move(move), buf );
+	USIOut( "bestmove %s\n", buf );
       }
 #endif
 
-    OutCsaShogi( "move%s\n", str_move );
-    OutDek( "%c%s\n", ach_turn[root_turn], str_move );
+    OutCsaShogi( "move%s\n", str_CSA_move( move ) );
+
+#if defined(CSA_LAN)
+    if ( sckt_csa != SCKT_NULL ) {
+      
+      if ( game_status & flag_sendpv ) {
+	int i, turn, byte;
+	char buf[256];
+	
+	byte = snprintf( buf, 256, "%c%s,\'* %d",
+			 ach_turn[root_turn], str_CSA_move( move ),
+			 last_root_value );
+	
+	turn = root_turn;
+	for( i = 2; i <= last_pv.length && i < 5; i++ )
+	  {
+	    turn = Flip(turn);
+	    byte += snprintf( buf+byte, 256-byte, " %c%s",
+			      ach_turn[turn], str_CSA_move(last_pv.a[i]) );
+	  }
+	
+	iret = sckt_out( sckt_csa, "%s\n", buf );
+	if ( iret < 0 ) { return iret; }
+	
+      } else {
+	
+	iret = sckt_out( sckt_csa, "%c%s\n", ach_turn[root_turn],
+			 str_CSA_move( move ) );
+	if ( iret < 0 ) { return iret; }
+      }
+    }
+#endif
   }
   OutBeep();
-
-  /* learning and stuff */;
-  ply = record_game.moves;
-  if ( ply < HASH_REG_HIST_LEN )
-    {
-      history_book_learn[ply].data             &= ~( (1U<<31) | 0xffffU );
-      history_book_learn[ply].data             |= (unsigned int)(value+32768);
-      history_book_learn[ply].move_responsible  = move;
-      history_book_learn[ply].key_responsible   = (unsigned int)HASH_KEY;
-      history_book_learn[ply].hand_responsible  = (unsigned int)HAND_B;
-    }
-
-  iret = hash_learn( ptree, move, value, iteration_depth - 1 );
-  if ( iret < 0 ) { return iret; }
-
+  
   /* show search result and make a move */
   if ( is_resign )
     {
       show_prompt();
       game_status |= flag_resigned;
-      renovate_time( root_turn );
+      update_time( root_turn );
       out_CSA( ptree, &record_game, MOVE_RESIGN );
       sec_total = root_turn ? sec_w_total : sec_b_total;
       str_move  = "resign";
@@ -578,14 +579,10 @@ com_turn_start( tree_t * restrict ptree, int flag )
   else {
     show_prompt();
     iret = make_move_root( ptree, move,
-			   ( flag_rep | flag_time | flag_history
-			     | flag_rejections ) );
-    if ( iret < 0 )
-      {
-	Out( "%s\n\n", str_move );
-	return iret;
-      }
+			   ( flag_rep | flag_time | flag_history ) );
+    if ( iret < 0 ) { return iret; }
     sec_total = root_turn ? sec_b_total : sec_w_total;
+    str_move  = str_CSA_move( move );
   }
 
   OutCsaShogi( "info tt %03u:%02u\n", sec_total / 60U, sec_total % 60U );
@@ -595,7 +592,7 @@ com_turn_start( tree_t * restrict ptree, int flag )
        sec_elapsed / 60U, sec_elapsed % 60U,
        sec_total   / 60U, sec_total   % 60U,
        sec_b_total, sec_w_total );
-
+ 
   if ( ! is_resign )
     {
 #if ! defined(NO_STDOUT)
@@ -607,9 +604,63 @@ com_turn_start( tree_t * restrict ptree, int flag )
   return 1;
 }
 
+#if defined(MNJ_LAN)
+int CONV mnj_reset_tbl( int sd, unsigned int seed )
+{
+  double average, deviation, d;
+  unsigned int u;
+  int i, j;
 
-void *
-memory_alloc( size_t nbytes )
+  if ( sd <= 0 ) { return load_fv(); }
+
+  if ( load_fv()           < 0 ) { return -1; }
+  if ( clear_trans_table() < 0 ) { return -1; }
+  ehash_clear();
+
+
+  ini_rand( seed );
+  average   = 0.0;
+  deviation = 0.0;
+
+  for( i = 0; i < nsquare * pos_n; i++ )
+    {
+      d = -6.0;
+
+      for ( j = 0; j < 12; j++ ) { d += (double)rand32() / (double)UINT_MAX; }
+      d             *= (double)sd;
+      average       += d;
+      deviation     += d * d;
+      pc_on_sq[0][i] = (short)( (int)pc_on_sq[0][i] + (int)d );
+    }
+
+  for( i = 0; i < nsquare * nsquare * kkp_end; i++ )
+    {
+      d = -6.0;
+
+      for ( j = 0; j < 12; j++ ) { d += (double)rand32() / (double)UINT_MAX; }
+      d           *= (double)sd;
+      average     += d;
+      deviation   += d * d;
+      kkp[0][0][i] = (short)( (int)kkp[0][0][i] + (int)d );
+    }
+
+  average   /= (double)( nsquare * pos_n + nsquare * nsquare * kkp_end );
+  deviation /= (double)( nsquare * pos_n + nsquare * nsquare * kkp_end );
+  deviation  = sqrt( deviation );
+
+  if ( get_elapsed( &u ) < 0 ) { return -1; }
+  ini_rand( u );
+
+  Out( "\nThe normal distribution N(0,sd^2) is generated.\n" );
+  Out( "  actual average:            % .7f\n", average );
+  Out( "  actual standard deviation: % .7f\n", deviation );
+  Out( "rand seed = %x\n", u );
+
+  return 1;
+}
+#endif
+
+void * CONV memory_alloc( size_t nbytes )
 {
 #if defined(_WIN32)
   void *p = VirtualAlloc( NULL, nbytes, MEM_COMMIT, PAGE_READWRITE );
@@ -622,8 +673,7 @@ memory_alloc( size_t nbytes )
 }
 
 
-int
-memory_free( void *p )
+int CONV memory_free( void *p )
 {
 #if defined(_WIN32)
   if ( VirtualFree( p, 0, MEM_RELEASE ) ) { return 1; }

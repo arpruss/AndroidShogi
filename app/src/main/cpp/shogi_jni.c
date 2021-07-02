@@ -422,8 +422,8 @@ void Java_mobi_omegacentauri_shogi_BonanzaJNI_humanMove(
   } else {
     r = make_move_root(&tree, move,
                        (flag_history | flag_time | flag_rep
-                        | flag_detect_hang
-                        | flag_rejections));
+                        | flag_detect_hang/*
+                        | flag_rejections */));
     if (r < 0) {
       LOG_DEBUG("Failed to make move: %s: %s", move_str_buf, str_error);
       move_str = NULL;
@@ -448,6 +448,7 @@ void Java_mobi_omegacentauri_shogi_BonanzaJNI_undo(
     jint undo_cookie1,
     jint undo_cookie2,
     jobject result) {
+  LOG_DEBUG("Undo request: %x %x", undo_cookie1, undo_cookie2);
   pthread_mutex_lock(&g_lock);
   if (AnotherInstanceStarted(env, instance_id, result)) {
     pthread_mutex_unlock(&g_lock);
@@ -456,10 +457,10 @@ void Java_mobi_omegacentauri_shogi_BonanzaJNI_undo(
 
   MoveBuf move_str;
   unsigned int move;
-  CHECK2_GE(undo_cookie1, 1, "Cookie: %x", undo_cookie1);
-  unmake_move_root(&tree, undo_cookie1);
+  //CHECK2_GE(undo_cookie1, 1, "Cookie: %x", undo_cookie1);
+  unmake_move_root(&tree);
   if (undo_cookie2 >= 0) {
-    unmake_move_root(&tree, undo_cookie2);
+    unmake_move_root(&tree);
   }
   LOG_DEBUG("Undo: %x %x", undo_cookie1, undo_cookie2);
   FillResult("Undo", env, R_OK, NULL, NULL, 0, &tree, result);
@@ -480,7 +481,7 @@ void Java_mobi_omegacentauri_shogi_BonanzaJNI_computerMove(
 
   CHECK2_GE(com_turn_start(&tree, 0), 0, "error: %s", str_error);
 
-  unsigned int move = last_pv_save.a[1];
+  unsigned int move = alast_pv_save[NUM_UNMAKE-1].a[1];
   const char* move_str = NULL;
   if (move != 0) {
     move_str = str_CSA_move( move );

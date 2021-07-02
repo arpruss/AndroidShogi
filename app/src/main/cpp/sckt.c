@@ -10,7 +10,28 @@
 #endif
 #include "shogi.h"
 
-#if defined(CSA_LAN) || defined(DEKUNOBOU)
+#if defined(CSA_LAN) || defined(MNJ_LAN) || defined(DFPN)
+void CONV shutdown_all( void )
+{
+#  if defined(MNJ_LAN)
+  sckt_shutdown( sckt_mnj );
+  sckt_mnj = SCKT_NULL;
+#  endif
+
+#  if defined(CSA_LAN)
+  sckt_shutdown( sckt_csa );
+  sckt_csa = SCKT_NULL;
+#  endif
+
+#  if defined(DFPN)
+  sckt_shutdown( dfpn_sckt );
+  dfpn_sckt = SCKT_NULL;
+#  endif
+}
+#endif
+
+
+#if defined(CSA_LAN) || defined(MNJ_LAN) || defined(DFPN_CLIENT)||defined(DFPN)
 const char *
 str_WSAError( const char *str )
 {
@@ -24,27 +45,35 @@ str_WSAError( const char *str )
 }
 #endif
 
-#if defined(CSA_LAN)
 
-int
-client_next_game( tree_t * restrict ptree )
+#if defined(CSA_LAN)
+int CONV
+client_next_game( tree_t * restrict ptree, const char *str_addr, int iport )
 {
   int iret;
   int my_turn;
   const char *str_name1, *str_name2;
   char buf1[SIZE_PLAYERNAME], buf2[SIZE_PLAYERNAME];
 
-  str_name1 = str_name2 = NULL;
-  iret = sckt_out( sckt_csa, "LOGIN %s %s\n", client_str_id, client_str_pwd );
-  if ( iret < 0 ) { return iret; }
-
   for ( ;; ) {
+
+    str_buffer_cmdline[0] = '\0';
+    sckt_csa = sckt_connect( str_addr, iport );
+    if ( sckt_csa == SCKT_NULL ) { return -2; }
+      
+    str_name1 = str_name2 = NULL;
+    iret = sckt_out( sckt_csa, "LOGIN %s %s\n",
+		     client_str_id, client_str_pwd );
+    if ( iret < 0 ) { return iret; }
+
     Out( "wait for next game-conditions...\n" );
 
     my_turn = black;
     for ( ;; ) {
+
       iret = next_cmdline( 1 );
       if ( iret < 0 ) { return iret; }
+      else if ( game_status & flag_quit ) { return 1; }
       
       if      ( ! strcmp( str_cmdline, "END Game_Summary" ) ) { break; }
       else if ( ! strcmp( str_cmdline, "Your_Turn:-" ) ) { my_turn = white; }
@@ -61,14 +90,19 @@ client_next_game( tree_t * restrict ptree )
 	  str_name2 = buf2;
 	}
     }
-    
+
     iret = sckt_out( sckt_csa, "AGREE\n" );
     if ( iret < 0 ) { return -2; }
 
     iret = next_cmdline( 1 );
     if ( iret < 0 ) { return iret; }
+    else if ( game_status & flag_quit ) { return 1; }
 
-    if      ( ! memcmp( str_cmdline, "REJECT:", 7 ) )  { continue; }
+    if ( ! memcmp( str_cmdline, "REJECT:", 7 ) )
+      {
+	ShutdownAll();
+	continue;
+      }
     else if ( ! memcmp( str_cmdline, "START:", 6 ) )   { break; }
 
     str_error = str_server_err;
@@ -97,15 +131,18 @@ client_next_game( tree_t * restrict ptree )
 
   return 1;
 }
+#endif
 
 
-sckt_t
+#if defined(CSA_LAN)||defined(MNJ_LAN)|| defined(DFPN_CLIENT)|| defined(DFPN)
+sckt_t CONV
 sckt_connect( const char *str_addr, int iport )
 {
   struct hostent *phe;
   struct sockaddr_in sin;
   sckt_t sd;
   u_long ul_addr;
+  int count;
 
 #if defined(_WIN32)
   {
@@ -143,34 +180,42 @@ sckt_connect( const char *str_addr, int iport )
       return SCKT_NULL;
     }
 
-  sin.sin_family      = AF_INET;
-  sin.sin_addr.s_addr = ul_addr;
-  sin.sin_port        = htons( (u_short)iport );
-  if ( connect( sd, (struct sockaddr *)&sin, sizeof(sin) ) == SOCKET_ERROR )
-    {
-      str_error = str_WSAError( "connect() faild." );
-#if defined(_WIN32)
-      WSACleanup();
-#endif
-      return SCKT_NULL;
-    }
+  for ( count = 0;; count += 1 ) {
+    
+    sin.sin_family      = AF_INET;
+    sin.sin_addr.s_addr = ul_addr;
+    sin.sin_port        = htons( (u_short)iport );
+    if ( connect( sd, (struct sockaddr *)&sin, sizeof(sin) ) != SOCKET_ERROR )
+      {
+	break;
+      }
+    
+    if ( ! count ) { Out( "connect() failed.  try again " ); }
+    else           { Out( "." ); }
+#  if defined(_WIN32)
+    Sleep( 10000 );
+#  else
+    sleep( 10 );
+#  endif
+  }
+  if ( count ) { Out( "\n" ); }
 
   return sd;
 }
 
 
-int
+int CONV
 sckt_shutdown( sckt_t sd )
 {
   int iret;
 
   if ( sd == SCKT_NULL ) { return 1; }
-  Out( "shut down connection\n" );
+  out_warning( "shut down connection" );
 
 #  if defined(_WIN32)
   if ( shutdown( sd, SD_SEND ) == SOCKET_ERROR )
     {
-      str_error = str_WSAError( "shutdown() faild." );
+      str_error = str_WSAError( "shutdown() faild:" );
       WSACleanup();
       return -2;
     }
@@ -179,7 +224,7 @@ sckt_shutdown( sckt_t sd )
     iret = recv( sd, str_message, SIZE_MESSAGE, 0 );
     if ( iret == SOCKET_ERROR )
       {
-	str_error = str_WSAError( "recv() failed." );
+	str_error = str_WSAError( "recv() failed:" );
 	WSACleanup();
 	return -2;
       }
@@ -188,20 +233,21 @@ sckt_shutdown( sckt_t sd )
   
   if ( closesocket( sd ) == SOCKET_ERROR )
     {
-      str_error = str_WSAError( "closesocket() failed." );
+      str_error = str_WSAError( "closesocket() failed:" );
       WSACleanup();
       return -2;
     }
 
   if ( WSACleanup() == SOCKET_ERROR )
     {
-      str_error = str_WSAError( "WSACleanup() faild." );
+      str_error = str_WSAError( "WSACleanup() faild:" );
       return -2;
     }
 
   return 1;
 
 #  else
+
   if ( shutdown( sd, SHUT_RD ) == -1 )
     {
       str_error = "shutdown() faild.";
@@ -229,7 +275,26 @@ sckt_shutdown( sckt_t sd )
 }
 
 
-int
+int CONV sckt_recv_all( sckt_t sd )
+{
+  int iret;
+
+  for ( ;; )
+    {
+#  if defined(_WIN32)
+      iret = recv( sd, str_message, SIZE_MESSAGE, 0 );
+      if ( iret == SOCKET_ERROR || ! iret ) { break; }
+#  else
+      iret = (int)recv( sd, str_message, SIZE_MESSAGE, 0 );
+      if ( iret == -1 || ! iret ) { break; }
+#  endif
+    }
+
+  return 1;
+}
+
+
+int CONV
 sckt_check( sckt_t sd )
 {
   struct timeval tv;
@@ -250,7 +315,7 @@ sckt_check( sckt_t sd )
   iret = select( (int)sd+1, &readfds, NULL, NULL, &tv );
   if ( iret == SOCKET_ERROR )
     {
-      str_error = str_WSAError( "select() with a socket connected failed." );
+      str_error = str_WSAError( "select() with a socket connected failed:" );
       return -2;
     }
 
@@ -258,7 +323,7 @@ sckt_check( sckt_t sd )
 }
 
 
-int
+int CONV
 sckt_in( sckt_t sd, char *str, int n )
 {
   struct timeval tv;
@@ -283,7 +348,7 @@ sckt_in( sckt_t sd, char *str, int n )
     if ( iret == SOCKET_ERROR )
       {
 	str_error = str_WSAError( "select() with a socket connected failed." );
-	return -2;
+	return -1;
       }
     if ( iret )
       {
@@ -294,23 +359,24 @@ sckt_in( sckt_t sd, char *str, int n )
 
     if ( sckt_out( sd, "\n" ) == SOCKET_ERROR )
       {
-	str_error = str_WSAError( "send() failed." );
-	return -2;
+	str_error = str_WSAError( "send() failed:" );
+	return -1;
       }
   }
 
   iret = recv( sd, str, n-1, 0 );
   if ( iret == SOCKET_ERROR )
     {
-      str_error = str_WSAError( "recv() failed." );
-      return -2;
-    }
-  if ( ! iret )
-    {
-      str_error = "connection closed.";
-      return -2;
+      str_error = str_WSAError( "recv() failed:" );
+      return -1;
     }
   *( str + iret ) = '\0';
+
+  if ( ! iret )
+    {
+      Out( "Connection closed.\n" );
+      return 0;
+    }
 
   Out( "%s[END]\n", str );
   
@@ -318,7 +384,7 @@ sckt_in( sckt_t sd, char *str, int n )
 }
 
 
-int
+int CONV
 sckt_out( sckt_t sd, const char *fmt, ... )
 {
   int nch;
@@ -331,19 +397,55 @@ sckt_out( sckt_t sd, const char *fmt, ... )
   if ( nch >= 256 || nch < 0 )
     {
       str_error = "buffer overflow at sckt_out()";
-      return -2;
+      return -1;
     }
 
-  Out( "\n[now sending message]\n%s[END]\n", buf );
+  Out( "- now sending the message: %s", buf );
 
   if ( send( sd, buf, nch, 0 ) == SOCKET_ERROR )
     {
-      str_error = str_WSAError( "send() failed." );
-      return -2;
+      str_error = str_WSAError( "send() failed:" );
+      return -1;
     }
 
   return get_elapsed( &time_last_send );
 }
+#endif /* CSA_LAN || MNJ_LAN || DFPN_CLIENT || DFPN */
 
-#endif /* CSA_LAN */
 
+#if defined(DFPN_CLIENT)
+int CONV
+dfpn_client_out( const char *fmt, ... )
+{
+  int nch, iret;
+  char buf[256];
+  va_list arg;
+
+  if ( dfpn_client_sckt == SCKT_NULL ) { return 1; }
+
+  va_start( arg, fmt );
+  nch = vsnprintf( buf, 256, fmt, arg );
+  va_end( arg );
+
+  if ( nch >= 256 || nch < 0 )
+    {
+      sckt_shutdown( dfpn_client_sckt );
+      dfpn_client_sckt = SCKT_NULL;
+      out_warning( "A connection to DFPN server is down." );
+      return -1;
+    }
+
+  Out( "- send to DFPN server: %s", buf );
+
+  iret = send( dfpn_client_sckt, buf, nch, 0 );
+  if ( iret == SOCKET_ERROR )
+    {
+      sckt_shutdown( dfpn_client_sckt );
+      dfpn_client_sckt = SCKT_NULL;
+      out_warning( "A connection to DFPN server is down." );
+      return -1;
+    }
+
+  return 1;
+}
+#endif /* DFPN_CLIENT */

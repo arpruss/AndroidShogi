@@ -1,6 +1,6 @@
 #include "shogi.h"
 
-unsigned int *
+unsigned int * CONV
 b_gen_captures( const tree_t * restrict ptree, unsigned int * restrict pmove )
 {
   bitboard_t bb_movable, bb_capture, bb_piece, bb_desti;
@@ -26,13 +26,13 @@ b_gen_captures( const tree_t * restrict ptree, unsigned int * restrict pmove )
     }
 
   bb_piece = BB_BSILVER;
-  while ( BBToU( bb_piece ) )
+  while ( BBTest( bb_piece ) )
     {
       ifrom = LastOne( bb_piece );
       Xor( ifrom, bb_piece );
 
       BBAnd( bb_desti, bb_capture, abb_b_silver_attacks[ifrom] );
-      while ( BBToU( bb_desti ) )
+      while ( BBTest( bb_desti ) )
 	{
 	  ito = LastOne( bb_desti );
 	  Xor( ito, bb_desti );
@@ -45,13 +45,13 @@ b_gen_captures( const tree_t * restrict ptree, unsigned int * restrict pmove )
     }
 
   bb_piece = BB_BTGOLD;
-  while( BBToU( bb_piece ) )
+  while( BBTest( bb_piece ) )
     {
       ifrom = LastOne( bb_piece );
       Xor( ifrom, bb_piece );
 
       BBAnd( bb_desti, bb_capture, abb_b_gold_attacks[ifrom] );
-      while ( BBToU( bb_desti ) )
+      while ( BBTest( bb_desti ) )
 	{
 	  ito = LastOne( bb_desti );
 	  Xor( ito, bb_desti );
@@ -64,7 +64,7 @@ b_gen_captures( const tree_t * restrict ptree, unsigned int * restrict pmove )
 
   ifrom = SQ_BKING;
   BBAnd( bb_desti, bb_capture, abb_king_attacks[ifrom] );
-  while ( BBToU( bb_desti ) )
+  while ( BBTest( bb_desti ) )
     {
       ito = LastOne( bb_desti );
       Xor( ito, bb_desti );
@@ -74,7 +74,7 @@ b_gen_captures( const tree_t * restrict ptree, unsigned int * restrict pmove )
     }
 
   bb_piece = BB_BBISHOP;
-  while ( BBToU( bb_piece ) )
+  while ( BBTest( bb_piece ) )
     {
       ifrom = LastOne( bb_piece );
       Xor( ifrom, bb_piece );
@@ -91,7 +91,7 @@ b_gen_captures( const tree_t * restrict ptree, unsigned int * restrict pmove )
 	bb_desti.p[2] &= bb_capture.p[2];
       }
 
-      while ( BBToU( bb_desti ) )
+      while ( BBTest( bb_desti ) )
 	{
 	  ito = LastOne( bb_desti );
 	  Xor( ito, bb_desti );
@@ -104,7 +104,7 @@ b_gen_captures( const tree_t * restrict ptree, unsigned int * restrict pmove )
     }
 
   bb_piece = BB_BROOK;
-  while ( BBToU( bb_piece ) )
+  while ( BBTest( bb_piece ) )
     {
       ifrom = LastOne( bb_piece );
       Xor( ifrom, bb_piece );
@@ -121,7 +121,7 @@ b_gen_captures( const tree_t * restrict ptree, unsigned int * restrict pmove )
 	bb_desti.p[2] &= bb_capture.p[2];
       }
 
-      while ( BBToU( bb_desti ) )
+      while ( BBTest( bb_desti ) )
 	{
 	  ito = LastOne( bb_desti );
 	  Xor( ito, bb_desti );
@@ -134,14 +134,14 @@ b_gen_captures( const tree_t * restrict ptree, unsigned int * restrict pmove )
     }
 
   bb_piece = BB_BHORSE;
-  while ( BBToU( bb_piece ) )
+  while ( BBTest( bb_piece ) )
     {
       ifrom = LastOne( bb_piece );
       Xor( ifrom, bb_piece );
 
       AttackHorse( bb_desti, ifrom );
       BBAnd( bb_desti, bb_desti, bb_capture );
-      while ( BBToU( bb_desti ) )
+      while ( BBTest( bb_desti ) )
 	{
 	  ito = LastOne( bb_desti );
 	  Xor( ito, bb_desti );
@@ -152,14 +152,14 @@ b_gen_captures( const tree_t * restrict ptree, unsigned int * restrict pmove )
     }
 
   bb_piece = BB_BDRAGON;
-  while ( BBToU( bb_piece ) )
+  while ( BBTest( bb_piece ) )
     {
       ifrom = LastOne( bb_piece );
       Xor( ifrom, bb_piece );
 
       AttackDragon( bb_desti, ifrom );
       BBAnd( bb_desti, bb_desti, bb_capture );
-      while ( BBToU( bb_desti ) )
+      while ( BBTest( bb_desti ) )
 	{
 	  ito = LastOne( bb_desti );
 	  Xor( ito, bb_desti );
@@ -170,7 +170,7 @@ b_gen_captures( const tree_t * restrict ptree, unsigned int * restrict pmove )
     }
 
   bb_piece = BB_BLANCE;
-  while( BBToU( bb_piece ) )
+  while( BBTest( bb_piece ) )
     {
       ifrom = LastOne( bb_piece );
       Xor( ifrom, bb_piece );
@@ -181,7 +181,7 @@ b_gen_captures( const tree_t * restrict ptree, unsigned int * restrict pmove )
       bb_desti.p[1] &= bb_capture.p[1];
       bb_desti.p[2] &= bb_capture.p[2];
 
-      while ( BBToU( bb_desti ) )
+      while ( BBTest( bb_desti ) )
 	{
 	  ito = LastOne( bb_desti );
 	  Xor( ito, bb_desti );
@@ -199,7 +199,7 @@ b_gen_captures( const tree_t * restrict ptree, unsigned int * restrict pmove )
     }
 
   bb_piece = BB_BKNIGHT;
-  while( BBToU( bb_piece ) )
+  while( BBTest( bb_piece ) )
     {
       ifrom = LastOne( bb_piece );
       Xor( ifrom, bb_piece );
@@ -209,7 +209,7 @@ b_gen_captures( const tree_t * restrict ptree, unsigned int * restrict pmove )
       bb_desti.p[1] &= bb_capture.p[1];
       bb_desti.p[2] &= bb_capture.p[2];
 
-      while ( BBToU( bb_desti ) )
+      while ( BBTest( bb_desti ) )
 	{
 	  ito = LastOne( bb_desti );
 	  Xor( ito, bb_desti );
@@ -230,7 +230,7 @@ b_gen_captures( const tree_t * restrict ptree, unsigned int * restrict pmove )
 }
 
 
-unsigned int *
+unsigned int * CONV
 w_gen_captures( const tree_t * restrict ptree, unsigned int * restrict pmove )
 {
   bitboard_t bb_movable, bb_capture, bb_piece, bb_desti;
@@ -256,13 +256,13 @@ w_gen_captures( const tree_t * restrict ptree, unsigned int * restrict pmove )
     }
 
   bb_piece = BB_WSILVER;
-  while ( BBToU( bb_piece ) )
+  while ( BBTest( bb_piece ) )
     {
       ifrom = FirstOne( bb_piece );
       Xor( ifrom, bb_piece );
 
       BBAnd( bb_desti, bb_capture, abb_w_silver_attacks[ifrom] );
-      while ( BBToU( bb_desti ) )
+      while ( BBTest( bb_desti ) )
 	{
 	  ito = FirstOne( bb_desti );
 	  Xor( ito, bb_desti );
@@ -275,13 +275,13 @@ w_gen_captures( const tree_t * restrict ptree, unsigned int * restrict pmove )
     }
 
   bb_piece = BB_WTGOLD;
-  while( BBToU( bb_piece ) )
+  while( BBTest( bb_piece ) )
     {
       ifrom = FirstOne( bb_piece );
       Xor( ifrom, bb_piece );
 
       BBAnd( bb_desti, bb_capture, abb_w_gold_attacks[ifrom] );
-      while ( BBToU( bb_desti ) )
+      while ( BBTest( bb_desti ) )
 	{
 	  ito = FirstOne( bb_desti );
 	  Xor( ito, bb_desti );
@@ -294,7 +294,7 @@ w_gen_captures( const tree_t * restrict ptree, unsigned int * restrict pmove )
 
   ifrom = SQ_WKING;
   BBAnd( bb_desti, bb_capture, abb_king_attacks[ifrom] );
-  while ( BBToU( bb_desti ) )
+  while ( BBTest( bb_desti ) )
     {
       ito = FirstOne( bb_desti );
       Xor( ito, bb_desti );
@@ -304,7 +304,7 @@ w_gen_captures( const tree_t * restrict ptree, unsigned int * restrict pmove )
     }
 
   bb_piece = BB_WBISHOP;
-  while ( BBToU( bb_piece ) )
+  while ( BBTest( bb_piece ) )
     {
       ifrom = FirstOne( bb_piece );
       Xor( ifrom, bb_piece );
@@ -321,7 +321,7 @@ w_gen_captures( const tree_t * restrict ptree, unsigned int * restrict pmove )
 	bb_desti.p[0] &= bb_capture.p[0];
       }
 
-      while ( BBToU( bb_desti ) )
+      while ( BBTest( bb_desti ) )
 	{
 	  ito = FirstOne( bb_desti );
 	  Xor( ito, bb_desti );
@@ -334,7 +334,7 @@ w_gen_captures( const tree_t * restrict ptree, unsigned int * restrict pmove )
     }
 
   bb_piece = BB_WROOK;
-  while ( BBToU( bb_piece ) )
+  while ( BBTest( bb_piece ) )
     {
       ifrom = FirstOne( bb_piece );
       Xor( ifrom, bb_piece );
@@ -351,7 +351,7 @@ w_gen_captures( const tree_t * restrict ptree, unsigned int * restrict pmove )
 	bb_desti.p[0] &= bb_capture.p[0];
       }
 
-      while ( BBToU( bb_desti ) )
+      while ( BBTest( bb_desti ) )
 	{
 	  ito = FirstOne( bb_desti );
 	  Xor( ito, bb_desti );
@@ -364,14 +364,14 @@ w_gen_captures( const tree_t * restrict ptree, unsigned int * restrict pmove )
     }
 
   bb_piece = BB_WHORSE;
-  while ( BBToU( bb_piece ) )
+  while ( BBTest( bb_piece ) )
     {
       ifrom = FirstOne( bb_piece );
       Xor( ifrom, bb_piece );
 
       AttackHorse( bb_desti, ifrom );
       BBAnd( bb_desti, bb_desti, bb_capture );
-      while ( BBToU( bb_desti ) )
+      while ( BBTest( bb_desti ) )
 	{
 	  ito = FirstOne( bb_desti );
 	  Xor( ito, bb_desti );
@@ -382,14 +382,14 @@ w_gen_captures( const tree_t * restrict ptree, unsigned int * restrict pmove )
     }
 
   bb_piece = BB_WDRAGON;
-  while ( BBToU( bb_piece ) )
+  while ( BBTest( bb_piece ) )
     {
       ifrom = FirstOne( bb_piece );
       Xor( ifrom, bb_piece );
 
       AttackDragon( bb_desti, ifrom );
       BBAnd( bb_desti, bb_desti, bb_capture );
-      while ( BBToU( bb_desti ) )
+      while ( BBTest( bb_desti ) )
 	{
 	  ito = FirstOne( bb_desti );
 	  Xor( ito, bb_desti );
@@ -400,7 +400,7 @@ w_gen_captures( const tree_t * restrict ptree, unsigned int * restrict pmove )
     }
 
   bb_piece = BB_WLANCE;
-  while( BBToU( bb_piece ) )
+  while( BBTest( bb_piece ) )
     {
       ifrom = FirstOne( bb_piece );
       Xor( ifrom, bb_piece );
@@ -411,7 +411,7 @@ w_gen_captures( const tree_t * restrict ptree, unsigned int * restrict pmove )
       bb_desti.p[1] &= bb_capture.p[1];
       bb_desti.p[0] &= bb_capture.p[0];
 
-      while ( BBToU( bb_desti ) )
+      while ( BBTest( bb_desti ) )
 	{
 	  ito = FirstOne( bb_desti );
 	  Xor( ito, bb_desti );
@@ -429,7 +429,7 @@ w_gen_captures( const tree_t * restrict ptree, unsigned int * restrict pmove )
     }
 
   bb_piece = BB_WKNIGHT;
-  while( BBToU( bb_piece ) )
+  while( BBTest( bb_piece ) )
     {
       ifrom = FirstOne( bb_piece );
       Xor( ifrom, bb_piece );
@@ -439,7 +439,7 @@ w_gen_captures( const tree_t * restrict ptree, unsigned int * restrict pmove )
       bb_desti.p[1] &= bb_capture.p[1];
       bb_desti.p[0] &= bb_capture.p[0];
 
-      while ( BBToU( bb_desti ) )
+      while ( BBTest( bb_desti ) )
 	{
 	  ito = FirstOne( bb_desti );
 	  Xor( ito, bb_desti );

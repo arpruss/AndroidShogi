@@ -48,16 +48,18 @@ typedef struct { unsigned short smove, freq; } book_move_t;
 
 typedef struct { int from, to; } ft_t;
 
-static int book_read( uint64_t key, book_move_t *pbook_move,
+static int CONV book_read( uint64_t key, book_move_t *pbook_move,
 		      unsigned int *pposition );
-static uint64_t book_hash_func( const tree_t * restrict ptree,int *pis_flip );
-static unsigned int bm2move( const tree_t * restrict ptree, unsigned int bmove,
-			     int is_flip );
-static ft_t flip_ft( ft_t ft, int turn, int is_flip );
-static int normalize_book_move( book_move_t * restrict pbook_move, int moves );
+static uint64_t CONV book_hash_func( const tree_t * restrict ptree,
+				     int *pis_flip );
+static unsigned int CONV bm2move( const tree_t * restrict ptree,
+				  unsigned int bmove, int is_flip );
+static ft_t CONV flip_ft( ft_t ft, int turn, int is_flip );
+static int CONV normalize_book_move( book_move_t * restrict pbook_move,
+				     int moves );
 
 
-int
+int CONV
 book_on( void )
 {
   int iret = file_close( pf_book );
@@ -70,7 +72,7 @@ book_on( void )
 }
 
 
-int
+int CONV
 book_off( void )
 {
   int iret = file_close( pf_book );
@@ -82,7 +84,7 @@ book_off( void )
 }
 
 
-int
+int CONV
 book_probe( tree_t * restrict ptree )
 {
   book_move_t abook_move[ BK_MAX_MOVE+1 ];
@@ -163,18 +165,6 @@ book_probe( tree_t * restrict ptree )
 
   ply = record_game.moves;
   if ( game_status & flag_pondering ) { ply++; }
-  if ( ply < HASH_REG_HIST_LEN )
-    {
-      history_book_learn[ ply ].key_book    = key;  
-      history_book_learn[ ply ].move_probed = move;
-      history_book_learn[ ply ].key_probed  = (unsigned int)HASH_KEY;  
-      history_book_learn[ ply ].hand_probed = HAND_B;
-      history_book_learn[ ply ].data        = (unsigned int)is_flip << 30;
-      if ( game_status & flag_narrow_book )
-	{
-	  history_book_learn[ ply ].data |= 1U << 29;
-	}
-    }
 
   ptree->current_move[1] = move;
 
@@ -182,7 +172,7 @@ book_probe( tree_t * restrict ptree )
 }
 
 
-static int
+static int CONV
 book_read( uint64_t key, book_move_t *pbook_move, unsigned int *pposition )
 {
   uint64_t book_key;
@@ -195,19 +185,19 @@ book_read( uint64_t key, book_move_t *pbook_move, unsigned int *pposition )
 
   if ( fseek( pf_book, BK_SIZE_INDEX*ibook_section, SEEK_SET ) == EOF )
     {
-      str_error = "blah44";
+      str_error = str_io_error;
       return -2;
     }
   
   if ( fread( &position, sizeof(int), 1, pf_book ) != 1 )
     {
-      str_error = "blah55";
+      str_error = str_io_error;
       return -2;
     }
   
   if ( fread( &s, sizeof(unsigned short), 1, pf_book ) != 1 )
     {
-      str_error = "blah66";
+      str_error = str_io_error;
       return -2;
     }
   size_section = (unsigned int)s;
@@ -219,13 +209,13 @@ book_read( uint64_t key, book_move_t *pbook_move, unsigned int *pposition )
 
   if ( fseek( pf_book, (long)position, SEEK_SET ) == EOF )
     {
-      str_error = "aoeuaoue";
+      str_error = str_io_error;
       return -2;
     }
   if ( fread( book_section, sizeof(unsigned char), (size_t)size_section,
 	      pf_book ) != (size_t)size_section )
     {
-      str_error = "lracogue";
+      str_error = str_io_error;
       return -2;
     }
   
@@ -252,7 +242,7 @@ book_read( uint64_t key, book_move_t *pbook_move, unsigned int *pposition )
 }
 
 
-static ft_t
+static ft_t CONV
 flip_ft( ft_t ft, int turn, int is_flip )
 {
   int ito_rank, ito_file, ifrom_rank, ifrom_file;
@@ -290,7 +280,7 @@ flip_ft( ft_t ft, int turn, int is_flip )
 }
 
 
-static unsigned int
+static unsigned int CONV
 bm2move( const tree_t * restrict ptree, unsigned int bmove, int is_flip )
 {
   ft_t ft;
@@ -319,7 +309,7 @@ bm2move( const tree_t * restrict ptree, unsigned int bmove, int is_flip )
 }
 
 
-static uint64_t
+static uint64_t CONV
 book_hash_func( const tree_t * restrict ptree, int *pis_flip )
 {
   uint64_t key, key_flip;
@@ -409,7 +399,7 @@ book_hash_func( const tree_t * restrict ptree, int *pis_flip )
 }
 
 
-static int
+static int CONV
 normalize_book_move( book_move_t * restrict pbook_move, int moves )
 {
   book_move_t swap;
@@ -458,7 +448,7 @@ normalize_book_move( book_move_t * restrict pbook_move, int moves )
 #if ! defined(MINIMUM)
 
 #define MaxNumCell      0x400000
-#if defined(BK_SMALL)
+#if defined(BK_SMALL) || defined(BK_TINY)
 #  define MaxPlyBook    64
 #else
 #  define MaxPlyBook    128
@@ -474,21 +464,21 @@ typedef struct {
   unsigned char result;
 } cell_t;
 
-static unsigned int move2bm( unsigned int move, int turn, int is_flip );
-static int find_min_cell( const cell_t *pcell, int ntemp );
-static int read_a_cell( cell_t *pcell, FILE *pf );
-static int CONV_CDECL compare( const void * p1, const void *p2 );
-static int dump_cell( cell_t *pcell, int ncell, int num_tmpfile );
-static int examine_game( tree_t * restrict ptree, record_t *pr,
-			 int *presult, unsigned int *pmoves );
-static int move_selection( const record_move_t *p, int ngame, int nwin );
-static int make_cell_csa( tree_t * restrict ptree, record_t *pr,
-			  cell_t *pcell, int num_tmpfile );
-static int merge_cell( record_move_t *precord_move, FILE **ppf,
-		       int num_tmpfile );
-static int read_anti_book( tree_t * restrict ptree, record_t * pr );
+static unsigned int CONV move2bm( unsigned int move, int turn, int is_flip );
+static int CONV find_min_cell( const cell_t *pcell, int ntemp );
+static int CONV read_a_cell( cell_t *pcell, FILE *pf );
+static int compare( const void * p1, const void *p2 );
+static int CONV dump_cell( cell_t *pcell, int ncell, int num_tmpfile );
+static int CONV examine_game( tree_t * restrict ptree, record_t *pr,
+			      int *presult, unsigned int *pmoves );
+static int CONV move_selection( const record_move_t *p, int ngame, int nwin );
+static int CONV make_cell_csa( tree_t * restrict ptree, record_t *pr,
+			       cell_t *pcell, int num_tmpfile );
+static int CONV merge_cell( record_move_t *precord_move, FILE **ppf,
+			    int num_tmpfile );
+static int CONV read_anti_book( tree_t * restrict ptree, record_t * pr );
 
-int
+int CONV
 book_create( tree_t * restrict ptree )
 {
   record_t record;
@@ -590,7 +580,7 @@ book_create( tree_t * restrict ptree )
 }
 
 
-static int
+static int CONV
 read_anti_book( tree_t * restrict ptree, record_t * pr )
 {
   uint64_t key;
@@ -675,7 +665,7 @@ read_anti_book( tree_t * restrict ptree, record_t * pr )
 }
 
 
-static int
+static int CONV
 make_cell_csa( tree_t * restrict ptree, record_t *pr, cell_t *pcell,
 	       int num_tmpfile )
 {
@@ -793,7 +783,7 @@ make_cell_csa( tree_t * restrict ptree, record_t *pr, cell_t *pcell,
 }
 
 
-static int
+static int CONV
 merge_cell( record_move_t *precord_move, FILE **ppf, int num_tmpfile )
 {
   double dscale;
@@ -1004,13 +994,15 @@ merge_cell( record_move_t *precord_move, FILE **ppf, int num_tmpfile )
 }
 
 
-static int
+static int CONV
 move_selection( const record_move_t *p, int ngame, int nwin )
 {
   double total_win_norm, win_norm, win, game, win_move, game_move;
 
-#if defined(BK_SMALL)
-  if ( ! p->nwin || p->ngame < 4 ) { return 0; }
+#if defined(BK_TINY)
+  if ( p->nwin < 15 ) { return 0; }
+#elif defined(BK_SMALL)
+  if ( p->nwin < 3 ) { return 0; }
 #else
   if ( ! p->nwin || p->ngame < 2 ) { return 0; }
 #endif
@@ -1028,7 +1020,7 @@ move_selection( const record_move_t *p, int ngame, int nwin )
 }
 
 
-static int
+static int CONV
 find_min_cell( const cell_t *pcell, int num_tmpfile )
 {
   int imin, i;
@@ -1042,7 +1034,7 @@ find_min_cell( const cell_t *pcell, int num_tmpfile )
 }
 
 
-static int
+static int CONV
 read_a_cell( cell_t *pcell, FILE *pf )
 {
   if ( fread( &pcell->key, sizeof(uint64_t), 1, pf ) != 1 )
@@ -1070,7 +1062,7 @@ read_a_cell( cell_t *pcell, FILE *pf )
 }
 
 
-static int
+static int CONV
 examine_game( tree_t * restrict ptree, record_t *pr, int *presult,
 	      unsigned int *pmoves )
 {
@@ -1143,7 +1135,7 @@ examine_game( tree_t * restrict ptree, record_t *pr, int *presult,
 }
 
 
-static int
+static int CONV
 dump_cell( cell_t *pcell, int ncell, int num_tmpfile )
 {
   char str_filename[SIZE_FILENAME];
@@ -1189,8 +1181,7 @@ dump_cell( cell_t *pcell, int ncell, int num_tmpfile )
 }
 
 
-static int CONV_CDECL
-compare( const void * p1, const void * p2 )
+static int compare( const void * p1, const void * p2 )
 {
   const cell_t * pcell1 = p1;
   const cell_t * pcell2 = p2;
@@ -1208,7 +1199,7 @@ compare( const void * p1, const void * p2 )
 }
 
 
-static unsigned int
+static unsigned int CONV
 move2bm( unsigned int move, int turn, int is_flip )
 {
   ft_t ft;

@@ -9,7 +9,7 @@ LOCAL_SRC_FILES := \
  quiesrch.c evaluate.c swap.c  hash.c root.c next.c movgenex.c \
  genevasn.c gencap.c gennocap.c gendrop.c mate1ply.c rand.c learn1.c \
  learn2.c evaldiff.c problem.c ponder.c thread.c sckt.c debug.c mate3.c \
- genchk.c
+ genchk.c phash.c
 
 # Compile Options
 #

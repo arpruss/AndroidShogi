@@ -11,14 +11,14 @@
 #  define DOut( ... )
 #endif
 
-static int gen_next_quies( tree_t * restrict ptree, int alpha, int turn,
-			   int ply, int qui_ply );
+static int CONV gen_next_quies( tree_t * restrict ptree, int alpha, int turn,
+				int ply, int qui_ply );
 
-int
+int CONV
 search_quies( tree_t * restrict ptree, int alpha, int beta, int turn, int ply,
 	      int qui_ply )
 {
-  int value, alpha_old;
+  int value, alpha_old, stand_pat;
 
 #if defined(DBG_QSEARCH)
   int dbg_flag = 0;
@@ -45,44 +45,37 @@ search_quies( tree_t * restrict ptree, int alpha, int beta, int turn, int ply,
   ptree->nquies_called += 1;
   alpha_old             = alpha;
   
-  value = evaluate( ptree, ply, turn );
+  stand_pat = evaluate( ptree, ply, turn );
 
 
-  if ( alpha < value )
+  if ( alpha < stand_pat )
     {
-      if ( beta <= value )
+      if ( beta <= stand_pat )
 	{
 	  DOut( ", cut by stand-pat\n" );
 	  MOVE_CURR = MOVE_PASS;
-	  return value;
+	  return stand_pat;
 	}
-      alpha = value;
+      alpha = stand_pat;
     }
 
   if ( ply >= PLY_MAX-1 )
     {
       if ( alpha_old != alpha ) { pv_close( ptree, ply, no_rep ); }
       MOVE_CURR = MOVE_NA;
-      return value;
+      return stand_pat;
     }
 
 
-  if ( ( qui_ply == 1 && ! ( ply == 2 && InCheck( turn ) ) )
-       || ( 1 < qui_ply && qui_ply < QUIES_PLY_LIMIT && ! InCheck( turn ) ) )
+  if ( is_mate_in3ply( ptree, turn, ply ) )
     {
-      MOVE_CURR = IsMateIn1Ply( turn );
-      if ( MOVE_CURR )
-	{
-	  value = score_mate1ply + 1 - ply;
+      value = score_mate1ply + 1 - ply;
+      
+      if ( alpha < value
+	   && value < beta ) { pv_close( ptree, ply, mate_search ); }
 
-	  if ( alpha < value
-	       && value < beta ) { pv_close( ptree, ply, mate_search ); }
-
-	  DOut( "mate found\n" );
-
-	  assert( is_move_valid( ptree, MOVE_CURR, turn ) );
-	  return value;
-	}
+      assert( is_move_valid( ptree, MOVE_CURR, turn ) );
+      return value;
     }
 
 
@@ -106,8 +99,8 @@ search_quies( tree_t * restrict ptree, int alpha, int beta, int turn, int ply,
 
       if ( alpha < value )
 	{
-	  check_futile_score_quies( ptree, MOVE_CURR, ptree->stand_pat[ply],
-				    -ptree->stand_pat[ply+1], turn );
+	  check_futile_score_quies( ptree, MOVE_CURR, ptree->save_eval[ply],
+				    -ptree->save_eval[ply+1], turn );
 	  if ( beta <= value )
 	    {
 	      DOut( ", beta cut (%" PRIu64 ")\n", ptree->node_searched );
@@ -125,28 +118,17 @@ search_quies( tree_t * restrict ptree, int alpha, int beta, int turn, int ply,
 
   DOut( "\nall searched (%" PRIu64 ")\n", ptree->node_searched );
 
-  if ( qui_ply < QUIES_PLY_LIMIT && is_mate_in3ply( ptree, turn, ply ) )
-    {
-      value = score_max_eval;
-      
-      if ( alpha < value
-	   && value < beta ) { pv_close( ptree, ply, mate_search ); }
-
-      assert( is_move_valid( ptree, MOVE_CURR, turn ) );
-      return value;
-    }
-
   if ( alpha_old != alpha )
     {
-      if ( alpha == ptree->stand_pat[ply] ) { pv_close( ptree, ply, no_rep ); }
-      else { pv_copy( ptree, ply ); }
+      if ( alpha == stand_pat ) { pv_close( ptree, ply, no_rep ); }
+      else                      { pv_copy( ptree, ply ); }
     }
 
   return alpha;
 }
 
 
-static int
+static int CONV
 gen_next_quies( tree_t * restrict ptree, int alpha, int turn, int ply,
 		int qui_ply )
 {
@@ -179,7 +161,7 @@ gen_next_quies( tree_t * restrict ptree, int alpha, int turn, int ply,
 	      }
 
 	    diff      = estimate_score_diff( ptree, move, turn );
-	    min_score = eval_max_score( ptree, move, ptree->stand_pat[ply],
+	    min_score = eval_max_score( ptree, move, ptree->save_eval[ply],
 					turn, diff );
 
 	    if ( alpha < min_score )

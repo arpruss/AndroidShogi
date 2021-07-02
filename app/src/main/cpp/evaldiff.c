@@ -1,12 +1,15 @@
 #include <assert.h>
 #include "shogi.h"
 
-void
+void CONV
 check_futile_score_quies( const tree_t * restrict ptree, unsigned int move,
 			  int old_val, int new_val, int turn )
 {
   const int ifrom = I2From(move);
   int fsp, fmt, ipc_cap;
+
+  old_val /= FV_SCALE;
+  new_val /= FV_SCALE;
 
   if ( I2PieceMove(move) == king )
     {
@@ -51,7 +54,7 @@ check_futile_score_quies( const tree_t * restrict ptree, unsigned int move,
     else {
       if ( I2IsPromote(move) )
 	{
-	  fmt -= benefit2promo[7+I2PieceMove(move)];
+	  fmt -= p_value_pm[7+I2PieceMove(move)];
 	}
 
       if ( ipc_cap )
@@ -67,19 +70,21 @@ check_futile_score_quies( const tree_t * restrict ptree, unsigned int move,
 }
 
 
-int
+int CONV
 eval_max_score( const tree_t * restrict ptree, unsigned int move,
-		int stand_pat, int turn, int diff )
+		int value, int turn, int diff )
 {
   int score_mt, score_sp, ipc_cap;
 
+  value /= FV_SCALE;
+
   if ( I2From(move) >= nsquare )
     {
-      score_sp = stand_pat + diff + fmg_drop + FMG_MG;
+      score_sp = value + diff + fmg_drop + FMG_MG;
       score_mt = ( turn ? -MATERIAL : MATERIAL ) + fmg_mt + FMG_MG_MT;
     }
   else {
-    score_sp = diff + stand_pat;
+    score_sp = diff + value;
     score_mt = fmg_mt + FMG_MG_MT;
     if ( turn )
       {
@@ -110,7 +115,7 @@ eval_max_score( const tree_t * restrict ptree, unsigned int move,
 
       if ( I2IsPromote(move) )
 	{
-	  score_mt += benefit2promo[7+I2PieceMove(move)];
+	  score_mt += p_value_pm[7+I2PieceMove(move)];
 	}
 
       score_sp += FMG_MG;
@@ -120,7 +125,7 @@ eval_max_score( const tree_t * restrict ptree, unsigned int move,
 }
 
 
-int
+int CONV
 estimate_score_diff( const tree_t * restrict ptree, unsigned int move,
 		     int turn )
 {
@@ -135,8 +140,8 @@ estimate_score_diff( const tree_t * restrict ptree, unsigned int move,
       ipc_cap = (int)UToCap(move);
       if ( ipc_cap )
 	{
-	  diff  = -(int)PcOnSq( ibk, aipos[15+ipc_cap]+ito );
-	  diff +=  (int)PcOnSq( iwk, aipos[15-ipc_cap]+Inv(ito) );
+	  diff  = -(int)PcOnSq( ibk, aikpp[15+ipc_cap]+ito );
+	  diff +=  (int)PcOnSq( iwk, aikpp[15-ipc_cap]+Inv(ito) );
 	  diff /= FV_SCALE;
 	  if ( turn ) { diff -= p_value_ex[15+ipc_cap]; }
 	  else        { diff += p_value_ex[15-ipc_cap]; }
@@ -146,8 +151,8 @@ estimate_score_diff( const tree_t * restrict ptree, unsigned int move,
   else if ( ifrom >= nsquare )
     {
       ipc_move = turn ? -(int)From2Drop(ifrom) : (int)From2Drop(ifrom);
-      diff     = (int)PcOnSq( ibk, aipos[15+ipc_move]+ito );
-      diff    -= (int)PcOnSq( iwk, aipos[15-ipc_move]+Inv(ito) );
+      diff     = (int)PcOnSq( ibk, aikpp[15+ipc_move]+ito );
+      diff    -= (int)PcOnSq( iwk, aikpp[15-ipc_move]+Inv(ito) );
       diff    /= FV_SCALE;
     }
   else {
@@ -164,48 +169,48 @@ estimate_score_diff( const tree_t * restrict ptree, unsigned int move,
     }
     if ( I2IsPromote(move) && ipc_cap )
       {
-	diff  = -(int)PcOnSq( ibk, aipos[15+ipc_move]     + ifrom );
-	diff +=  (int)PcOnSq( ibk, aipos[15+ipro_pc_move] + ito );
-	diff += -(int)PcOnSq( ibk, aipos[15+ipc_cap]      + ito );
-	diff +=  (int)PcOnSq( iwk, aipos[15-ipc_move]     + Inv(ifrom) );
-	diff += -(int)PcOnSq( iwk, aipos[15-ipro_pc_move] + Inv(ito) );
-	diff +=  (int)PcOnSq( iwk, aipos[15-ipc_cap]      + Inv(ito) );
+	diff  = -(int)PcOnSq( ibk, aikpp[15+ipc_move]     + ifrom );
+	diff +=  (int)PcOnSq( ibk, aikpp[15+ipro_pc_move] + ito );
+	diff += -(int)PcOnSq( ibk, aikpp[15+ipc_cap]      + ito );
+	diff +=  (int)PcOnSq( iwk, aikpp[15-ipc_move]     + Inv(ifrom) );
+	diff += -(int)PcOnSq( iwk, aikpp[15-ipro_pc_move] + Inv(ito) );
+	diff +=  (int)PcOnSq( iwk, aikpp[15-ipc_cap]      + Inv(ito) );
 	diff /= FV_SCALE;
 	if ( turn )
 	  {
-	    diff -= benefit2promo[7+ipc_move];
+	    diff -= p_value_pm[7+ipc_move];
 	    diff -= p_value_ex[15+ipc_cap];
 	  }
 	else {
-	  diff += benefit2promo[7+ipc_move];
+	  diff += p_value_pm[7+ipc_move];
 	  diff += p_value_ex[15+ipc_cap];
 	}
       }
     else if ( ipc_cap )
       {
-	diff  = -(int)PcOnSq( ibk, aipos[15+ipc_move] + ifrom );
-	diff +=  (int)PcOnSq( ibk, aipos[15+ipc_move] + ito );
-	diff += -(int)PcOnSq( ibk, aipos[15+ipc_cap]  + ito );
-	diff +=  (int)PcOnSq( iwk, aipos[15-ipc_move] + Inv(ifrom) );
-	diff += -(int)PcOnSq( iwk, aipos[15-ipc_move] + Inv(ito) );
-	diff +=  (int)PcOnSq( iwk, aipos[15-ipc_cap]  + Inv(ito) );
+	diff  = -(int)PcOnSq( ibk, aikpp[15+ipc_move] + ifrom );
+	diff +=  (int)PcOnSq( ibk, aikpp[15+ipc_move] + ito );
+	diff += -(int)PcOnSq( ibk, aikpp[15+ipc_cap]  + ito );
+	diff +=  (int)PcOnSq( iwk, aikpp[15-ipc_move] + Inv(ifrom) );
+	diff += -(int)PcOnSq( iwk, aikpp[15-ipc_move] + Inv(ito) );
+	diff +=  (int)PcOnSq( iwk, aikpp[15-ipc_cap]  + Inv(ito) );
 	diff /= FV_SCALE;
 	diff += turn ? -p_value_ex[15+ipc_cap] : p_value_ex[15+ipc_cap];
       }
     else if ( I2IsPromote(move) )
       {
-	diff  = -(int)PcOnSq( ibk, aipos[15+ipc_move]     + ifrom );
-	diff +=  (int)PcOnSq( ibk, aipos[15+ipro_pc_move] + ito );
-	diff +=  (int)PcOnSq( iwk, aipos[15-ipc_move]     + Inv(ifrom) );
-	diff += -(int)PcOnSq( iwk, aipos[15-ipro_pc_move] + Inv(ito) );
+	diff  = -(int)PcOnSq( ibk, aikpp[15+ipc_move]     + ifrom );
+	diff +=  (int)PcOnSq( ibk, aikpp[15+ipro_pc_move] + ito );
+	diff +=  (int)PcOnSq( iwk, aikpp[15-ipc_move]     + Inv(ifrom) );
+	diff += -(int)PcOnSq( iwk, aikpp[15-ipro_pc_move] + Inv(ito) );
 	diff /= FV_SCALE;
-	diff += turn ? -benefit2promo[7+ipc_move] : benefit2promo[7+ipc_move];
+	diff += turn ? -p_value_pm[7+ipc_move] : p_value_pm[7+ipc_move];
       }
     else {
-      diff  = -(int)PcOnSq( ibk, aipos[15+ipc_move] + ifrom );
-      diff +=  (int)PcOnSq( ibk, aipos[15+ipc_move] + ito );
-      diff +=  (int)PcOnSq( iwk, aipos[15-ipc_move] + Inv(ifrom) );
-      diff += -(int)PcOnSq( iwk, aipos[15-ipc_move] + Inv(ito) );
+      diff  = -(int)PcOnSq( ibk, aikpp[15+ipc_move] + ifrom );
+      diff +=  (int)PcOnSq( ibk, aikpp[15+ipc_move] + ito );
+      diff +=  (int)PcOnSq( iwk, aikpp[15-ipc_move] + Inv(ifrom) );
+      diff += -(int)PcOnSq( iwk, aikpp[15-ipc_move] + Inv(ito) );
       diff /= FV_SCALE;
     }
   }

@@ -2,6 +2,7 @@
 #include <limits.h>
 #include "shogi.h"
 
+
 int
 ponder( tree_t * restrict ptree )
 {
@@ -14,7 +15,7 @@ ponder( tree_t * restrict ptree )
        || ! record_game.moves
        || sec_limit_up == UINT_MAX ) { return 1; }
 
-  ponder_nmove = gen_legal_moves( ptree, ponder_move_list );
+  ponder_nmove = gen_legal_moves( ptree, ponder_move_list, 1 );
 
   if ( get_elapsed( &time_start ) < 0 ) { return -1; }
 
@@ -22,7 +23,7 @@ ponder( tree_t * restrict ptree )
   OutCsaShogi( "info ponder start\n" );
 
   game_status |= flag_puzzling;
-  iret         = iterate( ptree, 0 );
+  iret         = iterate( ptree );
   game_status &= ~flag_puzzling;
   if ( iret < 0 ) { return iret; }
 
@@ -43,7 +44,7 @@ ponder( tree_t * restrict ptree )
   Out( "\nPonder on %c%s (%+.2f)\n\n",
        ach_turn[root_turn], str, (double)last_root_value / 100.0 );
 
-  iret = make_move_root( ptree, move, ( flag_rep | flag_rejections ) );
+  iret = make_move_root( ptree, move, flag_rep );
   if ( iret < 0 )
     {
       OutCsaShogi( "info ponder end\n" );
@@ -53,15 +54,14 @@ ponder( tree_t * restrict ptree )
   if ( game_status & mask_game_end )
     {
       OutCsaShogi( "info ponder end\n" );
-      unmake_move_root( ptree, move );
-      return 1;
+      return unmake_move_root( ptree );
     }
   
   if ( get_elapsed( &time_start ) < 0 ) { return -1; }
 
   game_status |= flag_pondering;
 
-  iret = iterate( ptree, 0 );
+  iret = iterate( ptree );
   if ( game_status & flag_thinking )
     {
       game_status &= ~flag_thinking;
@@ -74,7 +74,39 @@ ponder( tree_t * restrict ptree )
     }
   OutCsaShogi( "info ponder end\n" );
   game_status &= ~flag_pondering;
-  unmake_move_root( ptree, move );
+  return unmake_move_root( ptree );
+}
+
+
+#if defined(MNJ_LAN) || defined(USI)
+int
+analyze( tree_t * restrict ptree )
+{
+  int iret;
+
+#if defined(MNJ_LAN)
+  if ( game_status & mask_game_end )
+    {
+      MnjOut( "pid=%d move=%%TORYO v=%de n=0 final%s\n",
+	      mnj_posi_id, -score_bound,
+	      ( mnj_depth_stable == INT_MAX ) ? "" : " stable" );
+      return 1;
+    }
+#endif
+
+  iret = get_elapsed( &time_start );
+  if ( iret < 0 ) { return iret; }
+
+  game_status |= flag_pondering;
+  iret = iterate( ptree );
+  game_status &= ~flag_pondering;
+
+  if ( abs(last_root_value) > score_max_eval )
+    {
+      MnjOut( "pid=%d final%s\n", mnj_posi_id,
+	      ( mnj_depth_stable == INT_MAX ) ? "" : " stable" );
+    }
 
   return iret;
 }
+#endif

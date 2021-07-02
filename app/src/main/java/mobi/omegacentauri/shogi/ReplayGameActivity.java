@@ -12,6 +12,7 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -46,7 +47,6 @@ public class ReplayGameActivity extends Activity {
     // Number of moves made so far. 0 means the beginning of the game.
     private int mNextPlay;
 
-    private static final int MAX_PROGRESS = 1000;
     private SharedPreferences mPrefs;
 
     @Override
@@ -110,21 +110,13 @@ public class ReplayGameActivity extends Activity {
             undo.setVisibility(View.GONE);
 
         mSeekBar = (SeekBar) findViewById(R.id.replay_seek_bar);
-        mSeekBar.setMax(mLog.numPlays()-1);
+        Log.v("shogilog", "num "+mLog.numPlays());
+        mSeekBar.setMax(mLog.numPlays());
         mSeekBar.setProgress(0);
         mSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromTouch) {
                 if (fromTouch) {
-                    final int maxPlays = mLog.numPlays() - 1;
-                    int play = 0;
-                    if (progress >= MAX_PROGRESS) {
-                        play = maxPlays;
-                    } else if (progress <= 0) {
-                        play = 0;
-                    } else {
-                        play = (int) (maxPlays * (progress / (float) MAX_PROGRESS));
-                    }
-                    replayUpTo(play);
+                    replayUpTo(progress < mLog.numPlays() ? progress : mLog.numPlays()-1);
                 }
             }
 
@@ -168,7 +160,7 @@ public class ReplayGameActivity extends Activity {
         mBoardView.update(mGameState, lastBoard, mBoard,
                 Player.INVALID,  // Disallow board manipluation by the user
                 play, false);
-        mSeekBar.setProgress((int) ((float) MAX_PROGRESS * mNextPlay / mLog.numPlays()));
+        mSeekBar.setProgress(mNextPlay);
     }
 
     private static final int DIALOG_RESUME_GAME = 1;

@@ -3,7 +3,7 @@
 #include <limits.h>
 #include "shogi.h"
 
-int
+int CONV
 gen_next_move( tree_t * restrict ptree, int ply, int turn )
 {
   switch ( ptree->anext_move[ply].next_phase )
@@ -156,13 +156,14 @@ gen_next_move( tree_t * restrict ptree, int ply, int turn )
 
       {
 	unsigned int * restrict pmove;
-	unsigned int value_best, value;
-	int ifrom, ito, i, n, ibest;
+	unsigned int value_best, value, key, good, tried;
+	int i, n, ibest;
 
 	value_best =  0;
 	ibest      = -1;
 	ptree->move_last[ply] = GenNoCaptures( turn, ptree->move_last[ply] );
 	ptree->move_last[ply] = GenDrop( turn, ptree->move_last[ply] );
+
 	n = (int)( ptree->move_last[ply] - ptree->anext_move[ply].move_last );
 	pmove = ptree->anext_move[ply].move_last;
 	for ( i = 0; i < n; i++ )
@@ -178,15 +179,23 @@ gen_next_move( tree_t * restrict ptree, int ply, int turn )
 		pmove[i] = 0;
 		continue;
 	      }
-	    ifrom = (int)I2From( pmove[i] );
-	    ito   = (int)I2To( pmove[i] );
-	    value = ptree->history[turn][ito][ifrom];
+
+	    if ( UToCap(pmove[i]) ) { continue; }
+	    if ( I2IsPromote(pmove[i])
+		 && I2PieceMove(pmove[i]) != silver ) { continue; }
+
+
+	    key   = phash( pmove[i], turn );
+	    good  = ptree->hist_good[key]  + 1;
+	    tried = ptree->hist_tried[key] + 2;
+	    value = ( good * 8192U ) / tried;
 	    if ( value > value_best )
 	      {
 		value_best = value;
 		ibest      = i;
 	      }
 	  }
+
 	if ( ibest >= 0 )
 	  {
 	    ptree->anext_move[ply].phase_done |= phase_history1;
@@ -200,25 +209,32 @@ gen_next_move( tree_t * restrict ptree, int ply, int turn )
     case next_move_history2:
       {
 	unsigned int * restrict pmove;
-	unsigned int value_best, value;
-	int ifrom, ito, ibest, i, n;
+	unsigned int value_best, value, key, good, tried;
+	int ibest, i, n;
 
 	ptree->anext_move[ply].next_phase = next_move_misc;
 	value_best = 0;
 	ibest      = -1;
 	n = (int)( ptree->move_last[ply] - ptree->anext_move[ply].move_last );
 	pmove = ptree->anext_move[ply].move_last;
+
 	for ( i = 0; i < n; i++ )
 	  {
-	    ifrom = (int)I2From( pmove[i] );
-	    ito   = (int)I2To( pmove[i] );
-	    value = ptree->history[turn][ito][ifrom];
+	    if ( UToCap(pmove[i]) ) { continue; }
+	    if ( I2IsPromote(pmove[i])
+		 && I2PieceMove(pmove[i]) != silver ) { continue; }
+
+	    key   = phash( pmove[i], turn );
+	    good  = ptree->hist_good[key]  + 1;
+	    tried = ptree->hist_tried[key] + 2;
+	    value = ( good * 8192U ) / tried;
 	    if ( value > value_best && pmove[i] )
 	      {
 		value_best = value;
 		ibest      = i;
 	      }
 	  }
+
 	if ( ibest >= 0 )
 	  {
 	    ptree->anext_move[ply].phase_done |= phase_history2;
@@ -245,7 +261,7 @@ gen_next_move( tree_t * restrict ptree, int ply, int turn )
 }
 
 
-int
+int CONV
 gen_next_evasion( tree_t * restrict ptree, int ply, int turn )
 {
   switch ( ptree->anext_move[ply].next_phase )
@@ -330,7 +346,7 @@ gen_next_evasion( tree_t * restrict ptree, int ply, int turn )
 	{
 	  if ( *( ptree->anext_move[ply].move_last ) )
 	    {
-	      ptree->current_move[ply] = *(ptree->anext_move[ply].move_last++);
+	      MOVE_CURR = *(ptree->anext_move[ply].move_last++);
 	      return 1;
 	    }
 	  ptree->anext_move[ply].move_last++;

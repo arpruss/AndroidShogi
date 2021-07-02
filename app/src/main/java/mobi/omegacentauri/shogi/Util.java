@@ -10,6 +10,7 @@ import android.content.DialogInterface;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -86,4 +87,21 @@ public class Util {
     });
     b.create().show();
   }
+
+  public static void deleteFilesFromDir(File externalFilesDir) {
+    try {
+      File[] fs = externalFilesDir.listFiles();
+      for (File f : fs) {
+        try {
+          if (f.isFile())
+            f.delete();
+        }
+        catch(Exception e) {
+        }
+      }
+    }
+    catch(Exception e) {
+    }
+  }
+
 }

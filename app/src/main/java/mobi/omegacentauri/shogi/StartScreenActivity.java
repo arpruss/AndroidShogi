@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.ProgressDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -45,26 +46,32 @@ public class StartScreenActivity extends Activity {
     private Button downloadButton;
     private BonanzaInitializeThread bonanzaInitializeThread = null;
     private Button pickLogButton;
-    XZDataFile[] dataFiles = new XZDataFile[]{
-            new XZDataFile("https://github.com/arpruss/AndroidShogi/raw/main/data/book.bin.xz",
-                    "book.bin", 1000622),
-            new XZDataFile("https://github.com/arpruss/AndroidShogi/raw/main/data/hash.bin.xz",
-                    "hash.bin", 1310720),
-            new XZDataFile("https://github.com/arpruss/AndroidShogi/raw/main/data/fv.bin.xz",
+    static XZDataFile[] dataFiles = new XZDataFile[]{
+            new XZDataFile("https://github.com/arpruss/AndroidShogi/raw/bonanza6/data/book.bin.xz",
+                    "book.bin", 426536),
+            new XZDataFile("https://github.com/arpruss/AndroidShogi/raw/bonanza6/data/fv.bin.xz",
                     "fv.bin", 186268248),
 
     };
+
+    static File getExternalDir(Context c) {
+        File dir = new File(c.getExternalFilesDir(null)+"/6");
+        try {
+            dir.mkdir();
+        }
+        catch(Exception e) {
+        }
+
+        return dir;
+    }
+
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.start_screen);
-        mExternalDir = getExternalFilesDir(null);
-        if (mExternalDir == null) {
-            FatalError("Please mount the sdcard on the device");
-            finish();
-            return;
-        }
+        Util.deleteFilesFromDir(getExternalFilesDir(null));
+        mExternalDir = getExternalDir(this);
 
         mPrefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
 
@@ -216,13 +223,9 @@ public class StartScreenActivity extends Activity {
     /**
      * See if all the files required to run Bonanza are present in externalDir.
      */
-    private static final String[] REQUIRED_FILES = {
-            "book.bin", "fv.bin", "hash.bin"
-    };
-
     public static boolean hasRequiredFiles(File externalDir) {
-        for (String basename : REQUIRED_FILES) {
-            File file = new File(externalDir, basename);
+        for (XZDataFile df : dataFiles) {
+            File file = new File(externalDir, df.filename);
             if (!file.exists()) {
                 Log.d(TAG, file.getAbsolutePath() + " not found");
                 return false;

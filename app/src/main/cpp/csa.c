@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
@@ -51,18 +50,6 @@ read_record( tree_t * restrict ptree, const char *str_file,
 }
 
 
-static void record_printf(record_t * pr, const char* fmt, ...) {
-#if 0
-  va_list ap;
-  va_start(ap, fmt);
-  int used = pr->write_ptr - pr->buf;
-  int remaining = pr->buf_size - used;
-  int n = vsnprintf(pr->write_ptr,  remaining, fmt, ap);
-  va_end(ap);
-  pr->write_ptr += n;
-#endif
-}
-			  
 int
 record_open( record_t *pr, const char *str_file, record_mode_t record_mode,
 	     const char *str_name1, const char *str_name2 )
@@ -83,9 +70,23 @@ record_open( record_t *pr, const char *str_file, record_mode_t record_mode,
       pr->str_name2[SIZE_PLAYERNAME-1] = '\0';
     }
 
-  pr->buf_size = 1 << 20;
-  pr->buf = malloc(pr->buf_size);
-  pr->write_ptr = pr->buf;
+  if ( record_mode == mode_write )
+    {
+      pr->pf = file_open( str_file, "w" );
+      if ( pr->pf == NULL ) { return -2; }
+    }
+  else if ( record_mode == mode_read_write )
+    {
+      pr->pf = file_open( str_file, "wb+" );
+      if ( pr->pf == NULL ) { return -2; }
+    }
+  else {
+    assert( record_mode == mode_read );
+
+    pr->pf = file_open( str_file, "rb" );
+    if ( pr->pf == NULL ) { return -2; }
+  }
+
   return 1;
 }
 
@@ -93,10 +94,9 @@ record_open( record_t *pr, const char *str_file, record_mode_t record_mode,
 int
 record_close( record_t *pr )
 {
-  free(pr->buf);
-  pr->buf = NULL;
-  pr->write_ptr = NULL;
-  return 0;
+  int iret = file_close( pr->pf );
+  pr->pf = NULL;
+  return iret;
 }
 
 
@@ -110,7 +110,7 @@ out_CSA( tree_t * restrict ptree, record_t *pr, unsigned int move )
   if ( move == MOVE_RESIGN )
     {
       if ( ! pr->moves ) { out_CSA_header( ptree, pr ); }
-      record_printf(pr, "%s\n", str_resign );
+      fprintf( pr->pf, "%s\n", str_resign );
       pr->lines++;
     }
   else {
@@ -123,7 +123,7 @@ out_CSA( tree_t * restrict ptree, record_t *pr, unsigned int move )
 	root_turn = Flip(root_turn);
       }
     str_move = str_CSA_move( move );
-    record_printf(pr, "%c%s\n", ach_turn[Flip(root_turn)], str_move );
+    fprintf( pr->pf, "%c%s\n", ach_turn[Flip(root_turn)], str_move );
     pr->lines++;
     pr->moves++;
   }
@@ -131,22 +131,22 @@ out_CSA( tree_t * restrict ptree, record_t *pr, unsigned int move )
   /* print time */
   sec = root_turn ? sec_b_total : sec_w_total;
 
-  record_printf(pr, "T%-7u,'%03u:%02u \n", sec_elapsed, sec / 60U, sec % 60U );
+  fprintf( pr->pf, "T%-7u,'%03u:%02u \n", sec_elapsed, sec / 60U, sec % 60U );
   pr->lines++;
 
   /* print repetition or mate status */
   if ( game_status & flag_mated )
     {
-      record_printf(pr, "%%TSUMI\n" );
+      fprintf( pr->pf, "%%TSUMI\n" );
       pr->lines++;
     }
   else if ( game_status & flag_drawn )
     {
-      record_printf(pr, "%s\n", str_repetition );
+      fprintf( pr->pf, "%s\n", str_repetition );
       pr->lines++;
     }
 
-  // fflush( pr->pf );
+  fflush( pr->pf );
 }
 
 
@@ -421,77 +421,6 @@ interpret_CSA_move( tree_t * restrict ptree, unsigned int *pmove,
 
 
 const char *
-str_CSA_move_plus( tree_t * restrict ptree, unsigned int move, int ply,
-		   int turn )
-{
-  static char str[ 13 ];
-  const unsigned int *pmove_last;
-  unsigned int amove[ MAX_LEGAL_EVASION ];
-  char *p;
-  int is_promo, ipiece_cap, ipiece_move, ifrom, ito, turn_next;
-
-  is_promo    = (int)I2IsPromote(move);
-  ipiece_move = (int)I2PieceMove(move);
-  ifrom       = (int)I2From(move);
-  ito         = (int)I2To(move);
-  ipiece_cap  = (int)UToCap(move);
-  turn_next   = Flip( turn );
-
-  if ( is_promo && ipiece_cap )
-    {
-      snprintf( str, 13, "%d%d%d%d%spx%s",
-	       9-aifile[ifrom], airank[ifrom]+1,
-	       9-aifile[ito],   airank[ito]  +1,
-	       astr_table_piece[ ipiece_move + promote ],
-	       astr_table_piece[ ipiece_cap ] );
-      p = str + 10;
-    }
-  else if ( ipiece_cap )
-    {
-      snprintf( str, 13, "%d%d%d%d%sx%s",
-	       9-aifile[ifrom], airank[ifrom]+1,
-	       9-aifile[ito],   airank[ito]  +1,
-	       astr_table_piece[ ipiece_move ],
-	       astr_table_piece[ ipiece_cap ] );
-      p = str + 9;
-    }
-  else if ( is_promo )
-    {
-      snprintf( str, 13, "%d%d%d%d%sp",
-	       9-aifile[ifrom], airank[ifrom]+1,
-	       9-aifile[ito],   airank[ito]  +1,
-	       astr_table_piece[ ipiece_move + promote ] );
-      p = str + 7;
-    }
-  else if ( ifrom < nsquare )
-    {
-      snprintf( str, 13, "%d%d%d%d%s",
-	       9-aifile[ifrom], airank[ifrom]+1,
-	       9-aifile[ito],   airank[ito]  +1,
-	       astr_table_piece[ ipiece_move ] );
-      p = str + 6;
-    }
-  else {
-    snprintf( str, 13, "00%d%d%s", 9-aifile[ito], airank[ito]+1,
-	     astr_table_piece[ From2Drop(ifrom) ] );
-    p = str + 6;
-  }
-
-  MakeMove( turn, move, ply );
-  if ( InCheck( turn_next ) )
-    {
-      pmove_last = GenEvasion( turn_next, amove );
-      if ( pmove_last == amove ) { *p++ = '#'; }
-      else                       { *p++ = '!'; }
-      *p   = '\0';
-    }
-  UnMakeMove( turn, move, ply );
-
-  return str;
-}
-
-
-const char *
 str_CSA_move( unsigned int move )
 {
   static char str[7];
@@ -575,21 +504,159 @@ read_board_rep1( const char *str_line, min_posi_t *pmin_posi )
 }
 
 
+#if defined(USI)
+int CONV
+usi2csa( const tree_t * restrict ptree, const char *str_usi, char *str_csa )
+{
+  int sq_file, sq_rank, sq, pc;
+
+  if ( '1' <= str_usi[0] && str_usi[0] <= '9'
+       && 'a' <= str_usi[1] && str_usi[1] <= 'i'
+       && '1' <= str_usi[2] && str_usi[2] <= '9'
+       && 'a' <= str_usi[3] && str_usi[3] <= 'i' )
+    {
+      str_csa[0] = str_usi[0];
+      str_csa[1] = (char)( str_usi[1] + '1' - 'a' );
+      str_csa[2] = str_usi[2];
+      str_csa[3] = (char)( str_usi[3] + '1' - 'a' );
+
+      sq_file = str_csa[0]-'0';
+      sq_file = 9 - sq_file;
+      sq_rank = str_csa[1]-'0';
+      sq_rank = sq_rank - 1;
+      sq      = sq_rank * 9 + sq_file;
+      pc      = abs(BOARD[sq]);
+      if ( str_usi[4] == '+' ) { pc += promote; }
+
+      str_csa[4] = astr_table_piece[pc][0];
+      str_csa[5] = astr_table_piece[pc][1];
+      str_csa[6] = '\0';
+
+      return 1;
+    }
+
+  if ( isascii( (int)str_usi[0] )
+       && isalpha( (int)str_usi[0] )
+       && str_usi[1] == '*'
+       && '1' <= str_usi[2] && str_usi[2] <= '9'
+       && 'a' <= str_usi[3] && str_usi[3] <= 'i' )
+    {
+      str_csa[0] = '0';
+      str_csa[1] = '0';
+      str_csa[2] = str_usi[2];
+      str_csa[3] = (char)( str_usi[3] - 'a' + '1' );
+      
+      switch ( str_usi[0] )
+	{
+	case 'P':  pc = pawn;    break;
+	case 'L':  pc = lance;   break;
+	case 'N':  pc = knight;  break;
+	case 'S':  pc = silver;  break;
+	case 'G':  pc = gold;    break;
+	case 'B':  pc = bishop;  break;
+	case 'R':  pc = rook;    break;
+	default:   return -1;
+	}
+
+      str_csa[4] = astr_table_piece[pc][0];
+      str_csa[5] = astr_table_piece[pc][1];
+      str_csa[6] = '\0';
+
+      return 1;
+    }
+
+  snprintf( str_message, SIZE_MESSAGE, "%s: %s", str_illegal_move, str_usi );
+  str_error = str_message;
+  return -1;
+}
+
+
+int CONV
+csa2usi( const tree_t * restrict ptree, const char *str_csa, char *str_usi )
+{
+  if ( str_csa[0] == '0' && str_csa[1] == '0'
+       && '1' <= str_csa[2] && str_csa[2] <= '9'
+       && '1' <= str_csa[3] && str_csa[3] <= '9'
+       && 'A' <= str_csa[4] && str_csa[4] <= 'Z'
+       && 'A' <= str_csa[5] && str_csa[5] <= 'Z' )
+    {
+      switch ( str2piece( str_csa + 4 ) )
+	{
+	case pawn:    str_usi[0] = 'P';  break;
+	case lance:   str_usi[0] = 'L';  break;
+	case knight:  str_usi[0] = 'N';  break;
+	case silver:  str_usi[0] = 'S';  break;
+	case gold:    str_usi[0] = 'G';  break;
+	case bishop:  str_usi[0] = 'B';  break;
+	case rook:    str_usi[0] = 'R';  break;
+	default:  return -1;  break;
+	}
+
+      str_usi[1] = '*';
+      str_usi[2] = str_csa[2];
+      str_usi[3] = (char)( str_csa[3] + 'a' - '1' );
+      str_usi[4] = '\0';
+
+      return 1;
+    }
+
+
+  if ( '1' <= str_csa[0] && str_csa[0] <= '9'
+       && '1' <= str_csa[1] && str_csa[1] <= '9'
+       && '1' <= str_csa[2] && str_csa[2] <= '9'
+       && '1' <= str_csa[3] && str_csa[3] <= '9'
+       && 'A' <= str_csa[4] && str_csa[4] <= 'Z'
+       && 'A' <= str_csa[5] && str_csa[5] <= 'Z' )
+    {
+      int sq_file, sq_rank, sq, pc;
+
+
+      str_usi[0] = str_csa[0];
+      str_usi[1] = (char)( str_csa[1] + 'a' - '1' );
+      str_usi[2] = str_csa[2];
+      str_usi[3] = (char)( str_csa[3] + 'a' - '1' );
+
+      sq_file = str_csa[0]-'0';
+      sq_file = 9 - sq_file;
+
+      sq_rank = str_csa[1]-'0';
+      sq_rank = sq_rank - 1;
+      sq      = sq_rank * 9 + sq_file;
+      pc      = abs(BOARD[sq]);
+
+      if ( pc + promote == str2piece( str_csa + 4 ) )
+	{
+	  str_usi[4] = '+';
+	  str_usi[5] = '\0';
+	}
+      else { str_usi[4] = '\0'; }
+
+
+      return 1;
+    }
+
+  str_usi[0] = '*';
+  str_usi[1] = '\0';
+  return 1;
+}
+#endif
+
+
 static void
 out_CSA_header( const tree_t * restrict ptree, record_t *pr )
 {
   time_t t;
 
-  record_printf(pr, "'Bonanza version " BNZ_VER "\n" );
+  fprintf( pr->pf, "'Bonanza version " BNZ_VER "\n" );
 
   if ( pr->str_name1[0] != '\0' )
     {
-      record_printf(pr, "N+%s\n", pr->str_name1 );
+      fprintf( pr->pf, "N+%s\n", pr->str_name1 );
     }
 
   if ( pr->str_name2[0] != '\0' )
     {
-      record_printf(pr, "N-%s\n", pr->str_name2 );
+      fprintf( pr->pf, "N-%s\n", pr->str_name2 );
     }
 
   t = time( NULL );
@@ -598,13 +665,13 @@ out_CSA_header( const tree_t * restrict ptree, record_t *pr )
 #if defined(_MSC_VER)
     struct tm tm;
     localtime_s( &tm, &t );
-    record_printf(pr, "$START_TIME:%4d/%02d/%02d %02d:%02d:%02d\n",
+    fprintf( pr->pf, "$START_TIME:%4d/%02d/%02d %02d:%02d:%02d\n",
 	     tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday,
 	     tm.tm_hour, tm.tm_min, tm.tm_sec );
 #else
     struct tm *ptm;
     ptm = localtime( &t );
-    record_printf(pr, "$START_TIME:%4d/%02d/%02d %02d:%02d:%02d\n",
+    fprintf( pr->pf, "$START_TIME:%4d/%02d/%02d %02d:%02d:%02d\n",
 	     ptm->tm_year+1900, ptm->tm_mon+1, ptm->tm_mday,
 	     ptm->tm_hour, ptm->tm_min, ptm->tm_sec );
 #endif
@@ -615,16 +682,16 @@ out_CSA_header( const tree_t * restrict ptree, record_t *pr )
        && min_posi_no_handicap.hand_black   == HAND_B
        && min_posi_no_handicap.hand_white   == HAND_W )
     {
-      record_printf(pr, "PI\n" );
+      fprintf( pr->pf, "PI\n" );
       pr->lines++;
     }
   else {
-    // out_board( ptree, pr->pf, 0, 1 );
+    out_board( ptree, pr->pf, 0, 1 );
     pr->lines += 10;
   }
   
-  if ( root_turn ) { record_printf(pr, "-\n" ); }
-  else             { record_printf(pr, "+\n" ); }
+  if ( root_turn ) { fprintf( pr->pf, "-\n" ); }
+  else             { fprintf( pr->pf, "+\n" ); }
   pr->lines++;
 }
 
@@ -956,13 +1023,10 @@ skip_comment( record_t *pr )
 static int
 read_char( record_t *pr )
 {
-  return EOF;
-#if 0
   int c;
 
   c = fgetc( pr->pf );
   if ( c == '\n' ) { pr->lines++; }
 
   return c;
-#endif
 }
