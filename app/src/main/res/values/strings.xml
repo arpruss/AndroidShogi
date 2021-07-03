@@ -79,4 +79,5 @@
     <string name="download_message">To play, you need to download Bonanza engine data.
         This is a 30mb compressed download, which will take up 180mb on your device.</string>
     <string name="cores">Maximum number of CPU cores to use</string>
+    <string name="fatal_error">Error</string>
 </resources>

@@ -363,6 +363,9 @@ make_move_w( tree_t * restrict ptree, unsigned int move, int ply )
  * flag_nomake_move
  * flag_history
  */
+ 
+int count = 0; 
+ 
 int CONV
 make_move_root( tree_t * restrict ptree, unsigned int move, int flag )
 {

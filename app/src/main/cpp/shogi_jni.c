@@ -16,6 +16,8 @@
 #define R_DRAW -4
 #define R_INSTANCE_DELETED -5
 #define R_INITIALIZATION_ERROR -6
+#define R_FATAL_ERROR -7
+#define R_NO_VALID_MOVE -8
 
 // Handicap settings. A positive (negative) value means that the black
 // (resp. white) player will remove the specified pieces from the initial
@@ -38,6 +40,8 @@ static char *g_initialization_error = NULL;
 char *g_storage_dir = NULL;
 
 static tree_t *restrict g_tree = NULL;
+
+static int count = 0;
 
 static char *Basename(const char *path, char *buf, int buf_size) {
     const char *r = strrchr(path, '/');
@@ -440,6 +444,7 @@ void Java_mobi_omegacentauri_shogi_BonanzaJNI_humanMove(
                            (flag_history | flag_time | flag_rep
                             | flag_detect_hang/*
                         | flag_rejections */));
+                        
         if (r < 0) {
             LOG_DEBUG("Failed to make move: %s: %s", move_str_buf, str_error);
             move_str = NULL;
@@ -495,7 +500,18 @@ void Java_mobi_omegacentauri_shogi_BonanzaJNI_computerMove(
         return;
     }
 
-    CHECK2_GE(com_turn_start(g_tree, 0), 0, "error: %s", str_error);
+    if (com_turn_start(g_tree, 0)<0) {
+        if (str_error == str_king_hang) {
+            status = R_NO_VALID_MOVE;
+            FillResult("Computer", env, status, NULL, NULL, NULL, g_tree, result);
+            pthread_mutex_unlock(&g_lock);
+            return;
+        }
+        status = R_FATAL_ERROR;
+        FillResult("Computer", env, status, str_error, NULL, NULL, g_tree, result);
+        pthread_mutex_unlock(&g_lock);
+        return;
+    }
 
     unsigned int move = alast_pv_save[NUM_UNMAKE - 1].a[1];
     const char *move_str = NULL;

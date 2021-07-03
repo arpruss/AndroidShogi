@@ -229,6 +229,12 @@ public class BonanzaController {
                 r.gameState = GameState.ACTIVE;
             } else {
                 switch (jr.status) {
+                    case BonanzaJNI.R_FATAL_ERROR:
+                        r.nextPlayer = Player.INVALID;
+                        r.gameState = GameState.FATAL_ERROR;
+                        r.lastMove = null;
+                        r.lastMoveCookie = -1;
+                        break;
                     case BonanzaJNI.R_ILLEGAL_MOVE:
                         r.nextPlayer = curPlayer;
                         r.gameState = GameState.ACTIVE;
@@ -239,6 +245,12 @@ public class BonanzaController {
                         r.nextPlayer = Player.INVALID;
                         r.gameState = (curPlayer == Player.BLACK) ?
                                 GameState.BLACK_WON : GameState.WHITE_WON;
+                        r.errorMessage = "Checkmate";
+                        break;
+                    case BonanzaJNI.R_NO_VALID_MOVE:
+                        r.nextPlayer = Player.INVALID;
+                        r.gameState = (curPlayer == Player.BLACK) ?
+                                GameState.WHITE_WON : GameState.BLACK_WON;
                         r.errorMessage = "Checkmate";
                         break;
                     case BonanzaJNI.R_RESIGNED:
