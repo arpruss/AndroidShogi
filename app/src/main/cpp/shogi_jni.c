@@ -378,6 +378,10 @@ jint Java_mobi_omegacentauri_shogi_BonanzaJNI_startGame(
     SetDifficulty(difficulty,
                   total_think_time_secs,
                   per_turn_think_time_secs);
+#ifdef TLP                  
+#error TLP not supported yet
+    tlp_max = 4;
+#endif    
   }
   FillResult("Init", env, R_OK, NULL, NULL, 0, &tree, result);
   pthread_mutex_unlock(&g_lock);
