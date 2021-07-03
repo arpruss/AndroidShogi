@@ -411,11 +411,15 @@ out_board( const tree_t * restrict ptree, FILE *pf, unsigned int move,
 int
 next_cmdline( int is_wait )
 {
+  str_buffer_cmdline[0] = '\0';
+  return 0;    
+    
   char *str_line_end;
   size_t size;
   int iret;
 
   str_line_end = strchr( str_buffer_cmdline, '\n' );
+  LOG_DEBUG("cmd: <%s>", str_buffer_cmdline);
 
   if ( ! str_line_end )
     {
@@ -427,7 +431,8 @@ next_cmdline( int is_wait )
 	  } while ( ! str_line_end && iret );
 	  if ( ! iret )
 	    {
-	      game_status |= flag_quit;
+          LOG_DEBUG("force quit in next_cmdline 1");
+	      game_status |= flag_quit; 
 	      return 1;
 	    }
 	}
@@ -439,7 +444,8 @@ next_cmdline( int is_wait )
 	if ( iret < 0 ) { return iret; }
 	if ( ! iret )
 	  {
-	    game_status |= flag_quit;
+        LOG_DEBUG("force quit in next_cmdline 2");
+	    game_status |= flag_quit; 
 	    return 1;
 	  }
 	if ( ! str_line_end ) { return 0; }

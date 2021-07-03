@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "shogi.h"
+#include "shogi_jni.h"
 
 /* unacceptable when the program is thinking, or quit pondering */
 #define AbortDifficultCommand                                              \
@@ -1475,6 +1476,7 @@ static int CONV cmd_problem( tree_t * restrict ptree, char **lasts )
 
 static int CONV cmd_quit( void )
 {
+  LOG_DEBUG("cmd_quit");
   game_status |= flag_quit;
   return 1;
 }

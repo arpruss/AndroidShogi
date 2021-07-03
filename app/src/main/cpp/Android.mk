@@ -22,6 +22,6 @@ LOCAL_SRC_FILES := \
 # -DCSA_LAN         enables bonanza to talk CSA Shogi TCP/IP protcol.
 # -DNO_LOGGING      suppresses dumping log files.
 
-LOCAL_CFLAGS := -DMINIMUM -DNDEBUG -std=gnu99 -DNO_LOGGING -DANDROID -DNO_STDOUT # -v -Wno-error -Wno-error=format -Wno-error=format-security
+LOCAL_CFLAGS := -DMINIMUM -DNDEBUG -std=gnu99 -DNO_LOGGING -DANDROID -DNO_STDOUT -O3
 
 include $(BUILD_SHARED_LIBRARY)
