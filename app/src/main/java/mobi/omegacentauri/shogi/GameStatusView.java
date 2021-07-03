@@ -4,6 +4,7 @@ import android.content.Context;
 import android.text.SpannableString;
 import android.text.style.UnderlineSpan;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -149,7 +150,9 @@ public class GameStatusView extends LinearLayout {
     } else if (gameState == GameState.BLACK_WON) {
       endGameMessage = getResources().getString(R.string.black_won);       
     } else if (gameState == GameState.DRAW) {
-      endGameMessage = getResources().getString(R.string.draw);             
+      endGameMessage = getResources().getString(R.string.draw);
+    } else if (gameState == GameState.FATAL_ERROR) {
+        endGameMessage = getResources().getString(R.string.fatal_error);
     } else {
       throw new AssertionError(gameState.toString());
     }

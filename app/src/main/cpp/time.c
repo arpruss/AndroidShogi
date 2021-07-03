@@ -5,9 +5,11 @@
 #  include <time.h>
 #endif
 #include "shogi.h"
+#include "shogi_jni.h"
+#include <errno.h>
 
 
-void
+void CONV
 set_search_limit_time( int turn )
 /*
   [inputs]
@@ -46,7 +48,16 @@ set_search_limit_time( int turn )
       time_max_limit = time_limit = UINT_MAX;
       return;
     }
-  
+
+#if defined(USI)
+  if ( usi_mode != usi_off && usi_byoyomi )
+    {
+      time_max_limit = time_limit = usi_byoyomi;
+      Out( "- time ctrl: %u -- %u\n", time_limit, time_max_limit );
+      return;
+    }
+#endif
+
   /* not punctual to the time */
   if ( ! sec_limit && ( game_status & flag_time_extendable ) )
     {
@@ -69,7 +80,7 @@ set_search_limit_time( int turn )
       if ( u0 == 2U ) { u0 = 3U; }
 
       /* 'byo-yomi' is so long that the ordinary time-limit is negligible. */
-      if ( u0 < sec_limit_up * 3U / 2U ) { u0 = sec_limit_up * 3U / 2U; }
+      if ( u0 < sec_limit_up * 5U ) { u0 = sec_limit_up * 5U; }
     
       u1 = u0 * 5U;
 
@@ -93,8 +104,8 @@ set_search_limit_time( int turn )
 	sec_left = sec_limit - sec_elapsed;
 	u0       = ( sec_left + ( TC_NMOVE / 2U ) ) / TC_NMOVE;
 	
-	/* t = 2s is not beneficial since 2.8s are almost the same as 1.8s. */
-	/* So that, we rather want to save the time.                        */
+	/* t = 2s is not beneficial since 2.8s is almost the same as 1.8s. */
+	/* So that, we rather want to save the time.                       */
 	if ( u0 == 2U ) { u0 = 1U; }
 	u1 = u0 * 5U;
       }
@@ -115,8 +126,8 @@ set_search_limit_time( int turn )
 }
 
 
-int
-renovate_time( int turn )
+int CONV
+update_time( int turn )
 {
   unsigned int te, time_elapsed;
   int iret;
@@ -137,7 +148,7 @@ renovate_time( int turn )
 }
 
 
-void
+void CONV
 adjust_time( unsigned int elapsed_new, int turn )
 {
   const char *str = "TIME SKEW DETECTED";
@@ -162,7 +173,7 @@ adjust_time( unsigned int elapsed_new, int turn )
 }
 
 
-int
+int CONV
 reset_time( unsigned int b_remain, unsigned int w_remain )
 {
   if ( sec_limit_up == UINT_MAX )
@@ -187,7 +198,7 @@ reset_time( unsigned int b_remain, unsigned int w_remain )
 }
 
 
-const char *
+const char * CONV
 str_time( unsigned int time )
 {
   static char str[32];
@@ -208,7 +219,7 @@ str_time( unsigned int time )
 }
 
 
-const char *
+const char * CONV
 str_time_symple( unsigned int time )
 {
   static char str[32];
@@ -226,7 +237,7 @@ str_time_symple( unsigned int time )
 }
 
 
-int
+int CONV
 get_cputime( unsigned int *ptime )
 {
 #if defined(_WIN32)
@@ -257,6 +268,7 @@ get_cputime( unsigned int *ptime )
   if ( times( &t ) == -1 )
     {
       str_error = "times() faild.";
+      LOG_DEBUG("errno = %d", errno);
       return -1;
     }
   clock_temp = t.tms_utime + t.tms_stime + t.tms_cutime + t.tms_cstime;
@@ -269,7 +281,7 @@ get_cputime( unsigned int *ptime )
 }
 
 
-int
+int CONV
 get_elapsed( unsigned int *ptime )
 {
 #if defined(_WIN32)

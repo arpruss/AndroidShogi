@@ -27,7 +27,11 @@ public class BonanzaJNI {
   
   // Initialization error (e.g., required DB files not found).
   public static final int R_INITIALIZATION_ERROR = -6;
-  
+
+  public static final int R_FATAL_ERROR = -7;
+
+  public static final int R_NO_VALID_MOVE = -8;
+
   static public final class Result {
     public Result() { board = new Board(); }
     
@@ -81,6 +85,7 @@ public class BonanzaJNI {
       Board initialBoard,
       int next_turn,
       int difficulty,
+      int numCores,
       int total_think_time_secs,    
       int per_turn_think_time_secs,
       Result result);

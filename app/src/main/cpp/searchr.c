@@ -4,49 +4,111 @@
 #include <limits.h>
 #include "shogi.h"
 
-static int find_root_move( unsigned int move );
-static int save_result( tree_t * restrict ptree, int value, int beta,
-			int turn );
+static int CONV save_result( tree_t * restrict ptree, int value, int beta,
+			     int turn );
 
 #if defined(MPV)
-static int mpv_set_bound( int alpha );
-static int mpv_find_min( int *pnum );
-static int mpv_add_result( tree_t * restrict ptree, int value );
-static void mpv_sub_result( unsigned int move );
-static void mpv_out( tree_t * restrict ptree, int turn, unsigned int time );
+static int CONV mpv_set_bound( int alpha );
+static int CONV mpv_find_min( int *pnum );
+static int CONV mpv_add_result( tree_t * restrict ptree, int value );
+static void CONV mpv_sub_result( unsigned int move );
+static void CONV mpv_out( tree_t * restrict ptree, int turn,
+			  unsigned int time );
 #endif
 
 #if defined(NO_STDOUT) && defined(NO_LOGGING)
 #  define NextRootMove(a,b) next_root_move(a)
-static int next_root_move( tree_t * restrict ptree );
+static int CONV next_root_move( tree_t * restrict ptree );
 #else
 #  define NextRootMove(a,b) next_root_move(a,b)
-static int next_root_move( tree_t * restrict ptree, int turn );
+static int CONV next_root_move( tree_t * restrict ptree, int turn );
 #endif
 
-int
+static int CONV
+search_wrapper( tree_t * restrict ptree, int alpha, int beta, int turn,
+		int depth, int ply, unsigned int state_node )
+{
+  int value;
+
+#if defined(DFPN_CLIENT)
+  /* try beta cut using results from DFPN server */
+  if ( root_move_list[root_index].dfpn_cresult == dfpn_client_win )
+    {
+      if ( ! root_index ) { Out( "- best move is proofed, skip.\n" ); }
+      ptree->pv[1].a[1]   = MOVE_LAST;
+      ptree->pv[1].length = 1;
+      ptree->pv[1].depth  = 0;
+      ptree->pv[1].type   = no_rep;
+      MOVE_CURR           = MOVE_NA;
+      return score_matelong;
+    }
+#endif
+  
+  value = search( ptree, alpha, beta, turn, depth, ply, state_node );
+
+#if defined(DFPN_CLIENT)
+  /* catch a signal, i.e., the first move has to be ignored */
+  if ( game_status & flag_skip_root_move )
+    {
+      if ( root_index )
+	{
+	  Out( "- %s is proofed while searching.\n", str_CSA_move(MOVE_LAST) );
+	}
+      else {
+	Out( "- %s (best move) is proofed while searching.\n",
+	     str_CSA_move(MOVE_LAST) );
+      }
+
+      game_status &= ~flag_skip_root_move;
+      root_abort          = 0;
+
+      ptree->pv[1].a[1]   = MOVE_LAST;
+      ptree->pv[1].length = 1;
+      ptree->pv[1].depth  = 0;
+      ptree->pv[1].type   = no_rep;
+      MOVE_CURR           = MOVE_NA;
+      return score_matelong;
+    }
+#endif
+
+  return value;
+}
+
+
+int CONV
 searchr( tree_t * restrict ptree, int alpha, int beta, int turn, int depth )
 {
   uint64_t root_nodes_start;
-  int value, first_move_expanded, i;
+  int value, first_move;
   int new_depth, extension, ply, state_node_new;
 #if defined(MPV)
   int bound = INT_MIN;
 #endif
+#if defined(USI)
+  char str_usi[6];
+#endif
 
-  first_move_expanded = 1;
+  first_move          = 1;
   ply                 = 1;
   ptree->move_last[1] = ptree->move_last[0];
 
   while( NextRootMove( ptree, turn ) )
     {
       root_nodes_start = ptree->node_searched;
+#if defined(USI)
+      if ( usi_mode != usi_off )
+	{
+	  csa2usi( ptree, str_CSA_move(MOVE_CURR), str_usi );
+	}
+#endif
+
       MakeMove( turn, MOVE_CURR, 1 );
 
       assert( ! InCheck( turn ) );
 
       state_node_new = ( node_do_mate | node_do_null | node_do_futile
-			 | node_do_recap );
+			 | node_do_recap | node_do_recursion
+			 | node_do_hashcut );
       if ( InCheck(Flip(turn)) )
 	{
 	  ptree->check_extension_done++;
@@ -58,14 +120,14 @@ searchr( tree_t * restrict ptree, int alpha, int beta, int turn, int depth )
 	ptree->nsuc_check[2] = 0;
       }
       
-      if ( first_move_expanded )
+      if ( first_move )
 	{
 #if defined(MPV)
 	  if ( root_mpv ) { bound = alpha; }
 #endif
 	  new_depth = depth + extension;
-	  value = -search( ptree, -beta, -alpha, Flip(turn), new_depth, 2,
-			   state_node_new );
+	  value = -search_wrapper( ptree, -beta, -alpha, Flip(turn),
+				   new_depth, 2, state_node_new );
 	  if ( root_abort )
 	    {
 	      UnMakeMove( turn, MOVE_CURR, 1 );
@@ -78,7 +140,7 @@ searchr( tree_t * restrict ptree, int alpha, int beta, int turn, int depth )
 	      return value;
 	    }
 
-	  first_move_expanded = 0;
+	  first_move = 0;
 	}
 #if defined(MPV)
       else if ( root_mpv )
@@ -88,13 +150,13 @@ searchr( tree_t * restrict ptree, int alpha, int beta, int turn, int depth )
 	    {
 	      new_depth = depth + extension;
 	      
-	      value = -search( ptree, -bound-1, -bound, Flip(turn), new_depth,
-			       2, state_node_new );
+	      value = -search_wrapper( ptree, -bound-1, -bound, Flip(turn),
+				       new_depth, 2, state_node_new );
 	      if ( ! root_abort && bound < value )
 		{
 		  new_depth = depth + extension;
-		  value = -search( ptree, -beta, -bound, Flip(turn), new_depth,
-				   2, state_node_new );
+		  value = -search_wrapper( ptree, -beta, -bound, Flip(turn),
+					   new_depth, 2, state_node_new );
 		}
 	      if ( root_abort )
 		{
@@ -108,21 +170,74 @@ searchr( tree_t * restrict ptree, int alpha, int beta, int turn, int depth )
 	}
 #endif /* MPV */
       else {
-	new_depth = depth + extension;
-	    
-	value = -search( ptree, -alpha-1, -alpha, Flip(turn), new_depth, 2,
-			 state_node_new );
+        int depth_reduced = 0;
+        new_depth = depth + extension;
+
+        /* reductions */
+        if ( 2*PLY_INC <= new_depth
+             && ! ptree->nsuc_check[ply]
+             && ! UToCap(MOVE_CURR)
+             && ! ( I2IsPromote(MOVE_CURR)
+                    && I2PieceMove(MOVE_CURR) != silver ) )
+          {
+            unsigned int key     = phash( MOVE_CURR, turn );
+            unsigned int good    = ptree->hist_good[key]  + 1;
+            unsigned int triedx8 = ( ptree->hist_tried[key] + 2 ) * 8U;
+
+            if      ( good *160U < triedx8 ) { depth_reduced = PLY_INC * 3/2; }
+            else if ( good * 50U < triedx8 ) { depth_reduced = PLY_INC * 2/2; }
+            else if ( good * 19U < triedx8 ) { depth_reduced = PLY_INC * 1/2; }
+
+            depth_reduced = PLY_INC;
+            new_depth    -= depth_reduced;
+          }
+
+        value = -search_wrapper( ptree, -alpha-1, -alpha, Flip(turn),
+				 new_depth, 2, state_node_new );
+        if ( ! root_abort && alpha < value && depth_reduced )
+          {
+            new_depth += depth_reduced;
+            value = -search_wrapper( ptree, -alpha-1, -alpha, Flip(turn),
+				     new_depth, 2, state_node_new );
+          }
 	if ( root_abort )
 	  {
 	    UnMakeMove( turn, MOVE_CURR, 1 );
 	    return 0;
 	  }
+
 	if ( alpha < value )
 	  {
+#if defined(DFPN_CLIENT)
+	    if ( dfpn_client_sckt != SCKT_NULL
+		 && 4 < iteration_depth
+		 && dfpn_client_best_move != MOVE_CURR )
+	      {
+		dfpn_client_best_move = MOVE_CURR;
+		lock( &dfpn_client_lock );
+		dfpn_client_out( "BEST MOVE %s\n",
+				 str_CSA_move(dfpn_client_best_move) );
+		unlock( &dfpn_client_lock );
+	      }
+#endif
+	    MnjOut( "pid=%d move=%s v=%dl n=% " PRIu64 "%s\n",
+		    mnj_posi_id, str_CSA_move(MOVE_CURR), alpha+1,
+		    ptree->node_searched,
+		    ( mnj_depth_stable <= iteration_depth ) ? " stable" : "" );
+
+#if defined(USI)
+	    if ( usi_mode != usi_off )
+	      {
+		USIOut( "info depth %d score cp %d nodes %" PRIu64 " pv %s\n",
+			iteration_depth, alpha+1, ptree->node_searched,
+			str_usi );
+	      }
+#endif
+
 	    new_depth = depth + extension;
 	    easy_abs  = 0;
-	    value = -search( ptree, -beta, -alpha, Flip(turn), new_depth,
-			     2, state_node_new );
+	    value = -search_wrapper( ptree, -beta, -alpha, Flip(turn),
+				     new_depth, 2, state_node_new );
 	    if ( root_abort )
 	      {
 		const char *str;
@@ -132,7 +247,6 @@ searchr( tree_t * restrict ptree, int alpha, int beta, int turn, int depth )
 		UnMakeMove( turn, MOVE_CURR, 1 );
 		pv_close( ptree, 2, pv_fail_high );
 		time_last_result     = time_last_check;
-		time_last_eff_search = time_last_search;
 		root_value           = alpha+1;
 		ptree->pv[0]         = ptree->pv[1];
 		if ( turn )
@@ -144,7 +258,7 @@ searchr( tree_t * restrict ptree, int alpha, int beta, int turn, int depth )
 		  dvalue = alpha;
 		  ch     = '+';
 		}
-		str = str_CSA_move_plus( ptree, MOVE_CURR, 1, turn );
+		str = str_CSA_move(MOVE_CURR);
 		Out( "           %7.2f  1.%c%s [%c0!]\n",
 		     dvalue / 100.0, ch, str, ch );
 		if ( game_status & flag_pondering )
@@ -165,8 +279,8 @@ searchr( tree_t * restrict ptree, int alpha, int beta, int turn, int depth )
 
       UnMakeMove( turn, MOVE_CURR, 1 );
 
-      i = find_root_move( MOVE_CURR );
-      root_move_list[i].nodes = ptree->node_searched - root_nodes_start;
+      root_move_list[root_index].nodes
+	= ptree->node_searched - root_nodes_start;
 
 #if defined(MPV)
       if ( root_mpv && value < beta )
@@ -175,7 +289,7 @@ searchr( tree_t * restrict ptree, int alpha, int beta, int turn, int depth )
 	  if ( bound < value && mpv_add_result( ptree, value ) < 0 )
 	    {
 	      game_status |= flag_search_error;
-	      return 1;
+	      return 0;
 	    }
 	}
 #endif
@@ -185,43 +299,43 @@ searchr( tree_t * restrict ptree, int alpha, int beta, int turn, int depth )
 	  if ( save_result( ptree, value, beta, turn ) < 0 )
 	    {
 	      game_status |= flag_search_error;
-	      return 1;
+	      return 0;
 	    }
-	  if ( beta <= value )
-	    {
-	      hash_store( ptree, 1, depth, turn, value_lower, value,
-			  MOVE_CURR, 0 );
-	      return value;
-	    }
+	  if ( beta <= value ) { return value; }
 	  alpha = value;
 	}
     }
   if ( root_abort ) { return 0; }
 
-#if ! defined(MINIMUM)
-  if ( ! ( game_status & flag_learning ) )
-#endif
-    {
-      hash_store( ptree, 1, depth, turn, value_exact, alpha,
-		  ptree->pv[1].a[1], 0 );
-    }
-
   return alpha;
 }
 
 
-void
+void CONV
 out_pv( tree_t * restrict ptree, int value, int turn, unsigned int time )
 {
+#if defined(USI)
+  char str_pv[256];
+  int ipv;
+#endif
   const char *str;
   double dvalue;
   int ply, tt, is_out;
 
   tt     = turn;
-  is_out = ( iteration_depth > 3 || abs(value) > score_max_eval ) ? 1 : 0;
+  is_out = ( 4 < iteration_depth || abs(value) > score_max_eval ) ? 1 : 0;
 
 #if defined(MPV)
   if ( root_mpv ) { is_out = 0; }
+#endif
+
+#if defined(USI)
+  if ( usi_mode != usi_off )
+    {
+      is_out    = 1;
+      ipv       = 0;
+      str_pv[0] = '\0';
+    }
 #endif
 
   if ( is_out )
@@ -237,8 +351,7 @@ out_pv( tree_t * restrict ptree, int value, int turn, unsigned int time )
 
       if ( ptree->pv[0].length )
 	{
-	  int i = find_root_move( ptree->pv[0].a[1] );
-	  if ( root_move_list[i].status & flag_first )
+	  if ( root_move_list[root_index].status & flag_first )
 	    {
 	      Out( " %2d %6s %7.2f ", iteration_depth, str, dvalue );
 	    }
@@ -250,13 +363,22 @@ out_pv( tree_t * restrict ptree, int value, int turn, unsigned int time )
     {
       if ( is_out )
 	{
-	  if ( ply > 1 && ! ( (ply-1) % 4 ) )
+	  if ( ply > 1 && ! ( (ply-1) % 5 ) )
 	    {
 	      Out( "\n                   " );
 	    }
-	  str = str_CSA_move_plus( ptree, ptree->pv[0].a[ply], ply, tt );
+	  str = str_CSA_move( ptree->pv[0].a[ply] );
 	  OutCsaShogi( " %c%s", ach_turn[tt], str );
-	  Out( "%2d.%c%-11s", ply, ach_turn[tt], str );
+	  Out( "%2d.%c%-7s", ply, ach_turn[tt], str );
+
+#if defined(USI)
+	  if ( usi_mode != usi_off && ply <= 4 )
+	    {
+	      char str_usi[6];
+	      csa2usi( ptree, str_CSA_move(ptree->pv[0].a[ply]), str_usi );
+	      ipv += snprintf( str_pv + ipv, 256 - ipv, " %s", str_usi );
+	    }
+#endif
 	}
 
       MakeMove( tt, ptree->pv[0].a[ply], ply );
@@ -266,13 +388,15 @@ out_pv( tree_t * restrict ptree, int value, int turn, unsigned int time )
 
   if ( ptree->pv[0].type == hash_hit )
     {
+      unsigned int dummy;
       int i, value_type;
 
       for ( ; ply < PLY_MAX; ply++ )
 	{
+	  dummy = 0;
 	  ptree->amove_hash[ply] = 0;
 	  value_type = hash_probe( ptree, ply, 0, tt, -score_bound,
-				   score_bound, 0 );
+				   score_bound, &dummy );
 	  if ( ! ( value_type == value_exact
 		   && value   == HASH_VALUE
 		   && is_move_valid( ptree, ptree->amove_hash[ply], tt ) ) )
@@ -285,14 +409,22 @@ out_pv( tree_t * restrict ptree, int value, int turn, unsigned int time )
 	  
 	  if ( is_out )
 	    {
-	      if ( ply > 1 && ! ( (ply-1) % 4 ) )
+	      if ( ply > 1 && ! ( (ply-1) % 5 ) )
 		{
 		  Out( "\n                   " );
 		}
-	      str = str_CSA_move_plus( ptree, ptree->pv[0].a[ply], ply,
-				       tt );
+	      str = str_CSA_move(ptree->pv[0].a[ply]);
 	      OutCsaShogi( " %c%s", ach_turn[tt], str );
-	      Out( "%2d:%c%-11s", ply, ach_turn[tt], str );
+	      Out( "%2d:%c%-7s", ply, ach_turn[tt], str );
+
+#if defined(USI)
+	      if ( usi_mode != usi_off && ply <= 4 )
+		{
+		  char str_usi[6];
+		  csa2usi( ptree, str_CSA_move(ptree->pv[0].a[ply]), str_usi );
+		  ipv += snprintf( str_pv + ipv, 256 - ipv, " %s", str_usi );
+		}
+#endif
 	    }
 
 	  MakeMove( tt, ptree->pv[0].a[ply], ply );
@@ -310,7 +442,7 @@ out_pv( tree_t * restrict ptree, int value, int turn, unsigned int time )
 
   if ( is_out && ptree->pv[0].type != no_rep )
     {
-      if ( (((ply-1) % 4) == 0) && (ply != 1) )
+      if ( (((ply-1) % 5) == 0) && (ply != 1) )
 	{
 	  Out( "\n                   " );
 	}
@@ -331,7 +463,8 @@ out_pv( tree_t * restrict ptree, int value, int turn, unsigned int time )
     }
   for ( ply--; ply >= 1; ply-- )
     {
-      tt = Flip(tt);
+      tt    = Flip(tt);
+      value = -value;
       UnMakeMove( tt, ptree->pv[0].a[ply], ply );
     }
 
@@ -339,38 +472,55 @@ out_pv( tree_t * restrict ptree, int value, int turn, unsigned int time )
     {
       OutCsaShogi( "\n" );
       Out( "\n" );
+      USIOut( "info depth %d score cp %d nodes %" PRIu64 " pv%s\n",
+	      iteration_depth, value, ptree->node_searched, str_pv );
     }
 } 
 
 
-static int
+static int CONV
 save_result( tree_t * restrict ptree, int value, int beta, int turn )
 {
   root_move_t root_move_temp;
-  int i;
+  int index;
 
   if ( get_elapsed( &time_last_result ) < 0 ) { return -1; }
 
-  i = find_root_move( ptree->current_move[1] );
-  if ( i )
+  index = root_index;
+  if ( index )
     {
-      root_move_temp = root_move_list[i];
-      for ( ; i > 0; i-- ) { root_move_list[i] = root_move_list[i-1]; }
+      root_move_temp = root_move_list[index];
+      for ( ; index > 0; index-- )
+	{
+	  root_move_list[index] = root_move_list[index-1];
+	}
       root_move_list[0] = root_move_temp;
     }
-
+  root_index = 0;
   if ( beta <= value ) { pv_close( ptree, 2, pv_fail_high ); }
-
-  if ( ptree->pv[0].a[1] != ptree->pv[1].a[1] )
-    {
-      time_last_eff_search = time_last_search;
-    }
 
   ptree->pv[0] = ptree->pv[1];
   root_value   = value;
 
   if ( value < beta )
     {
+#if defined(DFPN_CLIENT)
+      if ( dfpn_client_sckt != SCKT_NULL
+	   && 4 < iteration_depth
+	   && dfpn_client_best_move != ptree->pv[1].a[1] )
+	{
+	  dfpn_client_best_move = ptree->pv[1].a[1];
+	  lock( &dfpn_client_lock );
+	  dfpn_client_out( "BEST MOVE %s\n",
+			   str_CSA_move(dfpn_client_best_move) );
+	  unlock( &dfpn_client_lock );
+	}
+#endif
+      MnjOut( "pid=%d move=%s v=%de n=%" PRIu64 "%s\n",
+	      mnj_posi_id, str_CSA_move(ptree->pv[1].a[1]), value,
+	      ptree->node_searched,
+	      ( mnj_depth_stable <= iteration_depth ) ? " stable" : "" );
+
       out_pv( ptree, value, turn, time_last_result - time_start );
     }
 
@@ -378,7 +528,7 @@ save_result( tree_t * restrict ptree, int value, int beta, int turn )
 }
 
 
-static int
+static int CONV
 #if defined(NO_STDOUT) && defined(NO_LOGGING)
 next_root_move( tree_t * restrict ptree )
 #else
@@ -393,15 +543,15 @@ next_root_move( tree_t * restrict ptree, int turn )
       if ( root_move_list[i].status & flag_searched ) { continue; }
       root_move_list[i].status |= flag_searched;
       ptree->current_move[1]    = root_move_list[i].move;
+      root_index                = i;
 
 #if ! ( defined(NO_STDOUT) && defined(NO_LOGGING) )
       if ( iteration_depth > 5 )
 	{
 	  const char *str_move;
 	  char str[9];
-	  /* check: does this code have small impact on performance? */
-	  str_move = str_CSA_move_plus( ptree, ptree->current_move[1], 1,
-					turn);
+
+	  str_move = str_CSA_move(ptree->current_move[1]);
 	  snprintf( str, 9, "%d/%d", i+1, root_nmove );
 	  if ( root_move_list[i].status & flag_first )
 	    {
@@ -422,21 +572,8 @@ next_root_move( tree_t * restrict ptree, int turn )
 }
 
 
-static int
-find_root_move( unsigned int move )
-{
-  int i, n;
-
-  n = root_nmove;
-  for ( i = 0; i < n; i++ )
-    if ( root_move_list[i].move == move ) { break; }
-
-  return i;
-}
-
-
 #if defined(MPV)
-static void
+static void CONV
 mpv_out( tree_t * restrict ptree, int turn, unsigned int time )
 {
   int mpv_out, ipv, best;
@@ -482,11 +619,11 @@ mpv_out( tree_t * restrict ptree, int turn, unsigned int time )
 	{
 	  if ( is_out )
 	    {
-	      if ( ply > 1 && ! ( (ply-1) % 4 ) )
+	      if ( ply > 1 && ! ( (ply-1) % 5 ) )
 		{
 		  Out( "\n                   " );
 		}
-	      str = str_CSA_move_plus( ptree, mpv_pv[ipv].a[ply], ply, tt );
+	      str = str_CSA_move(mpv_pv[ipv].a[ply]);
 	      OutCsaShogi( " %c%s", ach_turn[tt], str );
 	      Out( "%2d.%c%-11s", ply, ach_turn[tt], str );
 	    }
@@ -499,13 +636,15 @@ mpv_out( tree_t * restrict ptree, int turn, unsigned int time )
 
       if ( mpv_pv[ipv].type == hash_hit )
 	{
+	  unsigned int dummy;
 	  int i, value_type;
 
 	  for ( ; ply < PLY_MAX; ply++ )
 	    {
+	      dummy = 0;
 	      ptree->amove_hash[ply] = 0;
 	      value_type = hash_probe( ptree, ply, 0, tt, -score_bound,
-				       score_bound, 0 );
+				       score_bound, &dummy );
 	      if ( ! ( value_type == value_exact
 		       && value   == HASH_VALUE
 		       && is_move_valid(ptree,ptree->amove_hash[ply],tt) ) )
@@ -519,12 +658,11 @@ mpv_out( tree_t * restrict ptree, int turn, unsigned int time )
 	      
 	      if ( is_out )
 		{
-		  if ( ply > 1 && ! ( (ply-1) % 4 ) )
+		  if ( ply > 1 && ! ( (ply-1) % 5 ) )
 		    {
 		      Out( "\n                   " );
 		    }
-		  str = str_CSA_move_plus( ptree, mpv_pv[ipv].a[ply], ply,
-					   tt );
+		  str = str_CSA_move(mpv_pv[ipv].a[ply]);
 		  OutCsaShogi( " %c%s", ach_turn[tt], str );
 		  Out( "%2d:%c%-11s", ply, ach_turn[tt], str );
 		}
@@ -544,7 +682,7 @@ mpv_out( tree_t * restrict ptree, int turn, unsigned int time )
 
       if ( is_out && mpv_pv[ipv].type != no_rep )
 	{
-	  if ( (((ply-1) % 4) == 0) && (ply != 1) )
+	  if ( (((ply-1) % 5) == 0) && (ply != 1) )
 	    {
 	      Out( "\n                   " );
 	    }
@@ -576,7 +714,7 @@ mpv_out( tree_t * restrict ptree, int turn, unsigned int time )
 } 
 
 
-static void
+static void CONV
 mpv_sub_result( unsigned int move )
 {
   int i;
@@ -605,7 +743,7 @@ mpv_sub_result( unsigned int move )
 }
 
 
-static int
+static int CONV
 mpv_add_result( tree_t * restrict ptree, int value )
 {
   pv_t pv_tmp, pv;
@@ -672,7 +810,7 @@ mpv_add_result( tree_t * restrict ptree, int value )
 }
 
 
-static int
+static int CONV
 mpv_set_bound( int alpha )
 {
   int bound, num, value;
@@ -692,7 +830,7 @@ mpv_set_bound( int alpha )
 }
 
 
-static int
+static int CONV
 mpv_find_min( int *pnum )
 {
   int i, num;

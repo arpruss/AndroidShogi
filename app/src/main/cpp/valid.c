@@ -4,7 +4,7 @@
 #include "shogi.h"
 
 
-int
+int CONV
 is_move_valid( tree_t * restrict __ptree__, unsigned int move, int turn )
 {
   tree_t * restrict ptree = __ptree__;
@@ -34,7 +34,7 @@ is_move_valid( tree_t * restrict __ptree__, unsigned int move, int turn )
 	case lance:  case bishop:  case horse:  case rook:  case dragon:
 	  BBOr( bb, BB_BOCCUPY, BB_WOCCUPY );
 	  BBAnd( bb, bb, abb_obstacle[from][to] );
-	  if ( BBToU( bb ) ) { return 0; }
+	  if ( BBTest( bb ) ) { return 0; }
 	  break;
 	}
 
@@ -79,7 +79,7 @@ is_move_valid( tree_t * restrict __ptree__, unsigned int move, int turn )
                              str_error = "too many " # piece "s";        \
                              return -2; }
 
-int
+int CONV
 exam_tree( const tree_t * restrict ptree )
 {
   int npawn, nlance, nknight, nsilver, ngold, nbishop, nrook;

@@ -5,33 +5,33 @@
 
 #define BAddMoveCap(piece)                                             \
             utemp = From2Move(from) | Piece2Move(piece);               \
-            while ( BBToU( bb_move ) ) {                               \
+            while ( BBTest( bb_move ) ) {                              \
 	      to       = LastOne( bb_move );                           \
 	      *pmove++ = To2Move(to) | Cap2Move(-BOARD[to]) | utemp;   \
 	      Xor( to, bb_move ); }
 
-#define BAddMove(piece) utemp = From2Move(from) | Piece2Move(piece); \
-                        while ( BBToU( bb_move ) ) {                 \
-                        to       = LastOne( bb_move );               \
-                        *pmove++ = To2Move(to) | utemp;              \
+#define BAddMove(piece) utemp = From2Move(from) | Piece2Move(piece);   \
+                        while ( BBTest( bb_move ) ) {                  \
+                        to       = LastOne( bb_move );                 \
+                        *pmove++ = To2Move(to) | utemp;                \
 	                Xor( to, bb_move ); }
 
 
-#define WAddMoveCap(piece)                                            \
-            utemp = From2Move(from) | Piece2Move(piece);              \
-            while ( BBToU( bb_move ) ) {                              \
-	      to      = FirstOne( bb_move );                          \
-	      *pmove++ = To2Move(to) | Cap2Move(BOARD[to]) | utemp;   \
+#define WAddMoveCap(piece)                                             \
+            utemp = From2Move(from) | Piece2Move(piece);               \
+            while ( BBTest( bb_move ) ) {                              \
+	      to      = FirstOne( bb_move );                           \
+	      *pmove++ = To2Move(to) | Cap2Move(BOARD[to]) | utemp;    \
 	      Xor( to, bb_move ); }
 
-#define WAddMove(piece) utemp = From2Move(from) | Piece2Move(piece);  \
-                         while ( BBToU( bb_move ) ) {                 \
-	                   to       = FirstOne( bb_move );            \
-	                   *pmove++ = To2Move(to) | utemp;            \
+#define WAddMove(piece) utemp = From2Move(from) | Piece2Move(piece);   \
+                         while ( BBTest( bb_move ) ) {                 \
+	                   to       = FirstOne( bb_move );             \
+	                   *pmove++ = To2Move(to) | utemp;             \
 	                   Xor( to, bb_move ); }
 
 
-unsigned int *
+unsigned int * CONV
 b_gen_cap_nopro_ex2( const tree_t * restrict ptree,
 		     unsigned int * restrict pmove )
 {
@@ -106,7 +106,7 @@ b_gen_cap_nopro_ex2( const tree_t * restrict ptree,
 
   bb_piece = BB_BLANCE;
   bb_target.p[0] &= 0x3fe00;
-  while( BBToU( bb_piece ) )
+  while( BBTest( bb_piece ) )
     {
       from     = LastOne( bb_piece );
       ubb_move0 = AttackFile(from).p[0]
@@ -125,7 +125,7 @@ b_gen_cap_nopro_ex2( const tree_t * restrict ptree,
 }
 
 
-unsigned int *
+unsigned int * CONV
 b_gen_nocap_nopro_ex2( const tree_t * restrict ptree,
 		       unsigned int * restrict pmove )
 {
@@ -201,7 +201,7 @@ b_gen_nocap_nopro_ex2( const tree_t * restrict ptree,
 
   bb_piece = BB_BLANCE;
   ubb_target0 = bb_target.p[0] & 0x3fe00;
-  while( BBToU( bb_piece ) )
+  while( BBTest( bb_piece ) )
     {
       from     = LastOne( bb_piece );
       ubb_move0 = AttackFile(from).p[0]
@@ -220,7 +220,7 @@ b_gen_nocap_nopro_ex2( const tree_t * restrict ptree,
 }
 
 
-unsigned int *
+unsigned int * CONV
 w_gen_cap_nopro_ex2( const tree_t * restrict ptree,
 		     unsigned int * restrict pmove )
 {
@@ -295,7 +295,7 @@ w_gen_cap_nopro_ex2( const tree_t * restrict ptree,
 
   bb_piece = BB_WLANCE;
   bb_target.p[2] &= 0x3fe00;
-  while( BBToU( bb_piece ) )
+  while( BBTest( bb_piece ) )
     {
       from      = FirstOne( bb_piece );
       ubb_move2 = AttackFile(from).p[2]
@@ -314,7 +314,7 @@ w_gen_cap_nopro_ex2( const tree_t * restrict ptree,
 }
 
 
-unsigned int *
+unsigned int * CONV
 w_gen_nocap_nopro_ex2( const tree_t * restrict ptree,
 		       unsigned int * restrict pmove )
 {
@@ -390,7 +390,7 @@ w_gen_nocap_nopro_ex2( const tree_t * restrict ptree,
 
   bb_piece = BB_WLANCE;
   ubb_target2 = bb_target.p[2] & 0x3fe00;
-  while( BBToU( bb_piece ) )
+  while( BBTest( bb_piece ) )
     {
       from = FirstOne( bb_piece );
       ubb_move2 = AttackFile(from).p[2]

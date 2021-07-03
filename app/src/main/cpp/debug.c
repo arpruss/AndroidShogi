@@ -15,13 +15,13 @@
 
 #  define CheckBoard( PIECE, piece )                           \
   bb = BB_B ## PIECE;                                          \
-  while( BBToU( bb ) ) {                                       \
+  while( BBTest( bb ) ) {                                      \
     sq = FirstOne( bb );                                       \
     Xor( sq, bb );                                             \
     if ( BOARD[sq] != piece ) { DOut( "BB_B" # PIECE  ); }     \
   }                                                            \
   bb = BB_W ## PIECE;                                          \
-  while( BBToU( bb ) ) {                                       \
+  while( BBTest( bb ) ) {                                      \
     sq = FirstOne( bb );                                       \
     Xor( sq, bb );                                             \
     if ( BOARD[sq] != -piece ) { DOut( "BB_W" # PIECE  ); }  \

@@ -1,6 +1,6 @@
 #include "shogi.h"
 
-unsigned int *
+unsigned int * CONV
 b_gen_drop( tree_t * restrict __ptree__, unsigned int * restrict pmove )
 {
   const tree_t * restrict ptree = __ptree__;
@@ -32,7 +32,7 @@ b_gen_drop( tree_t * restrict __ptree__, unsigned int * restrict pmove )
 
   if ( IsHandPawn( ihand ) )
     {
-      ibb_pawn_cmp= BB_BPAWN_ATK.p[0] | BB_BPAWN_ATK.p[1] | BB_BPAWN_ATK.p[2];
+      ibb_pawn_cmp= BBToU( BB_BPAWN_ATK );
       ais_pawn[0] = ibb_pawn_cmp & ( mask_file1 >> 0 );
       ais_pawn[1] = ibb_pawn_cmp & ( mask_file1 >> 1 );
       ais_pawn[2] = ibb_pawn_cmp & ( mask_file1 >> 2 );
@@ -97,7 +97,7 @@ b_gen_drop( tree_t * restrict __ptree__, unsigned int * restrict pmove )
 }
 
 
-unsigned int *
+unsigned int * CONV
 w_gen_drop( tree_t * restrict __ptree__, unsigned int * restrict pmove )
 {
   const tree_t * restrict ptree = __ptree__;
@@ -129,7 +129,7 @@ w_gen_drop( tree_t * restrict __ptree__, unsigned int * restrict pmove )
 
   if ( IsHandPawn( ihand ) )
     {
-      ibb_pawn_cmp= BB_WPAWN_ATK.p[0] | BB_WPAWN_ATK.p[1] | BB_WPAWN_ATK.p[2];
+      ibb_pawn_cmp= BBToU( BB_WPAWN_ATK );
       ais_pawn[0] = ibb_pawn_cmp & ( mask_file1 >> 0 );
       ais_pawn[1] = ibb_pawn_cmp & ( mask_file1 >> 1 );
       ais_pawn[2] = ibb_pawn_cmp & ( mask_file1 >> 2 );

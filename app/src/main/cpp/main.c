@@ -1,18 +1,3 @@
-/*
-  BUG LIST                                                       
-
-  - detection of repetitions can be wrong due to collision of hash keys and
-    limitation of history table size.
-
-  - detection of mates fails if all of pseudo-legal evasions are perpetual
-    checks.  Father more, inferior evasions, such as unpromotion of
-    bishop, rook, and lance at 8th rank, are not counted for the mate
-    detection. 
-
-  - detection of perpetual checks fails if one of those inferior
-    evasions makes a position that occurred four times.
-*/
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -21,9 +6,10 @@
 #endif
 #include "shogi.h"
 
+static int main_child( tree_t * restrict ptree );
 
-int CONV_CDECL
-#if defined(CSASHOGI)
+int
+#if defined(CSASHOGI) || defined(USI)
 main( int argc, char *argv[] )
 #else
 main()
@@ -39,7 +25,6 @@ main()
 #endif
 
 #if defined(CSASHOGI) && defined(_WIN32)
-  FreeConsole();
   if ( argc != 2 || strcmp( argv[1], "csa_shogi" ) )
     {
       MessageBox( NULL,
@@ -51,6 +36,11 @@ main()
     }
 #endif
 
+#if defined(USI)
+  if ( argc == 2 && ! strcmp( argv[1], "usi" ) ) { usi_mode = usi_on; }
+  else                                           { usi_mode = usi_off; }
+#endif
+
   if ( ini( ptree ) < 0 )
     {
       out_error( "%s", str_error );
@@ -59,84 +49,65 @@ main()
 
   for ( ;; )
     {
-#if defined(DEKUNOBOU)
-      if ( dek_ngame && ( game_status & mask_game_end ) )
-	{
-	  TlpEnd();
-	  if ( dek_next_game( ptree ) < 0 )
-	    {
-	      out_error( "%s", str_error );
-	      break;
-	    }
-	}
-#endif
-
-      /* ponder a move */
-      ponder_move = 0;
-      iret = ponder( ptree );
+      iret = main_child( ptree );
       if ( iret == -1 )
 	{
 	  out_error( "%s", str_error );
-	  ShutdownClient;
+	  ShutdownAll();
 	  break;
 	}
       else if ( iret == -2 )
 	{
 	  out_warning( "%s", str_error );
-	  ShutdownClient;
+	  ShutdownAll();
 	  continue;
 	}
-      else if ( game_status & flag_quit ) { break; }
-
-      /* move prediction succeeded, pondering finished,
-	 and computer made a move. */
-      else if ( iret == 2 ) { continue; }
-
-      /* move prediction failed, pondering aborted,
-	 and we have opponent's move in input buffer. */
-      else if ( ponder_move == MOVE_PONDER_FAILED )
-	{
-	}
-
-      /* pondering is interrupted or ended.
-	 do nothing until we get next input line. */
-      else {
-	TlpEnd();
-	show_prompt();
-      }
-
-      iret = next_cmdline( 1 );
-      if ( iret == -1 )
-	{
-	  out_error( "%s", str_error );
-	  ShutdownClient;
-	  break;
-	}
-      else if ( iret == -2 )
-	{
-	  out_warning( "%s", str_error );
-	  ShutdownClient;
-	  continue;
-	}
-      else if ( game_status & flag_quit ) { break; }
-
-      iret = procedure( ptree );
-      if ( iret == -1 )
-	{
-	  out_error( "%s", str_error );
-	  ShutdownClient;
-	  break;
-	}
-      if ( iret == -2 )
-	{
-	  out_warning( "%s", str_error );
-	  ShutdownClient;
-	  continue;
-	}
-      else if ( game_status & flag_quit ) { break; }
+      else if ( iret == -3 ) { break; }
     }
 
   if ( fin() < 0 ) { out_error( "%s", str_error ); }
 
   return EXIT_SUCCESS;
+}
+
+
+static int
+main_child( tree_t * restrict ptree )
+{
+  int iret;
+
+  /* ponder a move */
+  ponder_move = 0;
+  iret = ponder( ptree );
+  if ( iret < 0 ) { return iret; }
+  else if ( game_status & flag_quit ) { return -3; }
+
+  /* move prediction succeeded, pondering finished,
+     and computer made a move. */
+  else if ( iret == 2 ) { return 1; }
+
+  /* move prediction failed, pondering aborted,
+     and we have opponent's move in input buffer. */
+  else if ( ponder_move == MOVE_PONDER_FAILED )
+    {
+    }
+
+  /* pondering is interrupted or ended.
+     do nothing until we get next input line. */
+  else {
+    TlpEnd();
+    show_prompt();
+  }
+
+  
+  iret = next_cmdline( 1 );
+  if ( iret < 0 ) { return iret; }
+  else if ( game_status & flag_quit ) { return -3; }
+
+
+  iret = procedure( ptree );
+  if ( iret < 0 ) { return iret; }
+  else if ( game_status & flag_quit ) { return -3; }
+
+  return 1;
 }

@@ -11,4 +11,5 @@ public enum GameState {
   WHITE_WON,  // white player won
   BLACK_WON,  // black player won
   DRAW,       // draw (sennichite)
+  FATAL_ERROR
 }

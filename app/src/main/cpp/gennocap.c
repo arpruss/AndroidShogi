@@ -1,6 +1,6 @@
 #include "shogi.h"
 
-unsigned int *
+unsigned int * CONV
 b_gen_nocaptures( const tree_t * restrict ptree,
 		  unsigned int * restrict pmove )
 {
@@ -23,13 +23,13 @@ b_gen_nocaptures( const tree_t * restrict ptree,
     }
 
   bb_piece = BB_BSILVER;
-  while( BBToU( bb_piece ) )
+  while( BBTest( bb_piece ) )
     {
       from   = LastOne( bb_piece );
       Xor( from, bb_piece );
 
       BBAnd( bb_desti, bb_empty, abb_b_silver_attacks[from] );
-      while ( BBToU( bb_desti ) )
+      while ( BBTest( bb_desti ) )
 	{
 	  to = LastOne( bb_desti );
 	  Xor( to, bb_desti );
@@ -41,14 +41,14 @@ b_gen_nocaptures( const tree_t * restrict ptree,
     }
 
   bb_piece = BB_BTGOLD;
-  while( BBToU( bb_piece ) )
+  while( BBTest( bb_piece ) )
     {
       from = LastOne( bb_piece );
       Xor( from, bb_piece );
 
       BBAnd( bb_desti, bb_empty, abb_b_gold_attacks[from] );
       utemp = From2Move( from ) | Piece2Move( BOARD[from] ); 
-      while ( BBToU( bb_desti ) )
+      while ( BBTest( bb_desti ) )
 	{
 	  to = LastOne( bb_desti );
 	  Xor( to, bb_desti );
@@ -59,7 +59,7 @@ b_gen_nocaptures( const tree_t * restrict ptree,
   from = SQ_BKING;
   BBAnd( bb_desti, bb_empty, abb_king_attacks[from] );
   utemp = From2Move( from ) | Piece2Move( king ); 
-  while ( BBToU( bb_desti ) )
+  while ( BBTest( bb_desti ) )
     {
       to = LastOne( bb_desti );
       Xor( to, bb_desti );
@@ -111,7 +111,7 @@ b_gen_nocaptures( const tree_t * restrict ptree,
     }
 
   bb_piece = BB_BHORSE;
-  while( BBToU( bb_piece ) )
+  while( BBTest( bb_piece ) )
     {
       from = LastOne( bb_piece );
       Xor( from, bb_piece );
@@ -119,7 +119,7 @@ b_gen_nocaptures( const tree_t * restrict ptree,
       AttackHorse( bb_desti, from );
       BBAnd( bb_desti, bb_desti, bb_empty );
       utemp = From2Move( from ) | Piece2Move( horse ); 
-      while ( BBToU( bb_desti ) )
+      while ( BBTest( bb_desti ) )
 	{
 	  to = LastOne( bb_desti );
 	  Xor( to, bb_desti );
@@ -128,7 +128,7 @@ b_gen_nocaptures( const tree_t * restrict ptree,
     }
 
   bb_piece = BB_BDRAGON;
-  while( BBToU( bb_piece ) )
+  while( BBTest( bb_piece ) )
     {
       from = LastOne( bb_piece );
       Xor( from, bb_piece );
@@ -136,7 +136,7 @@ b_gen_nocaptures( const tree_t * restrict ptree,
       AttackDragon( bb_desti, from );
       BBAnd( bb_desti, bb_desti, bb_empty );
       utemp = From2Move( from ) | Piece2Move( dragon ); 
-      while ( BBToU( bb_desti ) )
+      while ( BBTest( bb_desti ) )
 	{
 	  to = LastOne( bb_desti );
 	  Xor( to, bb_desti );
@@ -147,7 +147,7 @@ b_gen_nocaptures( const tree_t * restrict ptree,
   bb_empty.p[0] &= 0x1ffU;
 
   bb_piece = BB_BLANCE;
-  while( BBToU( bb_piece ) )
+  while( BBTest( bb_piece ) )
     {
       from = LastOne( bb_piece );
       Xor( from, bb_piece );
@@ -157,7 +157,7 @@ b_gen_nocaptures( const tree_t * restrict ptree,
       BBAnd( bb_desti, bb_desti, bb_empty );
 
       utemp = From2Move( from ) | Piece2Move( lance ); 
-      while ( BBToU( bb_desti ) )
+      while ( BBTest( bb_desti ) )
 	{
 	  to = LastOne( bb_desti );
 	  Xor( to, bb_desti );
@@ -166,14 +166,14 @@ b_gen_nocaptures( const tree_t * restrict ptree,
     }
 
   bb_piece = BB_BKNIGHT;
-  while( BBToU( bb_piece ) )
+  while( BBTest( bb_piece ) )
     {
       from = LastOne( bb_piece );
       Xor( from, bb_piece );
 
       BBAnd( bb_desti, bb_empty, abb_b_knight_attacks[from] );
       utemp = From2Move( from ) | Piece2Move( knight ); 
-      while ( BBToU( bb_desti ) )
+      while ( BBTest( bb_desti ) )
 	{
 	  to = LastOne( bb_desti );
 	  Xor( to, bb_desti );
@@ -185,7 +185,7 @@ b_gen_nocaptures( const tree_t * restrict ptree,
 }
 
 
-unsigned int *
+unsigned int * CONV
 w_gen_nocaptures( const tree_t * restrict ptree,
 		  unsigned int * restrict pmove )
 {
@@ -208,13 +208,13 @@ w_gen_nocaptures( const tree_t * restrict ptree,
     }
 
   bb_piece = BB_WSILVER;
-  while( BBToU( bb_piece ) )
+  while( BBTest( bb_piece ) )
     {
       from = FirstOne( bb_piece );
       Xor( from, bb_piece );
 
       BBAnd( bb_desti, bb_empty, abb_w_silver_attacks[from] );
-      while ( BBToU( bb_desti ) )
+      while ( BBTest( bb_desti ) )
 	{
 	  to = FirstOne( bb_desti );
 	  Xor( to, bb_desti );
@@ -226,14 +226,14 @@ w_gen_nocaptures( const tree_t * restrict ptree,
     }
 
   bb_piece = BB_WTGOLD;
-  while( BBToU( bb_piece ) )
+  while( BBTest( bb_piece ) )
     {
       from = FirstOne( bb_piece );
       Xor( from, bb_piece );
 
       BBAnd( bb_desti, bb_empty, abb_w_gold_attacks[from] );
       utemp = From2Move( from ) | Piece2Move( -BOARD[from] ); 
-      while ( BBToU( bb_desti ) )
+      while ( BBTest( bb_desti ) )
 	{
 	  to = FirstOne( bb_desti );
 	  Xor( to, bb_desti );
@@ -244,7 +244,7 @@ w_gen_nocaptures( const tree_t * restrict ptree,
   from = SQ_WKING;
   BBAnd( bb_desti, bb_empty, abb_king_attacks[from] );
   utemp = From2Move( from ) | Piece2Move( king ); 
-  while ( BBToU( bb_desti ) )
+  while ( BBTest( bb_desti ) )
     {
       to = FirstOne( bb_desti );
       Xor( to, bb_desti );
@@ -296,7 +296,7 @@ w_gen_nocaptures( const tree_t * restrict ptree,
     }
 
   bb_piece = BB_WHORSE;
-  while( BBToU( bb_piece ) )
+  while( BBTest( bb_piece ) )
     {
       from = FirstOne( bb_piece );
       Xor( from, bb_piece );
@@ -304,7 +304,7 @@ w_gen_nocaptures( const tree_t * restrict ptree,
       AttackHorse( bb_desti, from );
       BBAnd( bb_desti, bb_desti, bb_empty );
       utemp = From2Move( from ) | Piece2Move( horse ); 
-      while ( BBToU( bb_desti ) )
+      while ( BBTest( bb_desti ) )
 	{
 	  to = FirstOne( bb_desti );
 	  Xor( to, bb_desti );
@@ -313,7 +313,7 @@ w_gen_nocaptures( const tree_t * restrict ptree,
     }
 
   bb_piece = BB_WDRAGON;
-  while( BBToU( bb_piece ) )
+  while( BBTest( bb_piece ) )
     {
       from = FirstOne( bb_piece );
       Xor( from, bb_piece );
@@ -321,7 +321,7 @@ w_gen_nocaptures( const tree_t * restrict ptree,
       AttackDragon( bb_desti, from );
       BBAnd( bb_desti, bb_desti, bb_empty );
       utemp = From2Move( from ) | Piece2Move( dragon ); 
-      while ( BBToU( bb_desti ) )
+      while ( BBTest( bb_desti ) )
 	{
 	  to = FirstOne( bb_desti );
 	  Xor( to, bb_desti );
@@ -332,7 +332,7 @@ w_gen_nocaptures( const tree_t * restrict ptree,
   bb_empty.p[2] &= 0x7fc0000U;
 
   bb_piece = BB_WLANCE;
-  while( BBToU( bb_piece ) )
+  while( BBTest( bb_piece ) )
     {
       from = FirstOne( bb_piece );
       Xor( from, bb_piece );
@@ -342,7 +342,7 @@ w_gen_nocaptures( const tree_t * restrict ptree,
       BBAnd( bb_desti, bb_desti, bb_empty );
 
       utemp = From2Move( from ) | Piece2Move( lance ); 
-      while ( BBToU( bb_desti ) )
+      while ( BBTest( bb_desti ) )
 	{
 	  to = FirstOne( bb_desti );
 	  Xor( to, bb_desti );
@@ -351,14 +351,14 @@ w_gen_nocaptures( const tree_t * restrict ptree,
     }
 
   bb_piece = BB_WKNIGHT;
-  while( BBToU( bb_piece ) )
+  while( BBTest( bb_piece ) )
     {
       from = FirstOne( bb_piece );
       Xor( from, bb_piece );
 
       BBAnd( bb_desti, bb_empty, abb_w_knight_attacks[from] );
       utemp = From2Move( from ) | Piece2Move( knight ); 
-      while ( BBToU( bb_desti ) )
+      while ( BBTest( bb_desti ) )
 	{
 	  to = FirstOne( bb_desti );
 	  Xor( to, bb_desti );

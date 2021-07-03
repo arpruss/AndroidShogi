@@ -19,6 +19,7 @@ import android.util.Log;
 public class BonanzaController {
     private static final String TAG = "BonanzaController";
     private final int mComputerDifficulty;
+    private final int mCores;
     private static final int maxTime[][] = new int[][]{
             {60, 1},
             {60, 1},
@@ -49,9 +50,10 @@ public class BonanzaController {
     private static final int C_UNDO = 3;
     private static final int C_DESTROY = 4;
 
-    public BonanzaController(Handler handler, int difficulty) {
+    public BonanzaController(Handler handler, int difficulty, int cores) {
         mOutputHandler = handler;
         mComputerDifficulty = difficulty;
+        mCores = cores;
         mInstanceId = -1;
         mThread = new HandlerThread("BonanzaController");
         mThread.start();
@@ -227,6 +229,12 @@ public class BonanzaController {
                 r.gameState = GameState.ACTIVE;
             } else {
                 switch (jr.status) {
+                    case BonanzaJNI.R_FATAL_ERROR:
+                        r.nextPlayer = Player.INVALID;
+                        r.gameState = GameState.FATAL_ERROR;
+                        r.lastMove = null;
+                        r.lastMoveCookie = -1;
+                        break;
                     case BonanzaJNI.R_ILLEGAL_MOVE:
                         r.nextPlayer = curPlayer;
                         r.gameState = GameState.ACTIVE;
@@ -237,6 +245,12 @@ public class BonanzaController {
                         r.nextPlayer = Player.INVALID;
                         r.gameState = (curPlayer == Player.BLACK) ?
                                 GameState.BLACK_WON : GameState.WHITE_WON;
+                        r.errorMessage = "Checkmate";
+                        break;
+                    case BonanzaJNI.R_NO_VALID_MOVE:
+                        r.nextPlayer = Player.INVALID;
+                        r.gameState = (curPlayer == Player.BLACK) ?
+                                GameState.WHITE_WON : GameState.BLACK_WON;
                         r.errorMessage = "Checkmate";
                         break;
                     case BonanzaJNI.R_RESIGNED:
@@ -263,6 +277,7 @@ public class BonanzaController {
     //
 
     private final void sendInputMessage(int command, Bundle bundle) {
+        Log.v("shogilog", "input "+command);
         bundle.putInt("command", command);
         Message msg = mInputHandler.obtainMessage();
         msg.setData(bundle);
@@ -270,6 +285,7 @@ public class BonanzaController {
     }
 
     private final void sendOutputMessage(Result result) {
+        Log.v("shogilog", "output "+result);
         Message msg = mOutputHandler.obtainMessage();
         Bundle b = new Bundle();
         b.putSerializable("result", result);
@@ -284,7 +300,7 @@ public class BonanzaController {
         }
         mInstanceId = BonanzaJNI.startGame(
                 resumeInstanceId, board, (nextPlayer == Player.BLACK) ? 0 : 1, mComputerDifficulty,
-                maxTime[mComputerDifficulty][0], maxTime[mComputerDifficulty][1], jr);
+                mCores, maxTime[mComputerDifficulty][0], maxTime[mComputerDifficulty][1], jr);
         if (jr.status != BonanzaJNI.R_OK) {
             throw new AssertionError(String.format("startGame failed: %d %s", jr.status, jr.error));
         }
@@ -293,6 +309,7 @@ public class BonanzaController {
         r.nextPlayer = nextPlayer;
         r.gameState = GameState.ACTIVE;
         sendOutputMessage(r);
+        Log.v("shogilog", "Started");
     }
 
     private final void doHumanPlay(Player player, Play move) {

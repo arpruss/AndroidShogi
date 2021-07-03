@@ -13,7 +13,7 @@
 
 #if ! defined(MINIMUM)
 
-#  define SEARCH_DEPTH      3
+#  define SEARCH_DEPTH      2
 #  define NUM_RESULT        8
 #  define MAX_RECORD_LENGTH 1024
 #  define DOT_INTERVAL      10
@@ -234,6 +234,7 @@ learn_parse1( tree_t * restrict ptree, book_entry_t *pbook_entry, FILE *pf_tmp,
     }
 
 #if defined(TLP)
+  tlp_num = nworker;
   for ( id = 1; id < nworker; id++ )
     {
 #  if defined(_WIN32)
@@ -302,11 +303,11 @@ learn_parse1( tree_t * restrict ptree, book_entry_t *pbook_entry, FILE *pf_tmp,
     Out( "   Illegal Moves   : %u\n",       pdata[0]->illegal_moves );
     Out( "   Nodes Searched  : %"PRIu64"\n",pdata[0]->num_nodes );
     Out( "   Max pos_buf     : %x\n",       pdata[0]->max_pos_buf );
-    Out( "   Move Prediction :" );
+    Out( "   Prediction (%)  :" );
     for ( i = 0, dtemp = 0.0; i < NUM_RESULT; i++ )
       {
 	dtemp += (double)pdata[0]->result[i] * 100.0;
-	Out( " %4.1f%%", dtemp / (double)pdata[0]->result_norm );
+	Out( " %4.2f", dtemp / (double)pdata[0]->result_norm );
       }
     Out( "\n" );
   
@@ -345,17 +346,6 @@ static void *parse1_worker( void *arg )
   pdata                = (parse1_data_t *)arg;
   ptree                = pdata->ptree;
 
-#if defined(TLP)
-  if ( pdata->nworker > 1 )
-    {
-      lock( &tlp_lock );
-      tlp_num += 1;
-      if ( pdata->id ) { Out( "hi from thread #%d\n", pdata->id ); }
-      unlock( &tlp_lock );
-      while ( tlp_num < pdata->nworker ) { tlp_yield(); }
-    }
-#endif
-
   for ( i = 0; i < NUM_RESULT; i++ ) { pdata->result[i] = 0; }
   pdata->num_moves_counted = 0;
   pdata->num_moves         = 0;
@@ -369,7 +359,7 @@ static void *parse1_worker( void *arg )
   pdata->target_out_window = 0.0;
 
   for ( ;; ) {
-    /* make results */
+    /* make pv */
     pdata->pos_buf = 2U;
     for ( imove = 0; imove < (int)pdata->record_length; imove++ )
       {
@@ -391,10 +381,10 @@ static void *parse1_worker( void *arg )
       }
 
 #if defined(TLP)
-    if ( pdata->nworker > 1 ) { lock( &tlp_lock ); }
+    lock( &tlp_lock );
 #endif
 
-    /* save results */
+    /* save pv */
     if ( pdata->record_length )
       {
 	if ( pdata->pos_buf > pdata->max_pos_buf )
@@ -420,7 +410,7 @@ static void *parse1_worker( void *arg )
     }
     
 #if defined(TLP)
-    if ( pdata->nworker > 1 ) { unlock( &tlp_lock ); }
+    unlock( &tlp_lock );
 #endif
 
     if ( iret < 0 )  { break; }
@@ -428,12 +418,9 @@ static void *parse1_worker( void *arg )
   }
 
 #if defined(TLP)
-  if ( pdata->nworker > 1 )
-    {
-      lock( &tlp_lock );
-      tlp_num -= 1;
-      unlock( &tlp_lock );
-    }
+  lock( &tlp_lock );
+  tlp_num -= 1;
+  unlock( &tlp_lock );
 #endif
 
   pdata->info = iret;
@@ -449,7 +436,7 @@ make_pv( parse1_data_t *pdata, unsigned int record_move )
   unsigned int *pmove;
   unsigned int move, pos_buf;
   int i, imove, record_value, nth, nc, nmove_legal;
-  int value, alpha, beta, depth, ply, tt;
+  int value, alpha, beta, depth, ply, tt, new_depth;
 
   record_value          = INT_MIN;
   nc                    = 0;
@@ -459,18 +446,23 @@ make_pv( parse1_data_t *pdata, unsigned int record_move )
   pos_buf               = pdata->pos_buf;
   ptree                 = pdata->ptree;
   ptree->node_searched  = 0;
+  ptree->save_eval[0]   = INT_MAX;
+  ptree->save_eval[1]   = INT_MAX;
 #if defined(TLP)
   ptree->tlp_abort      = 0;
 #endif
   for ( ply = 0; ply < PLY_MAX; ply++ )
     {
       ptree->amove_killer[ply].no1 = ptree->amove_killer[ply].no2 = 0U;
+      ptree->killers[ply].no1      = ptree->killers[ply].no2      = 0U;
     }
-  for ( i = 0; i < 2*nsquare*(nsquare+7); i++ )
+  for ( i = 0; i < (int)HIST_SIZE; i++ )
     {
-      ptree->history[0][0][i] /= 256U;
+      ptree->hist_good[i]  /= 256U;
+      ptree->hist_tried[i] /= 256U;
     }
-    
+  evaluate( ptree, 1, pdata->root_turn );
+
   pmove = GenCaptures     ( pdata->root_turn, pdata->amove_legal );
   pmove = GenNoCaptures   ( pdata->root_turn, pmove );
   pmove = GenDrop         ( pdata->root_turn, pmove );
@@ -482,9 +474,11 @@ make_pv( parse1_data_t *pdata, unsigned int record_move )
   move                  = pdata->amove_legal[0];
   pdata->amove_legal[0] = pdata->amove_legal[i];
   pdata->amove_legal[i] = move;
-    
+
   for ( imove = 0; imove < nmove_legal; imove++ ) {
+
     move = pdata->amove_legal[imove];
+    ptree->current_move[1] = move;
     if ( imove )
       {
 	alpha = record_value - FV_WINDOW;
@@ -506,16 +500,20 @@ make_pv( parse1_data_t *pdata, unsigned int record_move )
 
     if ( InCheck(tt) )
       {
-	ptree->nsuc_check[2]
-	  = (unsigned char)( ptree->nsuc_check[0] + 1U );
-      } else { ptree->nsuc_check[2] = 0; }
+	new_depth = depth + PLY_INC;
+	ptree->nsuc_check[2] = (unsigned char)( ptree->nsuc_check[0] + 1U );
+      }
+    else {
+      new_depth            = depth;
+      ptree->nsuc_check[2] = 0;
+    }
 
     ptree->current_move[1] = move;
     ptree->pv[1].type = no_rep;
       
-    value = -search( ptree, -beta, -alpha, tt, depth, 2,
+    value = -search( ptree, -beta, -alpha, tt, new_depth, 2,
 		     node_do_mate | node_do_null | node_do_futile
-		     | node_do_recap );
+		     | node_do_recap | node_do_recursion | node_do_hashcut );
 
     UnMakeMove( pdata->root_turn, move, 1 );
 
@@ -631,7 +629,7 @@ read_game( parse1_data_t *pdata )
 	}
       else { pdata->record_moves[ imove ] = record_move; }
 
-      iret = make_move_root( ptree, record_move, flag_rejections );
+      iret = make_move_root( ptree, record_move, 0 );
       if ( iret < 0 ) { return iret; }
     }
   
@@ -672,6 +670,7 @@ learn_parse2( tree_t * restrict ptree, FILE *pf_tmp, int nsteps,
   for ( ;; ) {
 
 #if defined(TLP)
+    tlp_num = nworker;
     for ( id = 1; id < nworker; id++ )
       {
 #  if defined(_WIN32)
@@ -721,7 +720,7 @@ learn_parse2( tree_t * restrict ptree, FILE *pf_tmp, int nsteps,
 	target  = ( pdata[0]->target + target_out_window ) / obj_norm;
 	objective_function = target + penalty;
 	Out( "   Moves Counted   : %d\n", pdata[0]->num_moves_counted );
-	Out( "   Objective Func. : %f %f %f\n",
+	Out( "   Objective Func. : %.8f %.8f %.8f\n",
 		  objective_function, target, penalty );
 	Out( "   Steps " );
       }
@@ -758,16 +757,6 @@ static void *parse2_worker( void *arg )
   pdata = (parse2_data_t *)arg;
   ptree = pdata->ptree;
 
-#if defined(TLP)
-  if ( pdata->nworker > 1 )
-    {
-      lock( &tlp_lock );
-      tlp_num += 1;
-      unlock( &tlp_lock );
-      while ( tlp_num < pdata->nworker ) { tlp_yield(); }
-    }
-#endif
-  
   pdata->num_moves_counted = 0;
   pdata->info              = 0;
   pdata->target            = 0.0;
@@ -775,11 +764,11 @@ static void *parse2_worker( void *arg )
 
   for ( ;; ) {
 #if defined(TLP)
-    if ( pdata->nworker > 1 ) { lock( &tlp_lock ); }
+    lock( &tlp_lock );
 #endif
     iret = read_buf( pdata->buf, pdata->pf_tmp );
 #if defined(TLP)
-    if ( pdata->nworker > 1 ) { unlock( &tlp_lock ); }
+    unlock( &tlp_lock );
 #endif
 
     if ( iret <= 0 )  { break; } /* 0: eof, -2: error */
@@ -805,18 +794,14 @@ static void *parse2_worker( void *arg )
 	turn                 = Flip( turn );
 	ptree->move_last[1]  = ptree->move_last[0];
 	ptree->nsuc_check[0] = 0;
-	ptree->nsuc_check[1]
-	  = (unsigned char)( InCheck( turn ) ? 1U : 0 );
+	ptree->nsuc_check[1] = (unsigned char)( InCheck( turn ) ? 1U : 0 );
       }
   }
 
 #if defined(TLP)
-  if ( pdata->nworker > 1 )
-    {
-      lock( &tlp_lock );
-      tlp_num -= 1;
-      unlock( &tlp_lock );
-    }
+  lock( &tlp_lock );
+  tlp_num -= 1;
+  unlock( &tlp_lock );
 #endif
 
   pdata->info = iret;
@@ -1058,7 +1043,7 @@ rep_check_learn( tree_t * restrict ptree, int ply )
 {
   int n, i, imin;
 
-  n    = root_nrep + ply - 1;
+  n    = ptree->nrep + ply - 1;
   imin = n - REP_MAX_PLY;
   if ( imin < 0 ) { imin = 0; }
 

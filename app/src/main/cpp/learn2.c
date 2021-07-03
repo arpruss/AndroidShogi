@@ -538,7 +538,7 @@ make_list( const tree_t * restrict ptree, int list0[52], int list1[52],
 
   n2 = 0;
   bb = BB_BPAWN;
-  while ( BBToU(bb) ) {
+  while ( BBTest(bb) ) {
     sq = FirstOne( bb );
     Xor( sq, bb );
 
@@ -551,7 +551,7 @@ make_list( const tree_t * restrict ptree, int list0[52], int list1[52],
   }
 
   bb = BB_WPAWN;
-  while ( BBToU(bb) ) {
+  while ( BBTest(bb) ) {
     sq = FirstOne( bb );
     Xor( sq, bb );
 
@@ -566,7 +566,7 @@ make_list( const tree_t * restrict ptree, int list0[52], int list1[52],
 
   n2 = 0;
   bb = BB_BLANCE;
-  while ( BBToU(bb) ) {
+  while ( BBTest(bb) ) {
     sq = FirstOne( bb );
     Xor( sq, bb );
 
@@ -579,7 +579,7 @@ make_list( const tree_t * restrict ptree, int list0[52], int list1[52],
   }
 
   bb = BB_WLANCE;
-  while ( BBToU(bb) ) {
+  while ( BBTest(bb) ) {
     sq = FirstOne( bb );
     Xor( sq, bb );
 
@@ -595,7 +595,7 @@ make_list( const tree_t * restrict ptree, int list0[52], int list1[52],
 
   n2 = 0;
   bb = BB_BKNIGHT;
-  while ( BBToU(bb) ) {
+  while ( BBTest(bb) ) {
     sq = FirstOne( bb );
     Xor( sq, bb );
 
@@ -608,7 +608,7 @@ make_list( const tree_t * restrict ptree, int list0[52], int list1[52],
   }
 
   bb = BB_WKNIGHT;
-  while ( BBToU(bb) ) {
+  while ( BBTest(bb) ) {
     sq = FirstOne( bb );
     Xor( sq, bb );
 
@@ -624,7 +624,7 @@ make_list( const tree_t * restrict ptree, int list0[52], int list1[52],
 
   n2 = 0;
   bb = BB_BSILVER;
-  while ( BBToU(bb) ) {
+  while ( BBTest(bb) ) {
     sq = FirstOne( bb );
     Xor( sq, bb );
 
@@ -637,7 +637,7 @@ make_list( const tree_t * restrict ptree, int list0[52], int list1[52],
   }
 
   bb = BB_WSILVER;
-  while ( BBToU(bb) ) {
+  while ( BBTest(bb) ) {
     sq = FirstOne( bb );
     Xor( sq, bb );
 
@@ -653,7 +653,7 @@ make_list( const tree_t * restrict ptree, int list0[52], int list1[52],
 
   n2 = 0;
   bb = BB_BTGOLD;
-  while ( BBToU(bb) ) {
+  while ( BBTest(bb) ) {
     sq = FirstOne( bb );
     Xor( sq, bb );
 
@@ -666,7 +666,7 @@ make_list( const tree_t * restrict ptree, int list0[52], int list1[52],
   }
 
   bb = BB_WTGOLD;
-  while ( BBToU(bb) ) {
+  while ( BBTest(bb) ) {
     sq = FirstOne( bb );
     Xor( sq, bb );
 
@@ -682,7 +682,7 @@ make_list( const tree_t * restrict ptree, int list0[52], int list1[52],
 
   n2 = 0;
   bb = BB_BBISHOP;
-  while ( BBToU(bb) ) {
+  while ( BBTest(bb) ) {
     sq = FirstOne( bb );
     Xor( sq, bb );
 
@@ -695,7 +695,7 @@ make_list( const tree_t * restrict ptree, int list0[52], int list1[52],
   }
 
   bb = BB_WBISHOP;
-  while ( BBToU(bb) ) {
+  while ( BBTest(bb) ) {
     sq = FirstOne( bb );
     Xor( sq, bb );
 
@@ -711,7 +711,7 @@ make_list( const tree_t * restrict ptree, int list0[52], int list1[52],
 
   n2 = 0;
   bb = BB_BHORSE;
-  while ( BBToU(bb) ) {
+  while ( BBTest(bb) ) {
     sq = FirstOne( bb );
     Xor( sq, bb );
 
@@ -724,7 +724,7 @@ make_list( const tree_t * restrict ptree, int list0[52], int list1[52],
   }
 
   bb = BB_WHORSE;
-  while ( BBToU(bb) ) {
+  while ( BBTest(bb) ) {
     sq = FirstOne( bb );
     Xor( sq, bb );
 
@@ -740,7 +740,7 @@ make_list( const tree_t * restrict ptree, int list0[52], int list1[52],
 
   n2 = 0;
   bb = BB_BROOK;
-  while ( BBToU(bb) ) {
+  while ( BBTest(bb) ) {
     sq = FirstOne( bb );
     Xor( sq, bb );
 
@@ -753,7 +753,7 @@ make_list( const tree_t * restrict ptree, int list0[52], int list1[52],
   }
 
   bb = BB_WROOK;
-  while ( BBToU(bb) ) {
+  while ( BBTest(bb) ) {
     sq = FirstOne( bb );
     Xor( sq, bb );
 
@@ -769,7 +769,7 @@ make_list( const tree_t * restrict ptree, int list0[52], int list1[52],
 
   n2 = 0;
   bb = BB_BDRAGON;
-  while ( BBToU(bb) ) {
+  while ( BBTest(bb) ) {
     sq = FirstOne( bb );
     Xor( sq, bb );
 
@@ -782,7 +782,7 @@ make_list( const tree_t * restrict ptree, int list0[52], int list1[52],
   }
 
   bb = BB_WDRAGON;
-  while ( BBToU(bb) ) {
+  while ( BBTest(bb) ) {
     sq = FirstOne( bb );
     Xor( sq, bb );
 

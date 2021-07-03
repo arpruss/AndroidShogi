@@ -2,12 +2,13 @@
 #define SHOGI_H
 
 #include <stdio.h>
+#include "bitop.h"
 #include "param.h"
 
 #if defined(_WIN32)
 
 #  include <Winsock2.h>
-#  define CONV_CDECL         __cdecl
+#  define CONV              __fastcall
 #  define SCKT_NULL         INVALID_SOCKET
 typedef SOCKET sckt_t;
 
@@ -15,14 +16,14 @@ typedef SOCKET sckt_t;
 
 #  include <pthread.h>
 #  include <sys/times.h>
-#  define CONV_CDECL
+#  define CONV
 #  define SCKT_NULL         -1
 #  define SOCKET_ERROR      -1
 typedef int sckt_t;
 
 #endif
 
-/* Microsoft C/C++ */
+/* Microsoft C/C++ on x86 and x86-64 */
 #if defined(_MSC_VER)
 
 #  define _CRT_DISABLE_PERFCRIT_LOCKS
@@ -53,17 +54,18 @@ typedef volatile int lock_t;
 #else
 
 #  include <inttypes.h>
+//typedef struct { unsigned int p[3]; } bitboard_t;
 typedef pthread_mutex_t lock_t;
 extern unsigned char aifirst_one[512];
 extern unsigned char ailast_one[512];
 
 #endif
 
+#define BK_TINY
 /*
+  #define BK_SMALL
   #define BK_ULTRA_NARROW
   #define BK_COM
-  #define BK_SMALL
-  #define NO_NULL_PRUNE
   #define NO_STDOUT
   #define DBG_EASY
 */
@@ -83,23 +85,29 @@ extern unsigned char ailast_one[512];
 #  define SEARCH_ABORT root_abort
 #endif
 
+#define NUM_UNMAKE              600
 #define QUIES_PLY_LIMIT         7
 #define SHELL_H_LEN             7
 #define MAX_ANSWER              8
 #define PLY_INC                 8
-#define PLY_MAX                 48
+#define PLY_MAX                 128
 #define RAND_N                  624
-#define TC_NMOVE                37U
-#define SEC_MARGIN              30U
+#define TC_NMOVE                35U
+#define SEC_MARGIN              15U
 #define SEC_KEEP_ALIVE          180U
 #define TIME_RESPONSE           200U
 #define RESIGN_THRESHOLD       ( ( MT_CAP_DRAGON * 5 ) /  8 )
-#define BNZ_VER                 "4.1.3"
+#define BNZ_VER                 "6.0"
 
 #define REP_MAX_PLY             32
 #define REP_HIST_LEN            256
 
-#define EHASH_MASK              0x3fffffU  /* occupies 32MB */
+#define EHASH_MASK              0x3fffffU      /* occupies 32MB */
+#define MATE3_MASK              0x07ffffU      /* occupies 4MB */
+
+#define HIST_SIZE               0x4000U
+#define HIST_INVALID            0xffffU
+#define HIST_MAX                0x8000U
 
 #define REJEC_MASK              0x0ffffU
 #define REJEC_MIN_DEPTH        ( ( PLY_INC  * 5 ) )
@@ -122,18 +130,15 @@ extern unsigned char ailast_one[512];
 #define FMG_MISC_KING          ( ( MT_CAP_DRAGON * 2 ) /  8 )
 #define FMG_CAP_KING           ( ( MT_CAP_DRAGON * 2 ) /  8 )
 
-#define HASH_REG_HIST_LEN       256
-#define HASH_REG_MINDIFF       ( ( MT_CAP_DRAGON * 1 ) /  8 )
-#define HASH_REG_THRESHOLD     ( ( MT_CAP_DRAGON * 8 ) /  8 )
-
 #define FV_WINDOW               256
 #define FV_SCALE                32
 #define FV_PENALTY             ( 0.2 / (double)FV_SCALE )
 
 #define MPV_MAX_PV              16
 
-#define TLP_DEPTH_SPLIT        ( PLY_INC * 3 )
+#ifndef TLP_MAX_THREADS
 #define TLP_MAX_THREADS         8
+#endif
 #define TLP_NUM_WORK           ( TLP_MAX_THREADS * 8 )
 
 #define TIME_CHECK_MIN_NODE     10000U
@@ -142,17 +147,25 @@ extern unsigned char ailast_one[512];
 #define SIZE_FILENAME           256
 #define SIZE_PLAYERNAME         256
 #define SIZE_MESSAGE            512
-#define SIZE_CMDLINE            512
 #define SIZE_CSALINE            512
-#define SIZE_CMDBUFFER          512
+
+#if defined(USI)
+#  define SIZE_CMDLINE          ( 1024 * 16 )
+#  define SIZE_CMDBUFFER        ( 1024 * 16 )
+#else
+#  define SIZE_CMDLINE          512
+#  define SIZE_CMDBUFFER        512
+#endif
 
 #define IsMove(move)           ( (move) & 0xffffffU )
 #define MOVE_NA                 0x00000000U
 #define MOVE_PASS               0x01000000U
 #define MOVE_PONDER_FAILED      0xfe000000U
 #define MOVE_RESIGN             0xff000000U
+#define MOVE_CHK_SET            0x80000000U
+#define MOVE_CHK_CLEAR          0x40000000U
 
-#define MAX_LEGAL_MOVES         1024
+#define MAX_LEGAL_MOVES         700
 #define MAX_LEGAL_EVASION       256
 #define MOVE_LIST_LEN           16384
 
@@ -222,6 +235,11 @@ extern unsigned char ailast_one[512];
                      ( (d) <= PLY_INC*30/4 ? PLY_INC*14/4                    \
                                            : (d)-PLY_INC*16/4) )
 
+#define RecursionThreshold  ( PLY_INC * 3 )
+
+#define RecursionDepth(d) ( (d) < PLY_INC*18/4 ? PLY_INC*6/4                 \
+                                               : (d)-PLY_INC*12/4 )
+
 #define LimitExtension(e,ply) if ( (e) && (ply) > 2 * iteration_depth ) {     \
                                 if ( (ply) < 4 * iteration_depth ) {          \
                                   e *= 4 * iteration_depth - (ply);           \
@@ -230,8 +248,8 @@ extern unsigned char ailast_one[512];
 
 #define Flip(turn)          ((turn)^1)
 #define Inv(sq)             (nsquare-1-sq)
-#define PcOnSq(k,i)         (*p_pc_on_sq)[k][(i)*((i)+3)/2]
-#define PcPcOnSq(k,i,j)     (*p_pc_on_sq)[k][(i)*((i)+1)/2+(j)]
+#define PcOnSq(k,i)         pc_on_sq[k][(i)*((i)+3)/2]
+#define PcPcOnSq(k,i,j)     pc_on_sq[k][(i)*((i)+1)/2+(j)]
 
 /*
   xxxxxxxx xxxxxxxx xxx11111  pawn
@@ -256,6 +274,7 @@ extern unsigned char ailast_one[512];
 #define IsHandGold(hand)       ((hand) & 0x001c000)
 #define IsHandBishop(hand)     ((hand) & 0x0060000)
 #define IsHandRook(hand)       ((hand) & 0x0180000)
+#define IsHandSGBR(hand)       ((hand) & 0x01ff800)
 /*
   xxxxxxxx xxxxxxxx x1111111  destination
   xxxxxxxx xx111111 1xxxxxxx  starting square or drop piece+nsquare-1
@@ -276,93 +295,15 @@ extern unsigned char ailast_one[512];
 #define I2IsPromote(move)       ((move) & FLAG_PROMO)
 #define I2PieceMove(move)       (((move) >> 15) & 0x000fU)
 #define UToFromToPromo(u)       ( (u) & 0x7ffffU )
-#define UToCap(u)               (((u)     >> 19) & 0x000fU)
+#define UToCap(u)               (((u)    >> 19) & 0x000fU)
 #define From2Drop(from)         ((from)-nsquare+1)
 
-
-#define BBIni(bb)                (bb).p[0] = (bb).p[1] = (bb).p[2] = 0
-#define BBToU(bb)                ((bb).p[0] | (bb).p[1] | (bb).p[2])
-#define BBToUShift(bb)           ((bb).p[0]<<2 | (bb).p[1]<<1 | (bb).p[2])
-#define PopuCount(bb)            popu_count012( bb.p[0], bb.p[1], bb.p[2] )
-#define FirstOne(bb)             first_one012( bb.p[0], bb.p[1], bb.p[2] )
-#define LastOne(bb)              last_one210( bb.p[2], bb.p[1], bb.p[0] )
-
-#define BBCmp(bb1,bb2)           ( (bb1).p[0] != (bb2).p[0]                   \
-				   || (bb1).p[1] != (bb2).p[1]                \
-				   || (bb1).p[2] != (bb2).p[2] )
-
-#define BBNot(bb,bb1)            (bb).p[0] = ~(bb1).p[0],                     \
-                                 (bb).p[1] = ~(bb1).p[1],                     \
-                                 (bb).p[2] = ~(bb1).p[2]
-
-#define BBOr(bb,bb1,bb2)         (bb).p[0] = (bb1).p[0] | (bb2).p[0],         \
-                                 (bb).p[1] = (bb1).p[1] | (bb2).p[1],         \
-                                 (bb).p[2] = (bb1).p[2] | (bb2).p[2]
-
-#define BBAnd(bb,bb1,bb2)        (bb).p[0] = (bb1).p[0] & (bb2).p[0],         \
-                                 (bb).p[1] = (bb1).p[1] & (bb2).p[1],         \
-                                 (bb).p[2] = (bb1).p[2] & (bb2).p[2]
-
-#define BBXor(bb,b1,b2)          (bb).p[0] = (b1).p[0] ^ (b2).p[0],           \
-                                 (bb).p[1] = (b1).p[1] ^ (b2).p[1],           \
-                                 (bb).p[2] = (b1).p[2] ^ (b2).p[2]
-
-#define BBAndOr(bb,bb1,bb2)      (bb).p[0] |= (bb1).p[0] & (bb2).p[0],        \
-                                 (bb).p[1] |= (bb1).p[1] & (bb2).p[1],        \
-                                 (bb).p[2] |= (bb1).p[2] & (bb2).p[2]
-
-#define BBNotAnd(bb,bb1)         bb.p[0] &= ~bb1.p[0];                        \
-                                 bb.p[1] &= ~bb1.p[1];                        \
-                                 bb.p[2] &= ~bb1.p[2]
-
-#define BBContractShift(bb1,bb2) ( ( (bb1).p[0] & (bb2).p[0] ) << 2           \
-                                     | ( (bb1).p[1] & (bb2).p[1] ) << 1       \
-                                     | ( (bb1).p[2] & (bb2).p[2] ) )
-
-#define BBContract(bb1,bb2)      ( ( (bb1).p[0] & (bb2).p[0] )                \
-                                     | ( (bb1).p[1] & (bb2).p[1] )            \
-                                     | ( (bb1).p[2] & (bb2).p[2] ) )
-
-#define Xor(i,bb)            (bb).p[0] ^= abb_mask[i].p[0],      \
-                             (bb).p[1] ^= abb_mask[i].p[1],      \
-                             (bb).p[2] ^= abb_mask[i].p[2]
-
-#define XorFile(i,bb)        (bb).p[0] ^= abb_mask_rl90[i].p[0], \
-                             (bb).p[1] ^= abb_mask_rl90[i].p[1], \
-                             (bb).p[2] ^= abb_mask_rl90[i].p[2]
-
-#define XorDiag1(i,bb)       (bb).p[0] ^= abb_mask_rr45[i].p[0], \
-                             (bb).p[1] ^= abb_mask_rr45[i].p[1], \
-                             (bb).p[2] ^= abb_mask_rr45[i].p[2]
-
-#define XorDiag2(i,bb)       (bb).p[0] ^= abb_mask_rl45[i].p[0], \
-                             (bb).p[1] ^= abb_mask_rl45[i].p[1], \
-                             (bb).p[2] ^= abb_mask_rl45[i].p[2]
-
-#define SetClear(bb)         (bb).p[0] ^= (bb_set_clear.p[0]), \
-                             (bb).p[1] ^= (bb_set_clear.p[1]), \
-                             (bb).p[2] ^= (bb_set_clear.p[2])
-
-#define SetClearFile(i1,i2,bb) \
-    (bb).p[0] ^= ((abb_mask_rl90[i1].p[0])|(abb_mask_rl90[i2].p[0])), \
-    (bb).p[1] ^= ((abb_mask_rl90[i1].p[1])|(abb_mask_rl90[i2].p[1])), \
-    (bb).p[2] ^= ((abb_mask_rl90[i1].p[2])|(abb_mask_rl90[i2].p[2]))
-
-#define SetClearDiag1(i1,i2,bb) \
-    (bb).p[0] ^= ((abb_mask_rr45[i1].p[0])|(abb_mask_rr45[i2].p[0])), \
-    (bb).p[1] ^= ((abb_mask_rr45[i1].p[1])|(abb_mask_rr45[i2].p[1])), \
-    (bb).p[2] ^= ((abb_mask_rr45[i1].p[2])|(abb_mask_rr45[i2].p[2]))
-
-#define SetClearDiag2(i1,i2,bb) \
-    (bb).p[0] ^= ((abb_mask_rl45[i1].p[0])|(abb_mask_rl45[i2].p[0])), \
-    (bb).p[1] ^= ((abb_mask_rl45[i1].p[1])|(abb_mask_rl45[i2].p[1])), \
-    (bb).p[2] ^= ((abb_mask_rl45[i1].p[2])|(abb_mask_rl45[i2].p[2]))
 
 #define AttackFile(i)  (abb_file_attacks[i]                               \
                          [((ptree->posi.occupied_rl90.p[aslide[i].irl90]) \
                             >> aslide[i].srl90) & 0x7f])
 
-#define AttackRank(i)  (ai_rook_attacks_r0[i]                             \
+#define AttackRank(i)  (abb_rank_attacks[i]                               \
                          [((ptree->posi.b_occupied.p[aslide[i].ir0]       \
                             |ptree->posi.w_occupied.p[aslide[i].ir0])     \
                              >> aslide[i].sr0) & 0x7f ])
@@ -382,6 +323,8 @@ extern unsigned char ailast_one[512];
 #define BishopAttack2(i) ( AttackDiag1(i).p[2] | AttackDiag2(i).p[2] )
 #define AttackBLance(bb,i) BBAnd( bb, abb_minus_rays[i], AttackFile(i) )
 #define AttackWLance(bb,i) BBAnd( bb, abb_plus_rays[i],  AttackFile(i) )
+#define AttackBishop(bb,i) BBOr( bb, AttackDiag1(i), AttackDiag2(i) )
+#define AttackRook(bb,i)   BBOr( bb, AttackFile(i), AttackRank(i) )
 #define AttackHorse(bb,i)  AttackBishop(bb,i); BBOr(bb,bb,abb_king_attacks[i])
 #define AttackDragon(bb,i) AttackRook(bb,i);   BBOr(bb,bb,abb_king_attacks[i])
 
@@ -477,6 +420,7 @@ enum { flag_diag1 = b0001, flag_plus = b0010 };
 
 enum { score_draw     =     1,
        score_max_eval = 30000,
+       score_matelong = 30002,
        score_mate1ply = 32598,
        score_inferior = 32599,
        score_bound    = 32600,
@@ -499,6 +443,7 @@ enum { next_move_hash = 0,  next_move_capture,   next_move_history2,
 
 /* next_evasion_hash should be the same as next_move_hash */
 enum { next_evasion_hash = 0, next_evasion_genall, next_evasion_misc };
+
 
 enum { next_quies_gencap, next_quies_captures, next_quies_misc };
 
@@ -528,27 +473,26 @@ enum { value_null           = b0000,
        node_do_null         = b0100,
        node_do_recap        = b1000,
        node_do_mate         = b0001 << 4,
-       node_mate_threat     = b0010 << 4, /* <- don't change it */
+       node_mate_threat     = b0010 << 4, /* <- don't change it */ 
        node_do_futile       = b0100 << 4,
+       node_do_recursion    = b1000 << 4,
+       node_do_hashcut      = b0001 << 8,
        state_node_end };
 /* note: maximum bits are 8.  tlp_state_node uses type unsigned char. */
 
-enum { flag_from_ponder     = b0001,
-       flag_refer_rest      = b0010 };
+enum { flag_from_ponder     = b0001 };
 
 enum { flag_time            = b0001,
        flag_history         = b0010,
        flag_rep             = b0100,
        flag_detect_hang     = b1000,
-       flag_rejections      = b0001 << 4,
        flag_nomake_move     = b0010 << 4,
        flag_nofmargin       = b0100 << 4 };
 
 /* flags represent status of root move */
 enum { flag_searched        = b0001,
-       flag_failhigh        = b0010,
-       flag_faillow         = b0100,
-       flag_first           = b1000 };
+       flag_first           = b0010 };
+
 
 enum { flag_mated           = b0001,
        flag_resigned        = b0010,
@@ -562,8 +506,9 @@ enum { flag_mated           = b0001,
        flag_problem         = b0001 << 8,
        flag_move_now        = b0010 << 8,
        flag_quit_ponder     = b0100 << 8,
+       flag_nostdout        = b1000 << 8,
        flag_search_error    = b0001 << 12,
-       flag_quiet           = b0010 << 12,
+       flag_nonewlog        = b0010 << 12,
        flag_reverse         = b0100 << 12,
        flag_narrow_book     = b1000 << 12,
        flag_time_extendable = b0001 << 16,
@@ -571,7 +516,10 @@ enum { flag_mated           = b0001,
        flag_nobeep          = b0100 << 16,
        flag_nostress        = b1000 << 16,
        flag_nopeek          = b0001 << 20,
-       flag_noponder        = b0010 << 20 };
+       flag_noponder        = b0010 << 20,
+       flag_noprompt        = b0100 << 20,
+       flag_sendpv          = b1000 << 20,
+       flag_skip_root_move  = b0001 << 24 };
 
 
 enum { flag_hand_pawn       = 1 <<  0,
@@ -638,16 +586,9 @@ enum { f_hand_pawn   =    0,
 
 enum { pos_n = fe_end * ( fe_end + 1 ) / 2 };
 
-typedef struct { unsigned int p[3]; } bitboard_t;
-
 typedef struct { bitboard_t gold, silver, knight, lance; } check_table_t;
 
-#if defined(MINIMUM)
-typedef const signed char cchar_f_t;
-typedef signed char char_f_t;
-#else
-typedef short cchar_f_t;
-typedef short char_f_t;
+#if ! defined(MINIMUM)
 typedef struct { fpos_t fpos;  unsigned int games, moves, lines; } rpos_t;
 typedef struct {
   double pawn, lance, knight, silver, gold, bishop, rook;
@@ -664,23 +605,17 @@ typedef struct { trans_entry_t prefer, always[2]; }              trans_table_t;
 typedef struct { int count;  unsigned int cnst[2], vec[RAND_N]; }rand_work_t;
 
 typedef struct {
-  uint64_t root;
-  SHARE uint64_t sibling;
-} rejections_t;
-
-typedef struct {
   int no1_value, no2_value;
   unsigned int no1, no2;
 } move_killer_t;
+
+typedef struct { unsigned int no1, no2; } killer_t;
 
 typedef struct {
   union { char str_move[ MAX_ANSWER ][ 8 ]; } info;
   char str_name1[ SIZE_PLAYERNAME ];
   char str_name2[ SIZE_PLAYERNAME ];
-  char* buf;
-  char* write_ptr;
-  int buf_size;
-  //  FILE *pf;
+  FILE *pf;
   unsigned int games, moves, lines;
 } record_t;
 
@@ -737,6 +672,9 @@ typedef struct {
 typedef struct {
   uint64_t nodes;
   unsigned int move, status;
+#if defined(DFPN_CLIENT)
+  volatile int dfpn_cresult;
+#endif
 } root_move_t;
 
 typedef struct {
@@ -776,8 +714,6 @@ struct tree {
   unsigned int nperpetual_check;
   unsigned int nsuperior_rep;
   unsigned int nrep_tried;
-  unsigned int nreject_tried;
-  unsigned int nreject_done;
   unsigned int ntrans_always_hit;
   unsigned int ntrans_prefer_hit;
   unsigned int ntrans_probe;
@@ -791,12 +727,17 @@ struct tree {
   unsigned int rep_hand_list[ REP_HIST_LEN ];
   unsigned int amove_hash[ PLY_MAX ];
   unsigned int amove[ MOVE_LIST_LEN ];
-  unsigned int history[2][nsquare][nsquare+7];
   unsigned int current_move[ PLY_MAX ];
+  killer_t killers[ PLY_MAX ];
+  unsigned int hist_nmove[ PLY_MAX ];
+  unsigned int hist_move[ PLY_MAX ][ MAX_LEGAL_MOVES ];
   int sort_value[ MAX_LEGAL_MOVES ];
+  unsigned short hist_tried[ HIST_SIZE ];
+  unsigned short hist_good[ HIST_SIZE ];
   short save_material[ PLY_MAX ];
-  short stand_pat[ PLY_MAX+1 ];
+  int save_eval[ PLY_MAX+1 ];
   unsigned char nsuc_check[ PLY_MAX+1 ];
+  int nrep;
 #if defined(TLP)
   struct tree *tlp_ptrees_sibling[ TLP_MAX_THREADS ];
   struct tree *tlp_ptree_parent;
@@ -804,9 +745,7 @@ struct tree {
   volatile int tlp_abort;
   volatile int tlp_used;
   unsigned short tlp_slot;
-  short tlp_alpha;
   short tlp_beta;
-  short tlp_value;
   short tlp_best;
   volatile unsigned char tlp_nsibling;
   unsigned char tlp_depth;
@@ -819,7 +758,6 @@ struct tree {
 
 
 extern SHARE unsigned int game_status;
-extern history_book_learn_t history_book_learn[ HASH_REG_HIST_LEN ];
 
 extern int npawn_box;
 extern int nlance_box;
@@ -835,17 +773,15 @@ extern int ponder_nmove;
 
 extern root_move_t root_move_list[ MAX_LEGAL_MOVES ];
 extern SHARE int root_abort;
-extern int root_nrep;
 extern int root_nmove;
+extern int root_index;
 extern int root_value;
 extern int root_alpha;
 extern int root_beta;
 extern int root_turn;
-extern int root_move_cap;
 extern int root_nfail_high;
 extern int root_nfail_low;
 extern int resign_threshold;
-extern int n_nobook_move;
 
 extern uint64_t node_limit;
 extern unsigned int node_per_second;
@@ -856,9 +792,12 @@ extern unsigned int hash_mask;
 extern int trans_table_age;
 
 extern pv_t last_pv;
-extern pv_t last_pv_save;
+extern pv_t alast_pv_save[NUM_UNMAKE];
+extern int alast_root_value_save[NUM_UNMAKE];
 extern int last_root_value;
-extern int last_root_value_save;
+extern int amaterial_save[NUM_UNMAKE];
+extern unsigned int amove_save[NUM_UNMAKE];
+extern unsigned char ansuc_check_save[NUM_UNMAKE];
 
 extern SHARE trans_table_t *ptrans_table;
 extern trans_table_t *ptrans_table_orig;
@@ -885,21 +824,15 @@ extern unsigned int sec_w_total;
 extern record_t record_problems;
 extern record_t record_game;
 extern FILE *pf_book;
-extern FILE *pf_hash;
-extern int irecord_game;
+extern int record_num;
 
-extern short p_value[31];
+extern int p_value_ex[31];
+extern int p_value_pm[15];
+extern int p_value[31];
+extern short pc_on_sq[nsquare][fe_end*(fe_end+1)/2];
+extern short kkp[nsquare][nsquare][kkp_end];
 
-typedef struct {
-  uint64_t ehash_tbl[ EHASH_MASK + 1 ];
-  unsigned char hash_rejections_parent[ REJEC_MASK+1 ];
-  rejections_t hash_rejections[ REJEC_MASK+1 ];
-} large_object_t;
-
-short (*p_pc_on_sq)[nsquare][fe_end*(fe_end+1)/2];
-short (*p_kkp)[nsquare][nsquare][kkp_end];
-
-extern large_object_t* large_object;
+extern uint64_t ehash_tbl[ EHASH_MASK + 1 ];
 extern rand_work_t rand_work;
 extern slide_tbl_t aslide[ nsquare ];
 extern bitboard_t abb_b_knight_attacks[ nsquare ];
@@ -912,6 +845,7 @@ extern bitboard_t abb_king_attacks[ nsquare ];
 extern bitboard_t abb_obstacle[ nsquare ][ nsquare ];
 extern bitboard_t abb_bishop_attacks_rl45[ nsquare ][ 128 ];
 extern bitboard_t abb_bishop_attacks_rr45[ nsquare ][ 128 ];
+extern bitboard_t abb_rank_attacks[ nsquare ][ 128 ];
 extern bitboard_t abb_file_attacks[ nsquare ][ 128 ];
 extern bitboard_t abb_mask[ nsquare ];
 extern bitboard_t abb_mask_rl90[ nsquare ];
@@ -961,10 +895,7 @@ extern uint64_t w_hand_silver_rand[ nsilver_max ];
 extern uint64_t w_hand_gold_rand[ ngold_max ];
 extern uint64_t w_hand_bishop_rand[ nbishop_max ];
 extern uint64_t w_hand_rook_rand[ nrook_max ];
-extern unsigned int ai_rook_attacks_r0[ nsquare ][ 128 ];
 extern unsigned int move_evasion_pchk;
-extern int p_value_ex[31];
-extern int benefit2promo[15];
 extern int easy_abs;
 extern int easy_min;
 extern int easy_max;
@@ -1010,8 +941,9 @@ extern const char *str_double_pawn;
 extern const char *str_mate_drppawn;
 extern const char *str_fopen_error;
 extern const char *str_game_ended;
-// extern const char *str_io_error;
+extern const char *str_io_error;
 extern const char *str_spaces;
+extern const char *str_no_legal_move;
 extern const char *str_king_hang;
 #if defined(CSA_LAN)
 extern const char *str_server_err;
@@ -1019,179 +951,204 @@ extern const char *str_server_err;
 extern const char *str_myname;
 extern const char *str_version;
 extern const min_posi_t min_posi_no_handicap;
-extern const short aipos[31];
+extern const int ashell_h[ SHELL_H_LEN ];
+extern const int aikkp[16];
+extern const int aikpp[31];
+extern const int aikkp_hand[8];
 extern const char ach_turn[2];
-extern const char ashell_h[ SHELL_H_LEN ];
 extern const unsigned char aifile[ nsquare ];
 extern const unsigned char airank[ nsquare ];
 
-void pv_close( tree_t * restrict ptree, int ply, int type );
-void pv_copy( tree_t * restrict ptree, int ply );
+#if defined(DFPN_CLIENT)
+#  define DFPN_CLIENT_SIZE_SIGNATURE 64
+enum { dfpn_client_na, dfpn_client_win, dfpn_client_lose, dfpn_client_misc };
+typedef struct { char str_move[7], result; } dfpn_client_cresult_t;
+extern volatile int dfpn_client_flag_read;
+extern volatile sckt_t dfpn_client_sckt;
+extern volatile unsigned int dfpn_client_move_unlocked;
+extern volatile int dfpn_client_rresult_unlocked;
+extern volatile int dfpn_client_num_cresult;
+extern volatile char dfpn_client_signature[ DFPN_CLIENT_SIZE_SIGNATURE ];
+extern volatile dfpn_client_cresult_t dfpn_client_cresult[ MAX_LEGAL_MOVES ];
+extern volatile char dfpn_client_str_move[7];
+extern volatile int dfpn_client_rresult;
+extern unsigned int dfpn_client_best_move;
+extern lock_t dfpn_client_lock;
+extern char dfpn_client_str_addr[256];
+extern int dfpn_client_port;
+extern int dfpn_client_cresult_index;
+void CONV dfpn_client_start( const tree_t * restrict ptree );
+void CONV dfpn_client_check_results( void );
+int CONV dfpn_client_out( const char *fmt, ... );
+#endif
+
+void CONV pv_close( tree_t * restrict ptree, int ply, int type );
+void CONV pv_copy( tree_t * restrict ptree, int ply );
 void set_derivative_param( void );
-void set_search_limit_time( int turn );
-void ehash_clear( void );
-void hash_store_pv( const tree_t * restrict ptree, unsigned int move,
-		    int turn );
-void check_futile_score_quies( const tree_t * restrict ptree,
-			       unsigned int move, int old_val, int new_val,
-			       int turn );
-void out_file( FILE *pf, const char *format, ... );
+void CONV set_search_limit_time( int turn );
+void CONV ehash_clear( void );
+void CONV hash_store_pv( const tree_t * restrict ptree, unsigned int move,
+			 int turn );
+void CONV check_futile_score_quies( const tree_t * restrict ptree,
+				    unsigned int move, int old_val,
+				    int new_val, int turn );
 void out_warning( const char *format, ... );
 void out_error( const char *format, ... );
 void show_prompt( void );
-void make_move_w( tree_t * restrict ptree, unsigned int move, int ply );
-void make_move_b( tree_t * restrict ptree, unsigned int move, int ply );
-void unmake_move_b( tree_t * restrict ptree, unsigned int move, int ply );
-void unmake_move_w( tree_t * restrict ptree, unsigned int move, int ply );
+void CONV make_move_w( tree_t * restrict ptree, unsigned int move, int ply );
+void CONV make_move_b( tree_t * restrict ptree, unsigned int move, int ply );
+void CONV unmake_move_b( tree_t * restrict ptree, unsigned int move, int ply );
+void CONV unmake_move_w( tree_t * restrict ptree, unsigned int move, int ply );
 void ini_rand( unsigned int s );
 void out_CSA( tree_t * restrict ptree, record_t *pr, unsigned int move );
-void out_pv( tree_t * restrict ptree, int value, int turn, unsigned int time );
-void hash_store( const tree_t * restrict ptree, int ply, int depth, int turn,
-		 int value_type, int value, unsigned int move,
-		 unsigned int state_node );
-void *memory_alloc( size_t nbytes );
-void unmake_move_root( tree_t * restrict ptree, unsigned int move );
-void add_rejections_root( tree_t * restrict ptree, unsigned int move_made );
-void sub_rejections_root( tree_t * restrict ptree, unsigned int move_made );
-void add_rejections( tree_t * restrict ptree, int turn, int ply );
-void sub_rejections( tree_t * restrict ptree, int turn, int ply );
-void adjust_time( unsigned int elapsed_new, int turn );
-int popu_count012( unsigned int u0, unsigned int u1, unsigned int u2 );
-int first_one012( unsigned int u0, unsigned int u1, unsigned int u2 );
-int last_one210( unsigned int u2, unsigned int u1, unsigned int u0 );
-int first_one01( unsigned int u0, unsigned int u1 );
-int first_one12( unsigned int u1, unsigned int u2 );
-int last_one01( unsigned int u0, unsigned int u1 );
-int last_one12( unsigned int u1, unsigned int u2 );
-int first_one1( unsigned int u1 );
-int first_one2( unsigned int u2 );
-int last_one0( unsigned int u0 );
-int last_one1( unsigned int u1 );
-int memory_free( void *p );
-int reset_time( unsigned int b_remain, unsigned int w_remain );
-int all_hash_learn_store( void );
-int gen_legal_moves( tree_t * restrict ptree, unsigned int *p0 );
-int rejections_probe( tree_t * restrict ptree, int turn, int ply );
+void CONV out_pv( tree_t * restrict ptree, int value, int turn,
+		  unsigned int time );
+void CONV hash_store( const tree_t * restrict ptree, int ply, int depth,
+		      int turn, int value_type, int value, unsigned int move,
+		      unsigned int state_node );
+void * CONV memory_alloc( size_t nbytes );
+void CONV adjust_time( unsigned int elapsed_new, int turn );
+int CONV load_fv( void );
+int CONV unmake_move_root( tree_t * restrict ptree );
+int CONV popu_count012( unsigned int u0, unsigned int u1, unsigned int u2 );
+int CONV first_one012( unsigned int u0, unsigned int u1, unsigned int u2 );
+int CONV last_one210( unsigned int u2, unsigned int u1, unsigned int u0 );
+int CONV first_one01( unsigned int u0, unsigned int u1 );
+int CONV first_one12( unsigned int u1, unsigned int u2 );
+int CONV last_one01( unsigned int u0, unsigned int u1 );
+int CONV last_one12( unsigned int u1, unsigned int u2 );
+int CONV first_one1( unsigned int u1 );
+int CONV first_one2( unsigned int u2 );
+int CONV last_one0( unsigned int u0 );
+int CONV last_one1( unsigned int u1 );
+int CONV memory_free( void *p );
+int CONV reset_time( unsigned int b_remain, unsigned int w_remain );
+int CONV gen_legal_moves( tree_t * restrict ptree, unsigned int *p0,
+			  int flag );
+int CONV detect_signals( tree_t * restrict ptree );
 int ini( tree_t * restrict ptree );
 int fin( void );
 int ponder( tree_t * restrict ptree );
-int hash_learn( const tree_t * restrict ptree, unsigned int move, int value,
-		int depth );
-int book_on( void );
-int book_off( void );
-int hash_learn_on( void );
-int hash_learn_off( void );
-int is_move_check_b( const tree_t * restrict ptree, unsigned int move );
-int is_move_check_w( const tree_t * restrict ptree, unsigned int move );
-int solve_problems( tree_t * restrict ptree, unsigned int nposition );
+int CONV book_on( void );
+int CONV book_off( void );
+int CONV solve_problems( tree_t * restrict ptree, unsigned int nposition );
+int CONV solve_mate_problems( tree_t * restrict ptree,
+			      unsigned int nposition );
 int read_board_rep1( const char *str_line, min_posi_t *pmin_posi );
-int com_turn_start( tree_t * restrict ptree, int flag );
+int CONV com_turn_start( tree_t * restrict ptree, int flag );
 int read_record( tree_t * restrict ptree, const char *str_file,
 		 unsigned int moves, int flag );
 int out_board( const tree_t * restrict ptree, FILE *pf, unsigned int move,
 	       int flag );
-int make_root_move_list( tree_t * restrict ptree, int flag );
+int make_root_move_list( tree_t * restrict ptree );
 int record_wind( record_t *pr );
-int book_probe( tree_t * restrict ptree );
-int detect_repetition( tree_t * restrict ptree, int ply, int turn, int nth );
-int is_mate( tree_t * restrict ptree, int ply );
-int is_mate_w_pawn_drop( tree_t * restrict ptree, int sq_drop );
-int is_mate_b_pawn_drop( tree_t * restrict ptree, int sq_drop );
-int clear_trans_table( void );
-int eval_max_score( const tree_t * restrict ptree, unsigned int move,
-		    int stand_pat, int turn, int diff );
-int estimate_score_diff( const tree_t * restrict ptree, unsigned int move,
-			 int turn );
-int eval_material( const tree_t * restrict ptree );
-int ini_trans_table( void );
-int is_hand_eq_supe( unsigned int u, unsigned int uref );
-int is_move_valid( tree_t * restrict ptree, unsigned int move, int turn );
-int is_hash_move_valid( tree_t * restrict ptree, unsigned int move, int turn );
-int iterate( tree_t * restrict ptree, int flag );
-int gen_next_move( tree_t * restrict ptree, int ply, int turn );
-int gen_next_evasion( tree_t * restrict ptree, int ply, int turn );
-int ini_game( tree_t * restrict ptree, const min_posi_t *pmin_posi, int flag,
-	      const char *str_name1, const char *str_name2 );
+int CONV book_probe( tree_t * restrict ptree );
+int CONV detect_repetition( tree_t * restrict ptree, int ply, int turn,
+			    int nth );
+int CONV is_move( const char *str );
+int CONV is_mate( tree_t * restrict ptree, int ply );
+int CONV is_mate_w_pawn_drop( tree_t * restrict ptree, int sq_drop );
+int CONV is_mate_b_pawn_drop( tree_t * restrict ptree, int sq_drop );
+int CONV clear_trans_table( void );
+int CONV eval_max_score( const tree_t * restrict ptree, unsigned int move,
+			 int value, int turn, int diff );
+int CONV estimate_score_diff( const tree_t * restrict ptree, unsigned int move,
+			      int turn );
+int CONV eval_material( const tree_t * restrict ptree );
+int CONV ini_trans_table( void );
+int CONV is_hand_eq_supe( unsigned int u, unsigned int uref );
+int CONV is_move_valid( tree_t * restrict ptree, unsigned int move, int turn );
+int CONV iterate( tree_t * restrict ptree );
+int CONV gen_next_move( tree_t * restrict ptree, int ply, int turn );
+int CONV gen_next_evasion( tree_t * restrict ptree, int ply, int turn );
+int CONV ini_game( tree_t * restrict ptree, const min_posi_t *pmin_posi,
+		   int flag, const char *str_name1, const char *str_name2 );
 int open_history( const char *str_name1, const char *str_name2 );
 int next_cmdline( int is_wait );
-int procedure( tree_t * restrict ptree );
-int get_cputime( unsigned int *ptime );
-int get_elapsed( unsigned int *ptime );
+int CONV procedure( tree_t * restrict ptree );
+int CONV get_cputime( unsigned int *ptime );
+int CONV get_elapsed( unsigned int *ptime );
 int interpret_CSA_move( tree_t * restrict ptree, unsigned int *pmove,
 			const char *str );
 int in_CSA( tree_t * restrict ptree, record_t *pr, unsigned int *pmove,
 	    int do_history );
 int in_CSA_record( FILE * restrict pf, tree_t * restrict ptree );
-int renovate_time( int turn );
-int exam_tree( const tree_t * restrict ptree );
+int CONV update_time( int turn );
+int CONV exam_tree( const tree_t * restrict ptree );
 int rep_check_root( tree_t * restrict ptree );
-int make_move_root( tree_t * restrict ptree, unsigned int move, int flag );
-int search_quies( tree_t * restrict ptree, int alpha, int beta, int turn,
-		  int ply, int qui_ply );
-int search( tree_t * restrict ptree, int alpha, int beta, int turn,
-	    int depth, int ply, unsigned int state_node );
-int searchr( tree_t * restrict ptree, int alpha, int beta, int turn,
+int CONV make_move_root( tree_t * restrict ptree, unsigned int move,
+			 int flag );
+int CONV search_quies( tree_t * restrict ptree, int alpha, int beta, int turn,
+		       int ply, int qui_ply );
+int CONV search( tree_t * restrict ptree, int alpha, int beta, int turn,
+		 int depth, int ply, unsigned int state_node );
+int CONV searchr( tree_t * restrict ptree, int alpha, int beta, int turn,
 	     int depth );
-int evaluate( tree_t * restrict ptree, int ply, int turn );
-int swap( const tree_t * restrict ptree, unsigned int move, int alpha,
-	  int beta, int turn );
+int CONV evaluate( tree_t * restrict ptree, int ply, int turn );
+int CONV swap( const tree_t * restrict ptree, unsigned int move, int alpha,
+	       int beta, int turn );
 int file_close( FILE *pf );
 int record_open( record_t *pr, const char *str_file,
 		 record_mode_t record_mode, const char *str_name1,
 		 const char *str_name2 );
 int record_close( record_t *pr );
-unsigned int is_mate_in3ply( tree_t * restrict ptree, int turn, int ply );
-unsigned int is_b_mate_in_1ply( tree_t * restrict ptree );
-unsigned int is_w_mate_in_1ply( tree_t * restrict ptree );
-unsigned int hash_probe( tree_t * restrict ptree, int ply, int depth, int turn,
-			 int alpha, int beta, unsigned int state_node );
+unsigned int CONV phash( unsigned int move, int turn );
+unsigned int CONV is_mate_in3ply( tree_t * restrict ptree, int turn, int ply );
+unsigned int CONV is_b_mate_in_1ply( tree_t * restrict ptree );
+unsigned int CONV is_w_mate_in_1ply( tree_t * restrict ptree );
+unsigned int CONV hash_probe( tree_t * restrict ptree, int ply, int depth,
+			      int turn, int alpha, int beta,
+			      unsigned int *pstate_node );
 unsigned int rand32( void );
-unsigned int is_black_attacked( const tree_t * restrict ptree, int sq );
-unsigned int is_white_attacked( const tree_t * restrict ptree, int sq );
-unsigned int is_pinned_on_black_king( const tree_t * restrict ptree,
+unsigned int CONV is_black_attacked( const tree_t * restrict ptree, int sq );
+unsigned int CONV is_white_attacked( const tree_t * restrict ptree, int sq );
+unsigned int CONV is_pinned_on_black_king( const tree_t * restrict ptree,
 				     int isquare, int idirec );
-unsigned int is_pinned_on_white_king( const tree_t * restrict ptree,
+unsigned int CONV is_pinned_on_white_king( const tree_t * restrict ptree,
 				     int isquare, int idirec );
-unsigned int *b_gen_captures( const tree_t * restrict ptree,
-			      unsigned int * restrict pmove );
-unsigned int *b_gen_nocaptures( const tree_t * restrict ptree,
-				unsigned int * restrict pmove );
-unsigned int *b_gen_drop( tree_t * restrict ptree,
+unsigned int * CONV b_gen_captures( const tree_t * restrict ptree,
+				    unsigned int * restrict pmove );
+unsigned int * CONV b_gen_nocaptures( const tree_t * restrict ptree,
+				      unsigned int * restrict pmove );
+unsigned int * CONV b_gen_drop( tree_t * restrict ptree,
 			  unsigned int * restrict pmove );
-unsigned int *b_gen_evasion( tree_t *restrict ptree,
-			     unsigned int * restrict pmove );
-unsigned int *b_gen_checks( tree_t * restrict __ptree__,
-			    unsigned int * restrict pmove );
-unsigned int *b_gen_cap_nopro_ex2( const tree_t * restrict ptree,
+unsigned int * CONV b_gen_evasion( tree_t *restrict ptree,
 				   unsigned int * restrict pmove );
-unsigned int *b_gen_nocap_nopro_ex2( const tree_t * restrict ptree,
+unsigned int * CONV b_gen_checks( tree_t * restrict __ptree__,
+				  unsigned int * restrict pmove );
+unsigned int * CONV b_gen_cap_nopro_ex2( const tree_t * restrict ptree,
+					 unsigned int * restrict pmove );
+unsigned int * CONV b_gen_nocap_nopro_ex2( const tree_t * restrict ptree,
 				     unsigned int * restrict pmove );
-unsigned int *w_gen_captures( const tree_t * restrict ptree,
-			      unsigned int * restrict pmove );
-unsigned int *w_gen_nocaptures( const tree_t * restrict ptree,
+unsigned int * CONV w_gen_captures( const tree_t * restrict ptree,
+				    unsigned int * restrict pmove );
+unsigned int * CONV w_gen_nocaptures( const tree_t * restrict ptree,
+				      unsigned int * restrict pmove );
+unsigned int * CONV w_gen_drop( tree_t * restrict ptree,
 				unsigned int * restrict pmove );
-unsigned int *w_gen_drop( tree_t * restrict ptree,
-			  unsigned int * restrict pmove );
-unsigned int *w_gen_evasion( tree_t * restrict ptree,
-			     unsigned int * restrict pmove );
-unsigned int *w_gen_checks( tree_t * restrict __ptree__,
-			    unsigned int * restrict pmove );
-unsigned int *w_gen_cap_nopro_ex2( const tree_t * restrict ptree,
+unsigned int * CONV w_gen_evasion( tree_t * restrict ptree,
 				   unsigned int * restrict pmove );
-unsigned int *w_gen_nocap_nopro_ex2( const tree_t * restrict ptree,
-				     unsigned int * restrict pmove );
-uint64_t hash_func( const tree_t * restrict ptree );
+unsigned int * CONV w_gen_checks( tree_t * restrict __ptree__,
+				  unsigned int * restrict pmove );
+unsigned int * CONV w_gen_cap_nopro_ex2( const tree_t * restrict ptree,
+					 unsigned int * restrict pmove );
+unsigned int * CONV w_gen_nocap_nopro_ex2( const tree_t * restrict ptree,
+					   unsigned int * restrict pmove );
+int CONV b_have_checks( tree_t * restrict ptree );
+int CONV w_have_checks( tree_t * restrict ptree );
+int CONV b_have_evasion( tree_t * restrict ptree );
+int CONV w_have_evasion( tree_t * restrict ptree );
+int CONV is_move_check_b( const tree_t * restrict ptree, unsigned int move );
+int CONV is_move_check_w( const tree_t * restrict ptree, unsigned int move );
+uint64_t CONV hash_func( const tree_t * restrict ptree );
 uint64_t rand64( void );
-trans_entry_t hash_learn_store( const tree_t * restrict ptree, int depth,
-				  int value, unsigned int move );
 FILE *file_open( const char *str_file, const char *str_mode );
-bitboard_t attacks_to_piece( const tree_t * restrict ptree, int sq );
-bitboard_t horse_attacks( const tree_t * restrict ptree, int i );
-const char *str_time( unsigned int time );
-const char *str_time_symple( unsigned int time );
+bitboard_t CONV attacks_to_piece( const tree_t * restrict ptree, int sq );
+bitboard_t CONV b_attacks_to_piece( const tree_t * restrict ptree, int sq );
+bitboard_t CONV w_attacks_to_piece( const tree_t * restrict ptree, int sq );
+const char * CONV str_time( unsigned int time );
+const char * CONV str_time_symple( unsigned int time );
 const char *str_CSA_move( unsigned int move );
-const char *str_CSA_move_plus( tree_t * restrict ptree, unsigned int move,
-			       int ply, int turn );
 
 #if defined(MPV)
 int root_mpv;
@@ -1200,27 +1157,33 @@ int mpv_width;
 pv_t mpv_pv[ MPV_MAX_PV*2 + 1 ];
 #endif
 
+#  if ! defined(_WIN32) && ( defined(DFPN_CLIENT) || defined(TLP) )
+extern pthread_attr_t pthread_attr;
+#  endif
+
+#if defined(DFPN_CLIENT) || defined(TLP)
+void CONV lock( lock_t *plock );
+void CONV unlock( lock_t *plock );
+int CONV lock_init( lock_t *plock );
+int CONV lock_free( lock_t *plock );
+void tlp_yield( void );
+extern lock_t io_lock;
+#endif
+
 #if defined(TLP)
 #  define SignKey(word2, word1) word2 ^= ( word1 )
 #  define TlpEnd()              tlp_end();
-#  if ! defined(_WIN32)
-extern pthread_attr_t pthread_attr;
+#  if defined(MNJ_LAN) || defined(USI)
+uint64_t tlp_count_node( tree_t * restrict ptree );
 #  endif
-void tlp_yield( void );
 void tlp_set_abort( tree_t * restrict ptree );
-void lock( lock_t *plock );
-void unlock( lock_t *plock );
 void tlp_end( void );
-int tlp_search( tree_t * restrict ptree, int alpha, int beta, int turn,
+int CONV tlp_search( tree_t * restrict ptree, int alpha, int beta, int turn,
 		int depth, int ply, unsigned int state_node );
 int tlp_split( tree_t * restrict ptree );
 int tlp_start( void );
 int tlp_is_descendant( const tree_t * restrict ptree, int slot_ancestor );
-int lock_init( lock_t *plock );
-int lock_free( lock_t *plock );
 extern lock_t tlp_lock;
-extern lock_t tlp_lock_io;
-extern lock_t tlp_lock_root;
 extern volatile int tlp_abort;
 extern volatile int tlp_idle;
 extern volatile int tlp_num;
@@ -1228,7 +1191,6 @@ extern int tlp_max;
 extern int tlp_nsplit;
 extern int tlp_nabort;
 extern int tlp_nslot;
-extern SHARE unsigned short tlp_rejections_slot[ REJEC_MASK+1 ];
 extern tree_t tlp_atree_work[ TLP_NUM_WORK ];
 extern tree_t * volatile tlp_ptrees[ TLP_MAX_THREADS ];
 #else /* no TLP */
@@ -1270,51 +1232,84 @@ int stdout_stress( int is_promote, int ifrom );
 int stdout_normal( void );
 #endif
 
+#if defined(CSA_LAN) || defined(MNJ_LAN) || defined(DFPN)
+void CONV shutdown_all( void );
+#  define ShutdownAll() shutdown_all();
+#else
+#  define ShutdownAll()
+#endif
+
+#if defined(CSA_LAN)||defined(MNJ_LAN)||defined(DFPN_CLIENT)||defined(DFPN)
+int client_next_game( tree_t * restrict ptree, const char *str_addr,
+		      int iport );
+sckt_t CONV sckt_connect( const char *str_addr, int iport );
+int CONV sckt_recv_all( sckt_t sd );
+int CONV sckt_shutdown( sckt_t sd );
+int CONV sckt_check( sckt_t sd );
+int CONV sckt_in( sckt_t sd, char *str, int n );
+int CONV sckt_out( sckt_t sd, const char *fmt, ... );
+extern unsigned int time_last_send;
+#endif
+
+#if defined(DFPN)
+#  define DFPNOut( ... ) if ( dfpn_sckt != SCKT_NULL ) \
+                           sckt_out( dfpn_sckt, __VA_ARGS__ )
+int CONV dfpn( tree_t * restrict ptree, int turn, int ply );
+int CONV dfpn_ini_hash( void );
+extern unsigned int dfpn_hash_log2;
+extern sckt_t dfpn_sckt;
+#else
+#  define DFPNOut( ... )
+#endif
+
 #if defined(CSA_LAN)
-#  define ShutdownClient sckt_shutdown( sckt_csa );  sckt_csa = SCKT_NULL
-int client_next_game( tree_t * restrict ptree );
-sckt_t sckt_connect( const char *str_addr, int iport );
-int sckt_shutdown( sckt_t sd );
-int sckt_check( sckt_t sd );
-int sckt_in( sckt_t sd, char *str, int n );
-int sckt_out( sckt_t sd, const char *fmt, ... );
 extern int client_turn;
 extern int client_ngame;
 extern int client_max_game;
-extern unsigned int time_last_send;
 extern long client_port;
 extern char client_str_addr[256];
 extern char client_str_id[256];
 extern char client_str_pwd[256];
 extern sckt_t sckt_csa;
-#else
-#  define ShutdownClient
 #endif
 
-#if defined(DEKUNOBOU) || defined(CSA_LAN)
-const char *str_WSAError( const char *str );
+#if defined(MNJ_LAN) || defined(USI)
+extern unsigned int moves_ignore[MAX_LEGAL_MOVES];
 #endif
 
-#if defined(DEKUNOBOU) && defined(_WIN32)
-#  define OutDek( ... ) if ( dek_ngame ) { int i = dek_out( __VA_ARGS__ ); \
-                                         if ( i < 0 ) { return i; } }
-const char *str_WSAError( const char *str );
-int dek_start( const char *str_sddr, int port_dek, int port_bnz );
-int dek_next_game( tree_t * restrict ptree );
-int dek_in( char *str, int n );
-int dek_out( const char *format, ... );
-int dek_parse( char *str, int len );
-int dek_check( void );
-extern SOCKET dek_socket_in;
-extern SOCKET dek_s_accept;
-extern u_long dek_ul_addr;
-extern unsigned int dek_ngame;
-extern unsigned int dek_lost;
-extern unsigned int dek_win;
-extern int dek_turn;
-extern u_short dek_ns;
+#if defined(MNJ_LAN)
+#  define MnjOut( ... ) if ( sckt_mnj != SCKT_NULL ) \
+                          sckt_out( sckt_mnj, __VA_ARGS__ )
+extern sckt_t sckt_mnj;
+extern int mnj_posi_id;
+extern int mnj_depth_stable;
+void CONV mnj_check_results( void );
+int CONV mnj_reset_tbl( int sd, unsigned int seed );
+int analyze( tree_t * restrict ptree );
 #else
-#  define OutDek( ... )
+#  define MnjOut( ... )
+#endif
+
+#if defined(USI)
+#  define USIOut( ... ) if ( usi_mode != usi_off ) usi_out( __VA_ARGS__ )
+enum usi_mode { usi_off, usi_on };
+extern enum usi_mode usi_mode;
+extern unsigned int usi_time_out_last;
+extern unsigned int usi_byoyomi;
+void CONV usi_out( const char *format, ... );
+int CONV usi_book( tree_t * restrict ptree );
+int CONV usi_root_list( tree_t * restrict ptree );
+int CONV usi2csa( const tree_t * restrict ptree, const char *str_usi,
+		  char *str_csa );
+int CONV csa2usi( const tree_t * restrict ptree, const char *str_csa,
+		  char *str_usi );
+int analyze( tree_t * restrict ptree );
+#else
+#  define USIOut( ... )
+#endif
+
+#if defined(CSA_LAN) || defined(MNJ_LAN) || defined(DFPN_CLIENT)||defined(DFPN)
+const char *str_WSAError( const char *str );
 #endif
 
 #if defined(CSASHOGI)
@@ -1324,10 +1319,6 @@ void out_csashogi( const char *format, ... );
 #  define OutCsaShogi( ... )
 #endif
 
-#define AttackBishop(bb,i)   BBOr( bb, AttackDiag1(i), AttackDiag2(i) )
-#define AttackRook(bb,i)     (bb) = AttackFile(i);                  \
-                             (bb).p[aslide[i].ir0] |= AttackRank(i)
-
 
 
 extern check_table_t b_chk_tbl[nsquare];
@@ -1335,6 +1326,10 @@ extern check_table_t w_chk_tbl[nsquare];
 
 #if defined(DBG_EASY)
 extern unsigned int easy_move;
+#endif
+
+#if defined(INANIWA_SHIFT)
+extern int inaniwa_flag;
 #endif
 
 #if defined(MINIMUM)
@@ -1376,12 +1371,12 @@ extern unsigned int easy_move;
 #  define MT_CAP_HORSE      ( p_value_ex[ 15 + horse ] )
 #  define MT_CAP_DRAGON     ( p_value_ex[ 15 + dragon ] )
 #  define MT_CAP_KING       ( DKing + DKing )
-#  define MT_PRO_PAWN       ( benefit2promo[ 7 + pawn ] )
-#  define MT_PRO_LANCE      ( benefit2promo[ 7 + lance ] )
-#  define MT_PRO_KNIGHT     ( benefit2promo[ 7 + knight ] )
-#  define MT_PRO_SILVER     ( benefit2promo[ 7 + silver ] )
-#  define MT_PRO_BISHOP     ( benefit2promo[ 7 + bishop ] )
-#  define MT_PRO_ROOK       ( benefit2promo[ 7 + rook ] )
+#  define MT_PRO_PAWN       ( p_value_pm[ 7 + pawn ] )
+#  define MT_PRO_LANCE      ( p_value_pm[ 7 + lance ] )
+#  define MT_PRO_KNIGHT     ( p_value_pm[ 7 + knight ] )
+#  define MT_PRO_SILVER     ( p_value_pm[ 7 + silver ] )
+#  define MT_PRO_BISHOP     ( p_value_pm[ 7 + bishop ] )
+#  define MT_PRO_ROOK       ( p_value_pm[ 7 + rook ] )
 
 void fill_param_zero( void );
 void ini_param( param_t *p );
@@ -1396,8 +1391,7 @@ int learn( tree_t * restrict ptree, int is_ini, int nsteps,
 int record_setpos( record_t *pr, const rpos_t *prpos );
 int record_getpos( record_t *pr, rpos_t *prpos );
 int record_rewind( record_t *pr );
-int book_create( tree_t * restrict ptree );
-int hash_learn_create( void );
+int CONV book_create( tree_t * restrict ptree );
 int out_param( void );
 double calc_penalty( void );
 

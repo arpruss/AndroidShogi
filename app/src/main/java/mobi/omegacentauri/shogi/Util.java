@@ -7,13 +7,17 @@ import org.mozilla.universalchardet.UniversalDetector;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.os.Build;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.util.regex.Pattern;
 
 /**
  * @author saito@google.com (Yaz Saito)
@@ -86,4 +90,39 @@ public class Util {
     });
     b.create().show();
   }
+
+  public static void deleteFilesFromDir(File externalFilesDir) {
+    try {
+      File[] fs = externalFilesDir.listFiles();
+      for (File f : fs) {
+        try {
+          if (f.isFile())
+            f.delete();
+        }
+        catch(Exception e) {
+        }
+      }
+    }
+    catch(Exception e) {
+    }
+  }
+
+  public static int numberOfCores() {
+    if (Build.VERSION.SDK_INT >= 17)
+      return Runtime.getRuntime().availableProcessors();
+    else {
+      try {
+        return new File("/sys/devices/system/cpu").listFiles(new FileFilter() {
+          @Override
+          public boolean accept(File file) {
+            return Pattern.matches("cpu[0-9]+", file.getName());
+          }
+        }).length;
+      }
+      catch(Exception e) {
+        return 1;
+      }
+    }
+  }
+
 }

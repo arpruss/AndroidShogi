@@ -6,6 +6,7 @@
 #include <string.h>
 #include "shogi.h"
 #include "shogi_jni.h"
+
 /* unacceptable when the program is thinking, or quit pondering */
 #define AbortDifficultCommand                                              \
 	  if ( game_status & flag_thinking )                               \
@@ -21,68 +22,109 @@
 
 #if defined(MINIMUM)
 #  define CmdBook(x,y) cmd_book(y);
-static int cmd_book( char **lasts );
+static int CONV cmd_book( char **lasts );
 #else
 #  define CmdBook(x,y) cmd_book(x,y);
-static int cmd_learn( tree_t * restrict ptree, char **lasts );
-static int cmd_book( tree_t * restrict ptree, char **lasts );
+static int CONV cmd_learn( tree_t * restrict ptree, char **lasts );
+static int CONV cmd_book( tree_t * restrict ptree, char **lasts );
 #endif
 
 #if ! defined(NO_STDOUT)
-static int cmd_stress( char **lasts );
-#endif
-
-#if defined(DEKUNOBOU)
-static int cmd_dek( char **lasts );
+static int CONV cmd_stress( char **lasts );
 #endif
 
 #if defined(CSA_LAN)
-static int proce_csalan( tree_t * restrict ptree );
-static int cmd_connect( tree_t * restrict ptree, char **lasts );
+static int CONV proce_csalan( tree_t * restrict ptree );
+static int CONV cmd_connect( tree_t * restrict ptree, char **lasts );
+static int CONV cmd_sendpv( char **lasts );
+#endif
+
+#if defined(MNJ_LAN)
+static int CONV proce_mnj( tree_t * restrict ptree );
+static int CONV cmd_mnjignore( tree_t *restrict ptree, char **lasts );
+static int CONV cmd_mnj( char **lasts );
+static int CONV cmd_mnjmove( tree_t * restrict ptree, char **lasts,
+			     int num_alter );
+#endif
+
+#if defined(USI)
+static int CONV proce_usi( tree_t * restrict ptree );
+static int CONV usi_posi( tree_t * restrict ptree, char **lasts );
+static int CONV usi_go( tree_t * restrict ptree, char **lasts );
+static int CONV usi_ignore( tree_t * restrict ptree, char **lasts );
 #endif
 
 #if defined(TLP)
-static int cmd_thread( char **lasts );
+static int CONV cmd_thread( char **lasts );
 #endif
 
 #if defined(MPV)
-static int cmd_mpv( char **lasts );
+static int CONV cmd_mpv( char **lasts );
 #endif
 
-static int proce_cui( tree_t * restrict ptree );
-static int cmd_usrmove( tree_t * restrict ptree, const char *str_move,
-			char **last );
-static int cmd_move_now( void );
-static int cmd_ponder( char **lasts );
-static int cmd_limit( char **lasts );
-static int cmd_quit( void );
-static int cmd_beep( char **lasts );
-static int cmd_peek( char **lasts );
-static int cmd_hash( char **lasts );
-static int cmd_ping( void );
-static int cmd_suspend( void );
-static int cmd_problem( tree_t * restrict ptree, char **lasts );
-static int cmd_display( tree_t * restrict ptree, char **lasts );
-static int cmd_move( tree_t * restrict ptree, char **lasts );
-static int cmd_new( tree_t * restrict ptree, char **lasts );
-static int cmd_read( tree_t * restrict ptree, char **lasts );
-static int cmd_resign( tree_t * restrict ptree, char **lasts );
-static int cmd_time( char **lasts );
-static int is_move( const char *str );
+#if defined(DFPN)
+static int CONV cmd_dfpn( tree_t * restrict ptree, char **lasts );
+#endif
+
+#if defined(DFPN_CLIENT)
+static int CONV cmd_dfpn_client( tree_t * restrict ptree, char **lasts );
+#endif
+
+static int CONV proce_cui( tree_t * restrict ptree );
+static int CONV cmd_usrmove( tree_t * restrict ptree, const char *str_move,
+			     char **last );
+static int CONV cmd_outmove( tree_t * restrict ptree );
+static int CONV cmd_move_now( void );
+static int CONV cmd_ponder( char **lasts );
+static int CONV cmd_limit( char **lasts );
+static int CONV cmd_quit( void );
+static int CONV cmd_beep( char **lasts );
+static int CONV cmd_peek( char **lasts );
+static int CONV cmd_stdout( char **lasts );
+static int CONV cmd_newlog( char **lasts );
+static int CONV cmd_hash( char **lasts );
+static int CONV cmd_ping( void );
+static int CONV cmd_suspend( void );
+static int CONV cmd_problem( tree_t * restrict ptree, char **lasts );
+static int CONV cmd_display( tree_t * restrict ptree, char **lasts );
+static int CONV cmd_move( tree_t * restrict ptree, char **lasts );
+static int CONV cmd_new( tree_t * restrict ptree, char **lasts );
+static int CONV cmd_read( tree_t * restrict ptree, char **lasts );
+static int CONV cmd_resign( tree_t * restrict ptree, char **lasts );
+static int CONV cmd_time( char **lasts );
 
 
-int
+int CONV is_move( const char *str )
+{
+  if ( isdigit( (int)str[0] ) && isdigit( (int)str[1] )
+       && isdigit( (int)str[2] ) && isdigit( (int)str[3] )
+       && isupper( (int)str[4] ) && isupper( (int)str[5] )
+       && str[6] == '\0' ) { return 1; }
+
+  return 0;
+}
+
+
+int CONV
 procedure( tree_t * restrict ptree )
 {
 #if defined(CSA_LAN)
   if ( sckt_csa != SCKT_NULL ) { return proce_csalan( ptree ); }
 #endif
+
+#if defined(MNJ_LAN)
+  if ( sckt_mnj != SCKT_NULL ) { return proce_mnj( ptree ); }
+#endif
+
+#if defined(USI)
+  if ( usi_mode != usi_off ) { return proce_usi( ptree ); }
+#endif
+
   return proce_cui( ptree );
 }
 
 
-static int
-proce_cui( tree_t * restrict ptree )
+static int CONV proce_cui( tree_t * restrict ptree )
 {
   const char *token;
   char *last;
@@ -99,7 +141,9 @@ proce_cui( tree_t * restrict ptree )
   if ( ! strcmp( token, "limit" ) )     { return cmd_limit( &last ); }
   if ( ! strcmp( token, "move" ) )      { return cmd_move( ptree, &last ); }
   if ( ! strcmp( token, "new" ) )       { return cmd_new( ptree, &last ); }
+  if ( ! strcmp( token, "outmove" ) )   { return cmd_outmove( ptree ); }
   if ( ! strcmp( token, "peek" ) )      { return cmd_peek( &last ); }
+  if ( ! strcmp( token, "stdout" ) )    { return cmd_stdout( &last ); }
   if ( ! strcmp( token, "ping" ) )      { return cmd_ping(); }
   if ( ! strcmp( token, "ponder" ) )    { return cmd_ponder( &last ); }
   if ( ! strcmp( token, "problem" ) )   { return cmd_problem( ptree, &last ); }
@@ -108,14 +152,23 @@ proce_cui( tree_t * restrict ptree )
   if ( ! strcmp( token, "resign" ) )    { return cmd_resign( ptree, &last ); }
   if ( ! strcmp( token, "suspend" ) )   { return cmd_suspend(); }
   if ( ! strcmp( token, "time" ) )      { return cmd_time( &last ); }
+  if ( ! strcmp( token, "newlog" ) )    { return cmd_newlog( &last ); }
 #if defined(CSA_LAN)
   if ( ! strcmp( token, "connect" ) )   { return cmd_connect( ptree, &last ); }
+  if ( ! strcmp( token, "sendpv" ) )    { return cmd_sendpv( &last ); }
 #endif
-#if defined(DEKUNOBOU)
-  if ( ! strcmp( token, "dekunobou" ) ) { return cmd_dek( &last ); }
+#if defined(MNJ_LAN)
+  if ( ! strcmp( token, "mnj" ) )       { return cmd_mnj( &last ); }
 #endif
 #if defined(MPV)
   if ( ! strcmp( token, "mpv" ) )       { return cmd_mpv( &last ); }
+#endif
+#if defined(DFPN)
+  if ( ! strcmp( token, "dfpn" ) )      { return cmd_dfpn( ptree, &last ); }
+#endif
+#if defined(DFPN_CLIENT)
+  if ( ! strcmp( token, "dfpn_client")) { return cmd_dfpn_client( ptree,
+								  &last ); }
 #endif
 #if defined(TLP)
   if ( ! strcmp( token, "tlp" ) )       { return cmd_thread( &last ); }
@@ -133,14 +186,13 @@ proce_cui( tree_t * restrict ptree )
 
 
 #if defined(CSA_LAN)
-static int
-proce_csalan( tree_t * restrict ptree )
+static int CONV proce_csalan( tree_t * restrict ptree )
 {
   const char *token;
   char *last;
 
   token = strtok_r( str_cmdline, str_delimiters, &last );
-
+    
   if ( token == NULL ) { return 1; }
   if ( *token == ach_turn[client_turn] && is_move( token+1 ) )
     {
@@ -153,7 +205,7 @@ proce_csalan( tree_t * restrict ptree )
 	  str_error = str_bad_cmdline;
 	  return -1;
 	}
-
+      
       l = strtol( token+1, &ptr, 0 );
       if ( token+1 == ptr || l == LONG_MAX || l < 1 )
 	{
@@ -181,34 +233,384 @@ proce_csalan( tree_t * restrict ptree )
 	  return 2;
 	}
 
-      ShutdownClient;
+      if ( sckt_out( sckt_csa, "LOGOUT\n" ) < 0 ) { return -1; }
+      if ( sckt_recv_all( sckt_csa )        < 0 ) { return -1; }
 
+      ShutdownAll();
+      
       if ( client_ngame == client_max_game ) { return cmd_quit(); }
 
-      sckt_csa = sckt_connect( client_str_addr, (int)client_port );
-      if ( sckt_csa == SCKT_NULL ) { return -1; }
-      str_buffer_cmdline[0] = '\0';
-      return client_next_game( ptree );
+      return client_next_game( ptree, client_str_addr, (int)client_port );
     }
-
+  
   return 1;
 }
 #endif
 
-static int
-is_move( const char *str )
-{
-  if ( isdigit( (int)str[0] ) && isdigit( (int)str[1] )
-       && isdigit( (int)str[2] ) && isdigit( (int)str[3] )
-       && isupper( (int)str[4] ) && isupper( (int)str[5] )
-       && str[6] == '\0' ) { return 1; }
 
-  return 0;
+#if defined(MNJ_LAN)
+static int CONV proce_mnj( tree_t * restrict ptree )
+{
+  const char *token;
+  char *last;
+  int iret;
+
+  token = strtok_r( str_cmdline, str_delimiters, &last );
+  if ( token == NULL ) { return 1; }
+
+  if ( ! strcmp( token, "new" ) )
+    {
+      iret = cmd_suspend();
+      if ( iret != 1 ) { return iret; }
+
+      mnj_posi_id = 0;
+      iret = cmd_new( ptree, &last );
+      if ( iret < 0 ) { return iret; }
+
+      moves_ignore[0] = MOVE_NA;
+      return analyze( ptree );
+    }
+  if ( ! strcmp( token, "ignore" ) ) { return cmd_mnjignore( ptree, &last ); }
+  if ( ! strcmp( token, "idle" ) )   { return cmd_suspend(); }
+  if ( ! strcmp( token, "alter" ) )  { return cmd_mnjmove( ptree, &last, 1 ); }
+  if ( ! strcmp( token, "retract" ) )
+    {
+      long l;
+      char *ptr;
+      const char *str = strtok_r( NULL, str_delimiters, &last );
+      if ( str == NULL )
+	{
+	  str_error = str_bad_cmdline;
+	  return -1;
+	}
+      l = strtol( str, &ptr, 0 );
+      if ( ptr == str || (long)NUM_UNMAKE < l )
+	{
+	  str_error = str_bad_cmdline;
+	  return -1;
+	}
+      
+      return cmd_mnjmove( ptree, &last, (int)l );
+    }
+  if ( ! strcmp( token, "move" ) )  { return cmd_mnjmove( ptree, &last, 0 ); }
+
+  str_error = str_bad_cmdline;
+  return -2;
 }
 
 
-static int
-cmd_move_now( void )
+static int CONV
+cmd_mnjignore( tree_t *restrict ptree, char **lasts )
+{
+  const char *token;
+  char *ptr;
+  int i;
+  unsigned int move;
+  long lid;
+
+
+  token = strtok_r( NULL, str_delimiters, lasts );
+  if ( token == NULL )
+    {
+      str_error = str_bad_cmdline;
+      return -1;
+    }
+  lid = strtol( token, &ptr, 0 );
+  if ( ptr == token || lid == LONG_MAX || lid < 1 )
+    {
+      str_error = str_bad_cmdline;
+      return -1;
+    }
+
+  AbortDifficultCommand;
+
+  for ( i = 0; ; i += 1 )
+    {
+      token = strtok_r( NULL, str_delimiters, lasts );
+      if ( token == NULL ) { break; }
+
+      if ( interpret_CSA_move( ptree, &move, token ) < 0 ) { return -1; }
+
+      moves_ignore[i] = move;
+    }
+  if ( i == 0 )
+    {
+      str_error = str_bad_cmdline;
+      return -1;
+    }
+  mnj_posi_id     = (int)lid;
+  moves_ignore[i] = MOVE_NA;
+
+  return analyze( ptree );
+}
+
+
+static int CONV
+cmd_mnjmove( tree_t * restrict ptree, char **lasts, int num_alter )
+{
+  const char *str1 = strtok_r( NULL, str_delimiters, lasts );
+  const char *str2 = strtok_r( NULL, str_delimiters, lasts );
+  char *ptr;
+  long lid;
+  unsigned int move;
+  int iret;
+
+  if ( sckt_mnj == SCKT_NULL ||  str1 == NULL || str2 == NULL )
+    {
+      str_error = str_bad_cmdline;
+      return -1;
+    }
+
+  lid = strtol( str2, &ptr, 0 );
+  if ( ptr == str2 || lid == LONG_MAX || lid < 1 )
+    {
+      str_error = str_bad_cmdline;
+      return -1;
+    }
+
+  AbortDifficultCommand;
+ 
+  while ( num_alter )
+    {
+      iret = unmake_move_root( ptree );
+      if ( iret < 0 ) { return iret; }
+
+      num_alter -= 1;
+    }
+
+  iret = interpret_CSA_move( ptree, &move, str1 );
+  if ( iret < 0 ) { return iret; }
+    
+  iret = get_elapsed( &time_turn_start );
+  if ( iret < 0 ) { return iret; }
+
+  mnj_posi_id = (int)lid;
+
+  iret = make_move_root( ptree, move, ( flag_time | flag_rep
+					| flag_detect_hang ) );
+  if ( iret < 0 ) { return iret; }
+  
+#  if ! defined(NO_STDOUT)
+  iret = out_board( ptree, stdout, 0, 0 );
+  if ( iret < 0 ) { return iret; }
+#  endif
+
+  moves_ignore[0] = MOVE_NA;
+  return analyze( ptree );
+}
+#endif
+
+
+#if defined(USI)
+static int CONV proce_usi( tree_t * restrict ptree )
+{
+  const char *token;
+  char *lasts;
+  int iret;
+
+  token = strtok_r( str_cmdline, str_delimiters, &lasts );
+  if ( token == NULL ) { return 1; }
+
+  if ( ! strcmp( token, "usi" ) )
+    {
+      USIOut( "id name %s\n", str_myname );
+      USIOut( "id author Kunihito Hoki\n" );
+      USIOut( "usiok\n" );
+      return 1;
+    }
+
+  if ( ! strcmp( token, "isready" ) )
+    {
+      USIOut( "readyok\n", str_myname );
+      return 1;
+    }
+
+  if ( ! strcmp( token, "echo" ) )
+    {
+      USIOut( "%s\n", lasts );
+      return 1;
+    }
+
+  if ( ! strcmp( token, "ignore_moves" ) )
+    {
+      return usi_ignore( ptree, &lasts );
+    }
+
+  if ( ! strcmp( token, "genmove_probability" ) )
+    {
+      if ( get_elapsed( &time_start ) < 0 ) { return -1; }
+      return usi_root_list( ptree );
+    }
+
+  if ( ! strcmp( token, "go" ) )
+    {
+      iret = usi_go( ptree, &lasts );
+      moves_ignore[0] = MOVE_NA;
+      return iret;
+    }
+
+  if ( ! strcmp( token, "stop" ) )     { return cmd_move_now(); }
+  if ( ! strcmp( token, "position" ) ) { return usi_posi( ptree, &lasts ); }
+  if ( ! strcmp( token, "quit" ) )     { return cmd_quit(); }
+  
+  str_error = str_bad_cmdline;
+  return -1;
+}
+
+
+static int CONV
+usi_ignore( tree_t * restrict ptree, char **lasts )
+{
+  const char *token;
+  char str_buf[7];
+  int i;
+  unsigned int move;
+
+  AbortDifficultCommand;
+
+  for ( i = 0; ; i += 1 )
+    {
+      token = strtok_r( NULL, str_delimiters, lasts );
+      if ( token == NULL ) { break; }
+      
+      if ( usi2csa( ptree, token, str_buf ) < 0 )            { return -1; }
+      if ( interpret_CSA_move( ptree, &move, str_buf ) < 0 ) { return -1; }
+
+      moves_ignore[i] = move;
+    }
+
+  moves_ignore[i] = MOVE_NA;
+
+  return 1;
+}
+
+
+static int CONV
+usi_go( tree_t * restrict ptree, char **lasts )
+{
+  const char *token;
+  char *ptr;
+  int iret;
+  long l;
+
+  AbortDifficultCommand;
+
+  if ( game_status & mask_game_end )
+    {
+      str_error = str_game_ended;
+      return -1;
+    }
+  
+  token = strtok_r( NULL, str_delimiters, lasts );
+
+  if ( ! strcmp( token, "book" ) )
+    {
+      AbortDifficultCommand;
+      if ( usi_book( ptree ) < 0 ) { return -1; }
+
+      return 1;
+    }
+
+
+  if ( ! strcmp( token, "infinite" ) )
+    {
+      usi_byoyomi     = UINT_MAX;
+      depth_limit     = PLY_MAX;
+      node_limit      = UINT64_MAX;
+      sec_limit_depth = UINT_MAX;
+    }
+  else if ( ! strcmp( token, "byoyomi" ) )
+    {
+      token = strtok_r( NULL, str_delimiters, lasts );
+      if ( token == NULL )
+	{
+	  str_error = str_bad_cmdline;
+	  return -1;
+	}
+
+      l = strtol( token, &ptr, 0 );
+      if ( ptr == token || l > UINT_MAX || l < 1 )
+	{
+	  str_error = str_bad_cmdline;
+	  return -1;
+	}
+      
+      usi_byoyomi     = (unsigned int)l;
+      depth_limit     = PLY_MAX;
+      node_limit      = UINT64_MAX;
+      sec_limit_depth = UINT_MAX;
+    }
+  else {
+    str_error = str_bad_cmdline;
+    return -1;
+  }
+
+      
+  if ( get_elapsed( &time_turn_start ) < 0 ) { return -1; }
+
+  iret = com_turn_start( ptree, 0 );
+  if ( iret < 0 ) {
+    if ( str_error == str_no_legal_move ) { USIOut( "bestmove resign\n" ); }
+    else                                  { return -1; }
+  }
+  
+  return 1;
+}
+
+
+static int CONV
+usi_posi( tree_t * restrict ptree, char **lasts )
+{
+  const char *token;
+  char str_buf[7];
+  unsigned int move;
+    
+  AbortDifficultCommand;
+    
+  moves_ignore[0] = MOVE_NA;
+
+  token = strtok_r( NULL, str_delimiters, lasts );
+  if ( strcmp( token, "startpos" ) )
+    {
+      str_error = str_bad_cmdline;
+      return -1;
+    }
+    
+  if ( ini_game( ptree, &min_posi_no_handicap,
+		 flag_history, NULL, NULL ) < 0 ) { return -1; }
+    
+  token = strtok_r( NULL, str_delimiters, lasts );
+  if ( token == NULL ) { return 1; }
+
+  if ( strcmp( token, "moves" ) )
+    {
+      str_error = str_bad_cmdline;
+      return -1;
+    }
+    
+  for ( ;; )  {
+
+    token = strtok_r( NULL, str_delimiters, lasts );
+    if ( token == NULL ) { break; }
+      
+    if ( usi2csa( ptree, token, str_buf ) < 0 )            { return -1; }
+    if ( interpret_CSA_move( ptree, &move, str_buf ) < 0 ) { return -1; }
+    if ( make_move_root( ptree, move, ( flag_history | flag_time
+					| flag_rep
+					| flag_detect_hang ) ) < 0 )
+      {
+	return -1;
+      }
+  }
+    
+  if ( get_elapsed( &time_turn_start ) < 0 ) { return -1; }
+  return 1;
+}
+
+#endif
+
+
+static int CONV cmd_move_now( void )
 {
   if ( game_status & flag_thinking ) { game_status |= flag_move_now; }
 
@@ -216,7 +618,7 @@ cmd_move_now( void )
 }
 
 
-static int
+static int CONV
 cmd_usrmove( tree_t * restrict ptree, const char *str_move, char **lasts )
 {
   const char *str;
@@ -230,7 +632,7 @@ cmd_usrmove( tree_t * restrict ptree, const char *str_move, char **lasts )
       str_error = str_game_ended;
       return -2;
     }
-
+  
   if ( game_status & flag_thinking )
     {
       str_error = str_busy_think;
@@ -271,10 +673,6 @@ cmd_usrmove( tree_t * restrict ptree, const char *str_move, char **lasts )
 	  if ( sckt_csa != SCKT_NULL ) { AbortDifficultCommand; }
 #endif
 
-#if defined(DEKUNOBOU)
-	  if ( dek_ngame ) { AbortDifficultCommand; }
-#endif
-
 #if defined(CSASHOGI)
 	  AbortDifficultCommand;
 #else
@@ -291,24 +689,17 @@ cmd_usrmove( tree_t * restrict ptree, const char *str_move, char **lasts )
 	  return 2;
 	}
       else {
-	iret = renovate_time( Flip(root_turn) );
+	iret = update_time( Flip(root_turn) );
 	if ( iret < 0 ) { return iret; }
 	if ( lelapsed )
 	  {
 	    adjust_time( (unsigned int)lelapsed, Flip(root_turn) );
 	  }
 
-	history_book_learn[ record_game.moves ].move_played = ponder_move;
-	history_book_learn[ record_game.moves ].hand_played
-	  = ptree->rep_hand_list[ root_nrep-1 ];
-	history_book_learn[ record_game.moves ].key_played
-	  = (unsigned int)ptree->rep_board_list[ root_nrep-1 ];
-
 	out_CSA( ptree, &record_game, ponder_move );
 
 	game_status      &= ~flag_pondering;
 	game_status      |= flag_thinking;
-	n_nobook_move    += 1;
 	set_search_limit_time( root_turn );
 
 	OutCsaShogi( "info ponder end\n" );
@@ -324,7 +715,6 @@ cmd_usrmove( tree_t * restrict ptree, const char *str_move, char **lasts )
   if ( iret < 0 ) { return iret; }
   move_evasion_pchk = 0;
   iret = make_move_root( ptree, move, ( flag_rep | flag_history | flag_time
-					| flag_rejections
 					| flag_detect_hang ) );
   if ( iret < 0 )
       {
@@ -338,18 +728,6 @@ cmd_usrmove( tree_t * restrict ptree, const char *str_move, char **lasts )
 		iret = sckt_out( sckt_csa, "%c%s\n",
 				 ach_turn[Flip(root_turn)], str );
 		if ( iret < 0 ) { return iret; }
-	      }
-	    return cmd_suspend();
-	  }
-#endif
-
-#if defined(DEKUNOBOU)
-	if ( dek_ngame )
-	  {
-	    if ( move_evasion_pchk )
-	      {
-		dek_win += 1;
-		OutDek( "%%TORYO\n" );
 	      }
 	    return cmd_suspend();
 	  }
@@ -383,10 +761,6 @@ cmd_usrmove( tree_t * restrict ptree, const char *str_move, char **lasts )
     }
 #endif
 
-#if defined(DEKUNOBOU)
-  if ( dek_ngame && ( game_status & flag_drawn ) ) { OutDek( "%%TORYO\n" ); }
-#endif
-
   if ( ! ( game_status & mask_game_end ) )
     {
       iret = com_turn_start( ptree, 0 );
@@ -397,8 +771,7 @@ cmd_usrmove( tree_t * restrict ptree, const char *str_move, char **lasts )
 }
 
 
-static int
-cmd_beep( char **lasts )
+static int CONV cmd_beep( char **lasts )
 {
   const char *str = strtok_r( NULL, str_delimiters, lasts );
   if ( str == NULL )
@@ -418,8 +791,7 @@ cmd_beep( char **lasts )
 }
 
 
-static int
-cmd_peek( char **lasts )
+static int CONV cmd_peek( char **lasts )
 {
   const char *str = strtok_r( NULL, str_delimiters, lasts );
 
@@ -440,8 +812,7 @@ cmd_peek( char **lasts )
 }
 
 
-static int
-cmd_ponder( char **lasts )
+static int CONV cmd_stdout( char **lasts )
 {
   const char *str = strtok_r( NULL, str_delimiters, lasts );
 
@@ -451,7 +822,49 @@ cmd_ponder( char **lasts )
       return -2;
     }
 
-  if      ( ! strcmp( str, str_on )  ) {  game_status &= ~flag_noponder; }
+  if      ( ! strcmp( str, str_on )  ) {  game_status &= ~flag_nostdout; }
+  else if ( ! strcmp( str, str_off ) ) {  game_status |=  flag_nostdout; }
+  else {
+    str_error = str_bad_cmdline;
+    return -2;
+  }
+
+  return 1;
+}
+
+
+static int CONV cmd_newlog( char **lasts )
+{
+  const char *str = strtok_r( NULL, str_delimiters, lasts );
+
+  if ( str == NULL )
+    {
+      str_error = str_bad_cmdline;
+      return -2;
+    }
+
+  if      ( ! strcmp( str, str_on )  ) { game_status &= ~flag_nonewlog; }
+  else if ( ! strcmp( str, str_off ) ) { game_status |=  flag_nonewlog; }
+  else {
+    str_error = str_bad_cmdline;
+    return -2;
+  }
+
+  return 1;
+}
+
+
+static int CONV cmd_ponder( char **lasts )
+{
+  const char *str = strtok_r( NULL, str_delimiters, lasts );
+
+  if ( str == NULL )
+    {
+      str_error = str_bad_cmdline;
+      return -2;
+    }
+
+  if      ( ! strcmp( str, str_on )  ) { game_status &= ~flag_noponder; }
   else if ( ! strcmp( str, str_off ) )
     {
       if ( game_status & ( flag_pondering | flag_puzzling ) )
@@ -470,8 +883,7 @@ cmd_ponder( char **lasts )
 
 
 #if ! defined(NO_STDOUT)
-static int
-cmd_stress( char **lasts )
+static int CONV cmd_stress( char **lasts )
 {
   const char *str = strtok_r( NULL, str_delimiters, lasts );
 
@@ -493,7 +905,7 @@ cmd_stress( char **lasts )
 #endif
 
 
-static int
+static int CONV
 #if defined(MINIMUM)
 cmd_book( char **lasts )
 #else
@@ -536,8 +948,7 @@ cmd_book( tree_t * restrict ptree, char **lasts )
 }
 
 
-static int
-cmd_display( tree_t * restrict ptree, char **lasts )
+static int CONV cmd_display( tree_t * restrict ptree, char **lasts )
 {
   const char *str = strtok_r( NULL, str_delimiters, lasts );
   char *ptr;
@@ -559,7 +970,7 @@ cmd_display( tree_t * restrict ptree, char **lasts )
 	return -2;
       }
     }
-
+  
   Out( "\n" );
   iret = out_board( ptree, stdout, 0, 0 );
   if ( iret < 0 ) { return iret; }
@@ -573,8 +984,7 @@ cmd_display( tree_t * restrict ptree, char **lasts )
 }
 
 
-static int
-cmd_ping( void )
+static int CONV cmd_ping( void )
 {
   OutCsaShogi( "pong\n" );
   Out( "pong\n" );
@@ -582,8 +992,7 @@ cmd_ping( void )
 }
 
 
-static int
-cmd_hash( char **lasts )
+static int CONV cmd_hash( char **lasts )
 {
   const char *str = strtok_r( NULL, str_delimiters, lasts );
   char *ptr;
@@ -595,46 +1004,22 @@ cmd_hash( char **lasts )
       return -2;
     }
 
-  if ( ! strcmp( str, "learn" ) )
-    {
-      str = strtok_r( NULL, str_delimiters, lasts );
-      if ( str != NULL && ! strcmp( str, str_on ) )
-	{
-	  return hash_learn_on();
-	}
-      else if ( str != NULL && ! strcmp( str, str_off ) )
-	{
-	  return hash_learn_off();
-	}
-#if ! defined(MINIMUM)
-      else if ( str != NULL && ! strcmp( str, "create" ) )
-	{
-	  return hash_learn_create();
-	}
-#endif
-      else {
-	str_error = str_bad_cmdline;
-	return -2;
-      }
-    }
-
   l = strtol( str, &ptr, 0 );
   if ( ptr == str || l == LONG_MAX || l < 1 || l > 31 )
     {
       str_error = str_bad_cmdline;
       return -2;
     }
-
+  
   AbortDifficultCommand;
-
+  
   log2_ntrans_table = (int)l;
   memory_free( (void *)ptrans_table_orig );
   return ini_trans_table();
 }
 
 
-static int
-cmd_limit( char **lasts )
+static int CONV cmd_limit( char **lasts )
 {
   const char *str = strtok_r( NULL, str_delimiters, lasts );
   char *ptr;
@@ -752,7 +1137,7 @@ cmd_limit( char **lasts )
 }
 
 
-static int
+static int CONV
 cmd_read( tree_t * restrict ptree, char **lasts )
 {
   const char *str1 = strtok_r( NULL, str_delimiters, lasts );
@@ -766,7 +1151,7 @@ cmd_read( tree_t * restrict ptree, char **lasts )
   long l;
   int iret, flag, c;
 
-  flag    = flag_history | flag_rep | flag_detect_hang | flag_rejections;
+  flag    = flag_history | flag_rep | flag_detect_hang;
   moves   = UINT_MAX;
   str_tmp = NULL;
 
@@ -807,7 +1192,7 @@ cmd_read( tree_t * restrict ptree, char **lasts )
       strncpy( str_file, "game.csa", SIZE_FILENAME-1 );
 #else
       snprintf( str_file, SIZE_FILENAME, "%s/game%03d.csa",
-		str_dir_logs, irecord_game );
+		str_dir_logs, record_num );
 #endif
       pf_dest = file_open( str_tmp, "w" );
       if ( pf_dest == NULL ) { return -2; }
@@ -851,8 +1236,7 @@ cmd_read( tree_t * restrict ptree, char **lasts )
 }
 
 
-static int
-cmd_resign( tree_t * restrict ptree, char **lasts )
+static int CONV cmd_resign( tree_t * restrict ptree, char **lasts )
 {
   const char *str = strtok_r( NULL, str_delimiters, lasts );
   char *ptr;
@@ -864,16 +1248,8 @@ cmd_resign( tree_t * restrict ptree, char **lasts )
 
       if ( game_status & mask_game_end ) { return 1; }
 
-#if defined(DEKUNOBOU)
-      if ( dek_ngame && record_game.moves < 2 )
-	{
-	  str_error = "ignore resignation";
-	  return -2;
-	}
-#endif
-
       game_status |= flag_resigned;
-      renovate_time( root_turn );
+      update_time( root_turn );
       out_CSA( ptree, &record_game, MOVE_RESIGN );
     }
   else {
@@ -890,56 +1266,68 @@ cmd_resign( tree_t * restrict ptree, char **lasts )
 }
 
 
-static int
-cmd_move( tree_t * restrict ptree, char **lasts )
+static int CONV cmd_move( tree_t * restrict ptree, char **lasts )
 {
   const char *str = strtok_r( NULL, str_delimiters, lasts );
+  char *ptr;
+  long l;
   unsigned int move;
-  int iret;
+  int iret, i;
 
   if ( game_status & mask_game_end )
     {
       str_error = str_game_ended;
       return -2;
     }
-
+  
   AbortDifficultCommand;
 
   if ( str == NULL )
     {
       iret = get_elapsed( &time_turn_start );
       if ( iret < 0 ) { return iret; }
-
-      iret = com_turn_start( ptree, 0 );
-      if ( iret < 0 ) { return iret; }
+      
+      return com_turn_start( ptree, 0 );
     }
-  else if ( ! strcmp( str, "restraint" ) )
+
+  l = strtol( str, &ptr, 0 );
+  if ( str != ptr && l != LONG_MAX && l >= 1 && *ptr == '\0' )
     {
-      iret = get_elapsed( &time_turn_start );
-      if ( iret < 0 ) { return iret; }
+      for ( i = 0; i < l; i += 1 )
+	{
+	  if ( game_status & ( flag_move_now | mask_game_end ) ) { break; }
 
-      iret = com_turn_start( ptree, flag_refer_rest );
-      if ( iret < 0 ) { return iret; }
+	  iret = get_elapsed( &time_turn_start );
+	  if ( iret < 0 ) { return iret; }
+	
+	  iret = com_turn_start( ptree, 0 );
+	  if ( iret < 0 ) { return iret; }
+	}
+
+      return 1;
     }
-  else {
+
+  do {
     iret = interpret_CSA_move( ptree, &move, str );
     if ( iret < 0 ) { return iret; }
-
+    
     iret = get_elapsed( &time_turn_start );
     if ( iret < 0 ) { return iret; }
-
-    iret = make_move_root( ptree, move, ( flag_history | flag_time | flag_rep
-					  | flag_detect_hang
-					  | flag_rejections ) );
+    
+    iret = make_move_root( ptree, move,
+			   ( flag_history | flag_time | flag_rep
+			     | flag_detect_hang ) );
     if ( iret < 0 ) { return iret; }
-  }
+    
+    str = strtok_r( NULL, str_delimiters, lasts );
 
+  } while ( str != NULL );
+  
   return 1;
 }
 
 
-static int
-cmd_new( tree_t * restrict ptree, char **lasts )
+static int CONV cmd_new( tree_t * restrict ptree, char **lasts )
 {
   const char *str1 = strtok_r( NULL, str_delimiters, lasts );
   const char *str2 = strtok_r( NULL, str_delimiters, lasts );
@@ -978,14 +1366,77 @@ cmd_new( tree_t * restrict ptree, char **lasts )
 }
 
 
-static int
-cmd_problem( tree_t * restrict ptree, char **lasts )
+static int CONV cmd_outmove( tree_t * restrict ptree )
+{
+  const char *str_move;
+  char buffer[256];
+  unsigned int move_list[ MAX_LEGAL_MOVES ];
+  int i, c, n;
+
+  AbortDifficultCommand;
+
+  if ( game_status & mask_game_end )
+    {
+      Out( "NO LEGAL MOVE\n" );
+      DFPNOut( "NO LEGAL MOVE\n" );
+      return 1;
+    }
+
+  n = gen_legal_moves( ptree, move_list, 0 );
+
+  buffer[0]='\0';
+  for ( c = i = 0; i < n; i += 1 )
+    {
+      str_move = str_CSA_move(move_list[i]);
+
+      if ( i && ( i % 10 ) == 0 )
+        {
+          Out( "%s\n", buffer );
+          DFPNOut( "%s ", buffer );
+          memcpy( buffer, str_move, 6 );
+          c = 6;
+        }
+      else if ( i )
+        {
+          buffer[c] = ' ';
+          memcpy( buffer + c + 1, str_move, 6 );
+          c += 7;
+        }
+      else {
+        memcpy( buffer + c, str_move, 6 );
+        c += 6;
+      }
+      buffer[c] = '\0';
+    }
+  Out( "%s\n", buffer );
+  DFPNOut( "%s\n", buffer );
+
+  return 1;
+}
+
+
+static int CONV cmd_problem( tree_t * restrict ptree, char **lasts )
 {
   const char *str = strtok_r( NULL, str_delimiters, lasts );
   char *ptr;
   long l;
   unsigned int nposition;
   int iret;
+#if defined(DFPN)
+  int is_mate;
+#endif
+
+  AbortDifficultCommand;
+
+
+#if defined(DFPN)
+  is_mate = 0;
+  if ( str != NULL && ! strcmp( str, "mate" ) )
+    {
+      is_mate = 1;
+      str     = strtok_r( NULL, str_delimiters, lasts );
+    }
+#endif
 
   if ( str != NULL )
     {
@@ -999,12 +1450,17 @@ cmd_problem( tree_t * restrict ptree, char **lasts )
     }
   else { nposition = UINT_MAX; }
 
-  AbortDifficultCommand;
-
+  
   iret = record_open( &record_problems, "problem.csa", mode_read, NULL, NULL );
   if ( iret < 0 ) { return iret; }
 
+#if defined(DFPN)
+  iret = is_mate ? solve_mate_problems( ptree, nposition )
+                 : solve_problems( ptree, nposition );
+#else
   iret = solve_problems( ptree, nposition );
+#endif
+
   if ( iret < 0 )
     {
       record_close( &record_problems );
@@ -1014,38 +1470,32 @@ cmd_problem( tree_t * restrict ptree, char **lasts )
   iret = record_close( &record_problems );
   if ( iret < 0 ) { return iret; }
 
-  iret = ini_game( ptree, &min_posi_no_handicap, flag_history, NULL, NULL );
-  if ( iret < 0 ) { return iret; }
-
   return get_elapsed( &time_turn_start );
 }
 
 
-static int
-cmd_quit( void )
+static int CONV cmd_quit( void )
 {
-  LOG_DEBUG("QUIT3");
+  LOG_DEBUG("cmd_quit");
   game_status |= flag_quit;
   return 1;
 }
 
 
-static int
-cmd_suspend( void )
+static int CONV cmd_suspend( void )
 {
   if ( game_status & ( flag_pondering | flag_puzzling ) )
     {
       game_status |= flag_quit_ponder;
       return 2;
     }
-
+  
   game_status |= flag_suspend;
   return 1;
 }
 
 
-static int
-cmd_time( char **lasts )
+static int CONV cmd_time( char **lasts )
 {
   const char *str = strtok_r( NULL, str_delimiters, lasts );
   char *ptr;
@@ -1076,7 +1526,7 @@ cmd_time( char **lasts )
   else if ( ! strcmp( str, "remain" ) )
     {
       long l1, l2;
-
+      
       str = strtok_r( NULL, str_delimiters, lasts );
       if ( str == NULL )
 	{
@@ -1119,8 +1569,7 @@ cmd_time( char **lasts )
 
 #if !defined(MINIMUM)
 /* learn (ini|no-ini) steps games iterations tlp1 tlp2 */
-static int
-cmd_learn( tree_t * restrict ptree, char **lasts )
+static int CONV cmd_learn( tree_t * restrict ptree, char **lasts )
 {
   const char *str1 = strtok_r( NULL, str_delimiters, lasts );
   const char *str2 = strtok_r( NULL, str_delimiters, lasts );
@@ -1233,8 +1682,7 @@ cmd_learn( tree_t * restrict ptree, char **lasts )
 
 
 #if defined(MPV)
-static int
-cmd_mpv( char **lasts )
+static int CONV cmd_mpv( char **lasts )
 {
   const char *str = strtok_r( NULL, str_delimiters, lasts );
   char *ptr;
@@ -1294,9 +1742,92 @@ cmd_mpv( char **lasts )
 #endif
 
 
+#if defined(DFPN)
+static int CONV cmd_dfpn( tree_t * restrict ptree, char **lasts )
+{
+  const char *str = strtok_r( NULL, str_delimiters, lasts );
+
+  if ( str == NULL )
+    {
+      str_error = str_bad_cmdline;
+      return -2;
+    }
+  else if ( ! strcmp( str, "hash" ) )
+    {
+      char *ptr;
+      long l;
+
+      str = strtok_r( NULL, str_delimiters, lasts );
+      if ( str == NULL )
+	{
+	  str_error = str_bad_cmdline;
+	  return -2;
+	}
+      l = strtol( str, &ptr, 0 );
+      if ( ptr == str || l == LONG_MAX || l < 1 )
+	{
+	  str_error = str_bad_cmdline;
+	  return -2;
+	}
+
+      AbortDifficultCommand;
+
+      dfpn_hash_log2 = (unsigned int)l;
+      return dfpn_ini_hash();
+    }
+  else if ( ! strcmp( str, "go" ) )
+    {
+      AbortDifficultCommand;
+
+      return dfpn( ptree, root_turn, 1 );
+    }
+  else if ( ! strcmp( str, "connect" ) )
+    {
+      char str_addr[256];
+      char str_id[256];
+      char *ptr;
+      long l;
+      int port;
+
+      str = strtok_r( NULL, str_delimiters, lasts );
+      if ( ! str || ! strcmp( str, "." ) ) { str = "127.0.0.1"; }
+      strncpy( str_addr, str, 255 );
+      str_addr[255] = '\0';
+
+      str = strtok_r( NULL, str_delimiters, lasts );
+      if ( ! str || ! strcmp( str, "." ) ) { str = "4083"; }
+      l = strtol( str, &ptr, 0 );
+      if ( ptr == str || l == LONG_MAX || l < 0 || l > USHRT_MAX )
+	{
+	  str_error = str_bad_cmdline;
+	  return -2;
+	}
+      port = (int)l;
+
+      str = strtok_r( NULL, str_delimiters, lasts );
+      if ( ! str || ! strcmp( str, "." ) ) { str = "bonanza1"; }
+      strncpy( str_id, str, 255 );
+      str_id[255] = '\0';
+
+      AbortDifficultCommand;
+      
+      dfpn_sckt = sckt_connect( str_addr, port );
+      if ( dfpn_sckt == SCKT_NULL ) { return -2; }
+
+      str_buffer_cmdline[0] = '\0';
+      DFPNOut( "Worker: %s\n", str_id );
+
+      return 1;
+    }
+
+  str_error = str_bad_cmdline;
+  return -2;
+}
+#endif
+
+
 #if defined(TLP)
-static int
-cmd_thread( char **lasts )
+static int CONV cmd_thread( char **lasts )
 {
   const char *str = strtok_r( NULL, str_delimiters, lasts );
 
@@ -1340,9 +1871,48 @@ cmd_thread( char **lasts )
 #endif
 
 
+#if defined(DFPN_CLIENT)
+static int CONV cmd_dfpn_client( tree_t * restrict ptree, char **lasts )
+{
+  const char *str;
+  char *ptr;
+  int iret;
+
+  AbortDifficultCommand;
+
+  str = strtok_r( NULL, str_delimiters, lasts );
+  if ( ! str || ! strcmp( str, "." ) ) { str = "127.0.0.1"; }
+  strncpy( dfpn_client_str_addr, str, 255 );
+  dfpn_client_str_addr[255] = '\0';
+
+  str = strtok_r( NULL, str_delimiters, lasts );
+  if ( ! str || ! strcmp( str, "." ) ) { str = "4083"; }
+  dfpn_client_port = strtol( str, &ptr, 0 );
+  if ( ptr == str || dfpn_client_port == LONG_MAX || dfpn_client_port < 0
+       || dfpn_client_port > USHRT_MAX )
+    {
+      str_error = str_bad_cmdline;
+      return -2;
+    }
+
+  Out( "DFPN Server: %s %d\n", dfpn_client_str_addr, dfpn_client_port );
+
+  iret = ini_game( ptree, &min_posi_no_handicap, flag_history, NULL, NULL );
+  if ( iret < 0 ) { return iret; }
+
+  if ( dfpn_client_sckt == SCKT_NULL )
+    {
+      str_error = "Check network status.";
+      return -1;
+    }
+
+  return get_elapsed( &time_turn_start );
+}
+#endif
+
+
 #if defined(CSA_LAN)
-static int
-cmd_connect( tree_t * restrict ptree, char **lasts )
+static int CONV cmd_connect( tree_t * restrict ptree, char **lasts )
 {
   const char *str;
   char *ptr;
@@ -1387,77 +1957,138 @@ cmd_connect( tree_t * restrict ptree, char **lasts )
 
   AbortDifficultCommand;
 
-  sckt_csa = sckt_connect( client_str_addr, (int)client_port );
-  if ( sckt_csa == SCKT_NULL ) { return -2; }
-
-  str_buffer_cmdline[0] = '\0';
   client_ngame          = 0;
 
-  return client_next_game( ptree );
+  return client_next_game( ptree, client_str_addr, (int)client_port );
 }
-#endif
 
 
-#if defined(DEKUNOBOU)
-
-static int
-cmd_dek( char **lasts )
+static int CONV cmd_sendpv( char **lasts )
 {
   const char *str = strtok_r( NULL, str_delimiters, lasts );
-  char *ptr;
-  long l1, l2;
-  int iret;
 
   if ( str == NULL )
     {
       str_error = str_bad_cmdline;
       return -2;
     }
-  strncpy( str_message, str, SIZE_MESSAGE-1 );
-  str_message[SIZE_MESSAGE-1] = '\0';
-  dek_ul_addr = inet_addr( str );
 
-  str = strtok_r( NULL, str_delimiters, lasts );
-  if ( str == NULL )
-    {
-      str_error = str_bad_cmdline;
-      return -2;
-    }
-  l1 = strtol( str, &ptr, 0 );
-  if ( ptr == str || l1 == LONG_MAX || l1 < 0 || l1 > USHRT_MAX )
-    {
-      str_error = str_bad_cmdline;
-      return -2;
-    }
-
-  str = strtok_r( NULL, str_delimiters, lasts );
-  if ( str == NULL )
-    {
-      str_error = str_bad_cmdline;
-      return -2;
-    }
-  l2 = strtol( str, &ptr, 0 );
-  if ( ptr == str || l2 == LONG_MAX || l2 < 0 || l2 > USHRT_MAX )
-    {
-      str_error = str_bad_cmdline;
-      return -2;
-    }
-
-  AbortDifficultCommand;
-
-  iret = dek_start( str_message, (int)l1, (int)l2 );
-  if ( iret < 0 ) { return iret; }
-
-  Out( "\n- in communication with Dekunobou...\n" );
-
-  str_buffer_cmdline[0] = '\0';
-  dek_ngame    = 1;
-  dek_lost     = 0;
-  dek_win      = 0;
-  dek_turn     = 1;
-  game_status |= flag_resigned;
+  if      ( ! strcmp( str, str_off ) ) {  game_status &= ~flag_sendpv; }
+  else if ( ! strcmp( str, str_on ) )  {  game_status |=  flag_sendpv; }
+  else {
+    str_error = str_bad_cmdline;
+    return -2;
+  }
 
   return 1;
 }
-
 #endif
+
+
+#if defined(MNJ_LAN)
+/* mnj sd seed addr port name factor stable_depth */
+static int CONV cmd_mnj( char **lasts )
+{
+  char client_str_addr[256];
+  char client_str_id[256];
+  const char *str;
+  char *ptr;
+  unsigned int seed;
+  long l;
+  int client_port, sd;
+  double factor;
+
+  str = strtok_r( NULL, str_delimiters, lasts );
+  if ( ! str )
+    {
+      str_error = str_bad_cmdline;
+      return -2;
+    }
+  l = strtol( str, &ptr, 0 );
+  if ( ptr == str || l == LONG_MAX || l < 0 )
+    {
+      str_error = str_bad_cmdline;
+      return -2;
+    }
+  sd = (int)l;
+
+
+  str = strtok_r( NULL, str_delimiters, lasts );
+  if ( ! str )
+    {
+      str_error = str_bad_cmdline;
+      return -2;
+    }
+  l = strtol( str, &ptr, 0 );
+  if ( ptr == str || l == LONG_MAX || l < 0 )
+    {
+      str_error = str_bad_cmdline;
+      return -2;
+    }
+  seed = (unsigned int)l;
+
+
+  str = strtok_r( NULL, str_delimiters, lasts );
+  if ( ! str || ! strcmp( str, "." ) ) { str = "localhost"; }
+  strncpy( client_str_addr, str, 255 );
+  client_str_addr[255] = '\0';
+
+
+  str = strtok_r( NULL, str_delimiters, lasts );
+  if ( ! str || ! strcmp( str, "." ) ) { str = "4082"; }
+  l = strtol( str, &ptr, 0 );
+  if ( ptr == str || l == LONG_MAX || l < 0 || l > USHRT_MAX )
+    {
+      str_error = str_bad_cmdline;
+      return -2;
+    }
+  client_port = (int)l;
+
+
+  str = strtok_r( NULL, str_delimiters, lasts );
+  if ( ! str || ! strcmp( str, "." ) ) { str = "bonanza1"; }
+  strncpy( client_str_id, str, 255 );
+  client_str_id[255] = '\0';
+
+  str = strtok_r( NULL, str_delimiters, lasts );
+  if ( ! str || ! strcmp( str, "." ) ) { str = "1.0"; }
+  factor = strtod( str, &ptr );
+  if ( ptr == str || factor < 0.0 )
+    {
+      str_error = str_bad_cmdline;
+      return -2;
+    }
+
+  str = strtok_r( NULL, str_delimiters, lasts );
+  if ( ! str || ! strcmp( str, "." ) ) { l = -1; }
+  else {
+    l = strtol( str, &ptr, 0 );
+    if ( ptr == str || l == LONG_MAX )
+      {
+	str_error = str_bad_cmdline;
+	return -2;
+      }
+  }
+  if ( l <= 0 ) { mnj_depth_stable = INT_MAX; }
+  else          { mnj_depth_stable = (int)l; }
+
+  AbortDifficultCommand;
+
+  resign_threshold  = 65535;
+  game_status      |= ( flag_noponder | flag_noprompt );
+  if ( mnj_reset_tbl( sd, seed ) < 0 ) { return -1; }
+
+  sckt_mnj = sckt_connect( client_str_addr, (int)client_port );
+  if ( sckt_mnj == SCKT_NULL ) { return -2; }
+
+  str_buffer_cmdline[0] = '\0';
+
+  Out( "Sending my name %s", client_str_id );
+  MnjOut( "%s %g final%s\n", client_str_id, factor,
+	  ( mnj_depth_stable == INT_MAX ) ? "" : " stable" );
+
+  return cmd_suspend();
+}
+#endif
+
+

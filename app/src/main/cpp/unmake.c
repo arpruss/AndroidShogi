@@ -18,12 +18,12 @@
                                               BOARD[from] = piece
 
 
-void
+void CONV
 unmake_move_b( tree_t * restrict ptree, unsigned int move, int ply )
 {
   int from = (int)I2From(move);
   int to   = (int)I2To(move);
-  int nrep = root_nrep + ply - 1;
+  int nrep = ptree->nrep + ply - 1;
 
   HASH_KEY = ptree->rep_board_list[nrep];
   MATERIAL = ptree->save_material[ply];
@@ -169,12 +169,12 @@ unmake_move_b( tree_t * restrict ptree, unsigned int move, int ply )
 }
 
 
-void
+void CONV
 unmake_move_w( tree_t * restrict ptree, unsigned int move, int ply )
 {
   int from = (int)I2From(move);
   int to   = (int)I2To(move);
-  int nrep = root_nrep + ply - 1;
+  int nrep = ptree->nrep + ply - 1;
 
   HASH_KEY = ptree->rep_board_list[nrep];
   MATERIAL = ptree->save_material[ply];

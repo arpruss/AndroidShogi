@@ -523,17 +523,29 @@ public class BoardView extends FrameLayout implements View.OnTouchListener {
             if (width < height) {
                 // Portrait layout. Captured pieces are shown at the top & bottom of the board
                 dim = width;
+                int bottom = dim * 12 / 10 + sep * 2;
+                if (bottom > height) {
+                    mWidth = width * height / bottom;
+                    dim = mWidth;
+                    bottom = dim * 12 / 10 + sep * 2;
+                }
                 mPortrait = true;
                 mCapturedWhite = new Rect(0, 0, dim, dim / 10);
-                mCapturedBlack = new Rect(0, dim * 11 / 10 + sep * 2, dim, dim * 12 / 10 + sep * 2);
+                mCapturedBlack = new Rect(0, dim * 11 / 10 + sep * 2, dim, bottom);
                 mBoard = new Rect(0, dim / 10 + sep, dim, dim * 11 / 10 + sep);
                 mHeight = mCapturedBlack.bottom;
             } else {
                 // Landscape layout. Captured pieces are shown at the left & right of the board
                 mPortrait = false;
                 dim = height;
+                int right = dim * 12 / 10 + sep * 2;
+                if (right > width) {
+                    mHeight = height * width / right;
+                    dim = mHeight;
+                    right = dim * 12 / 10 + sep * 2;
+                }
                 mCapturedWhite = new Rect(0, 0, dim / 10, dim);
-                mCapturedBlack = new Rect(dim * 11 / 10 + sep * 2, 0, dim * 12 / 10 + sep * 2, dim);
+                mCapturedBlack = new Rect(dim * 11 / 10 + sep * 2, 0, right, dim);
                 mBoard = new Rect(dim * 14 / 100, 0, dim * 11 / 10 + sep, dim);
                 mWidth = mCapturedBlack.right;
             }

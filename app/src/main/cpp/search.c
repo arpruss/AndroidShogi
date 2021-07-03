@@ -1,15 +1,16 @@
 #include <limits.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 #include <assert.h>
 #include "shogi.h"
 
-static void history( tree_t * restrict ptree, int ply, int depth, int turn,
-		     unsigned int move );
-static int detect_signals( tree_t * restrict ptree );
-static int detect_rep( tree_t * restrict ptree, int ply, int turn );
-static int rep_type( const tree_t * restrict ptree, int n, int i, int ply,
-		     int turn );
+static void CONV hist_add( tree_t * restrict ptree, int ply );
+static void CONV hist_good( tree_t * restrict ptree, unsigned int move,
+			    int ply, int depth, int turn );
+static int CONV detect_rep( tree_t * restrict ptree, int ply, int turn );
+static int CONV rep_type( const tree_t * restrict ptree, int n, int i, int ply,
+			  int turn );
 
 /* #define DBG_SEARCH */
 #if defined(DBG_SEARCH)
@@ -18,13 +19,13 @@ static int rep_type( const tree_t * restrict ptree, int n, int i, int ply,
 #  define DOut( ... )
 #endif
 
-int
+int CONV
 search( tree_t * restrict ptree, int alpha, int beta, int turn, int depth,
 	int ply, unsigned int state_node )
 {
   int value, alpha_old;
 
-  if ( ! ptree->nsuc_check[ply]	&& depth < PLY_INC )
+  if ( ! ptree->nsuc_check[ply] && depth < PLY_INC )
     {
       return search_quies( ptree, alpha, beta, turn, ply, 1 );
     }
@@ -108,18 +109,6 @@ search( tree_t * restrict ptree, int alpha, int beta, int turn, int depth,
 	    }
 	  break;
 	}
-      
-      ptree->nreject_tried++;
-      if ( rejections_probe( ptree, turn, ply ) )
-	{
-	  ptree->nreject_done++;
-	  if ( alpha < score_inferior && score_inferior < beta )
-	    {
-	      pv_close( ptree, ply, turn ? white_superi_rep:black_superi_rep );
-	    }
-	  MOVE_CURR = MOVE_NA;
-	  return score_inferior;
-	}
     }
 
   /*
@@ -142,77 +131,66 @@ search( tree_t * restrict ptree, int alpha, int beta, int turn, int depth,
     if ( value <= alpha ) { return value; }
   }
 
-#if defined(NO_NULL_PRUNE)
-  state_node &= ~node_do_null;
-#endif
-
   ptree->amove_hash[ply] = 0;
+
 #if ! defined(MINIMUM)
   if ( ! ( game_status & flag_learning ) )
 #endif
     {
       /* probe the transposition table */
-      int tv = hash_probe( ptree, ply, depth, turn, alpha, beta, state_node );
-      switch ( tv )
+      switch ( hash_probe( ptree, ply, depth, turn, alpha, beta,
+			   &state_node ) )
 	{
 	case value_exact:
-	  if ( alpha < HASH_VALUE )
+	  MOVE_CURR = ptree->amove_hash[ply];
+	  assert( ! IsMove(MOVE_CURR)
+		  || is_move_valid( ptree, MOVE_CURR, turn ) );
+	  if ( ( state_node & node_do_hashcut ) && beta == alpha_old + 1 )
 	    {
-	      if ( HASH_VALUE < beta ) { pv_close( ptree, ply, hash_hit ); }
-	      else {
-		MOVE_CURR = ptree->amove_hash[ply];
-		assert( is_move_valid( ptree, MOVE_CURR, turn ) );
-	      }
+	      if ( alpha < HASH_VALUE
+		   && HASH_VALUE < beta ) { pv_close( ptree, ply, hash_hit ); }
+	      return HASH_VALUE;
 	    }
-	  return HASH_VALUE;
-	  
+	  break;
+
 	case value_lower:
 	  MOVE_CURR = ptree->amove_hash[ply];
 	  assert( beta <= HASH_VALUE );
 	  assert( ! IsMove(MOVE_CURR)
 		  || is_move_valid( ptree, MOVE_CURR, turn ) );
-	  if ( beta == alpha_old + 1 ) { return HASH_VALUE; }
+	  if ( ( state_node & node_do_hashcut )
+	       && beta == alpha_old + 1 ) { return HASH_VALUE; }
 	  break;
 	  
 	case value_upper:
 	  assert( HASH_VALUE <= alpha );
-	  if ( beta == alpha_old + 1 ) { return HASH_VALUE; }
+	  if ( ( state_node & node_do_hashcut )
+	       && beta == alpha_old + 1 ) { return HASH_VALUE; }
 	  break;
-	  
-	default:
-	  state_node = tv;
 	}
     }
 
   DOut( "\nhash cut passed" );
 
-  if ( depth >= REJEC_MIN_DEPTH ) { add_rejections( ptree, turn, ply ); }
-  
 
   if ( ! ptree->nsuc_check[ply] )
     {
-      /* detect a move mates in 1-ply */
-      if ( state_node & node_do_mate )
+      /* detect a move mates in 3-ply */
+      if ( ( state_node & node_do_mate )
+	   && is_mate_in3ply( ptree, turn, ply ) )
 	{
-	  MOVE_CURR = IsMateIn1Ply(turn);
-	  if ( MOVE_CURR )
-	    {
-	      value = score_mate1ply + 1 - ply;
-
-	      hash_store( ptree, ply, depth, turn, value_exact, value,
-			  MOVE_CURR, 0 );
-
-	      if ( alpha < value
-		   && value < beta ) { pv_close( ptree, ply, mate_search ); }
-
-	      if ( depth >= REJEC_MIN_DEPTH )
-		{
-		  sub_rejections( ptree, turn, ply );
-		}
-	      assert( is_move_valid( ptree, MOVE_CURR, turn ) );
-	      return value;
-	    }
+	  value = score_mate1ply + 1 - ply;
+	  
+	  hash_store( ptree, ply, depth, turn, value_exact, value,
+		      MOVE_CURR, 0 );
+	  
+	  if ( alpha < value
+	       && value < beta ) { pv_close( ptree, ply, mate_search ); }
+      
+	  assert( is_move_valid( ptree, MOVE_CURR, turn ) );
+	  return value;
 	}
+
 
       /* null move pruning */
       if ( 2*PLY_INC <= depth
@@ -223,27 +201,20 @@ search( tree_t * restrict ptree, int alpha, int beta, int turn, int depth,
 	  int null_depth, nrep;
 	  
 	  null_depth = NullDepth(depth);
-	  nrep       = root_nrep + ply - 1;
+	  nrep       = ptree->nrep + ply - 1;
 
 	  MOVE_CURR                   = MOVE_PASS;
 	  ptree->move_last[ply]       = ptree->move_last[ply-1];
-	  ptree->stand_pat[ply+1]     = (short)( - ptree->stand_pat[ply] );
+	  ptree->save_eval[ply+1]     = - ptree->save_eval[ply];
 	  ptree->nsuc_check[ply+1]    = 0;
 	  ptree->rep_board_list[nrep] = HASH_KEY;
 	  ptree->rep_hand_list[nrep]  = HAND_B;
 	  ptree->null_pruning_tried++;
 
-	  value = -search( ptree, -beta, 1-beta, Flip(turn), null_depth,
-			   ply+1, node_do_mate | node_do_recap
-			   | node_do_futile );
-	  if ( SEARCH_ABORT )
-	    {
-	      if ( depth >= REJEC_MIN_DEPTH )
-		{
-		  sub_rejections( ptree, turn, ply );
-		}
-	      return 0;
-	    }
+	  value = -search( ptree, -beta, 1-beta, Flip(turn), null_depth, ply+1,
+			   node_do_mate | node_do_recap | node_do_futile
+			   | node_do_recursion | node_do_hashcut );
+	  if ( SEARCH_ABORT ) { return 0; }
 	  
 	  if ( beta <= value )
 	    {
@@ -253,13 +224,9 @@ search( tree_t * restrict ptree, int alpha, int beta, int turn, int depth,
 		  hash_store( ptree, ply, depth, turn, value_lower,
 			      value, MOVE_NA, state_node );
 		}
-	      if ( depth >= REJEC_MIN_DEPTH )
-		{
-		  sub_rejections( ptree, turn, ply );
-		}
 	      
 	      DOut( "\nnull move cut!\n" );
-	      
+
 	      assert( ! IsMove(MOVE_CURR)
 		      || is_move_valid( ptree, MOVE_CURR, turn ) );
 	      return value;
@@ -274,30 +241,29 @@ search( tree_t * restrict ptree, int alpha, int beta, int turn, int depth,
 	}
     }
 
-  /* recursive iterative-deepening for pv nodes */
-  if ( ! ptree->amove_hash[ply]
-       && depth >= 3*PLY_INC
-       && ( ( alpha == root_alpha && beta == root_beta )
-	    || ( alpha == -root_beta && beta == -root_alpha ) ) )
+  /* recursive iterative-deepening */
+  if ( ! ptree->amove_hash[ply] && RecursionThreshold <= depth
+       && ( state_node & node_do_recursion ) )
     {
-      if ( depth >= REJEC_MIN_DEPTH ) { sub_rejections( ptree, turn, ply ); }
-      value = search( ptree, -score_bound, beta, turn, depth-2*PLY_INC, ply,
-		      node_do_mate | node_do_recap );
+      int new_depth      = RecursionDepth(depth);
+      int state_node_new = state_node & ~( node_do_mate | node_do_null
+					   | node_do_hashcut );
+
+      value = search( ptree, alpha, beta, turn, new_depth, ply,
+		      state_node_new );
       if ( SEARCH_ABORT ) { return 0; }
 
-      if ( beta <= value && IsMove(MOVE_CURR) )
+      if      ( beta  <= value ) { ptree->amove_hash[ply] = MOVE_CURR; }
+      else if ( alpha <  value )
 	{
-	  ptree->amove_hash[ply] = MOVE_CURR;
-	}
-      else if ( value < beta && ply <= (int)ptree->pv[ply-1].length )
-	{
+	  assert( ply <= (int)ptree->pv[ply-1].length );
 	  assert( -score_bound < value );
 	  ptree->amove_hash[ply] = ptree->pv[ply-1].a[ply];
 	}
+      
       assert( ! ptree->amove_hash[ply]
 	      || is_move_valid( ptree, ptree->amove_hash[ply], turn ) );
 
-      if ( depth >= REJEC_MIN_DEPTH ) { add_rejections( ptree, turn, ply ); }
     }
 
   {
@@ -306,7 +272,9 @@ search( tree_t * restrict ptree, int alpha, int beta, int turn, int depth,
 
     ptree->move_last[ply]             = ptree->move_last[ply-1];
     ptree->anext_move[ply].next_phase = next_move_hash;
+    ptree->hist_nmove[ply]            = 0;
     first_move_expanded               = 0;
+
     evaluate( ptree, ply, turn );
 
     /* expand all of off-springs */
@@ -319,13 +287,15 @@ search( tree_t * restrict ptree, int alpha, int beta, int turn, int depth,
 
       ptree->nsuc_check[ply+1] = 0U;
       state_node_new           = ( node_do_mate | node_do_recap | node_do_null
-				   | node_do_futile );
+				   | node_do_futile | node_do_recursion
+				   | node_do_hashcut );
       extension                = 0;
       depth_reduced            = 0;
 
+      hist_add( ptree, ply );
+
       /* decision of extensions */
-      if ( turn ? is_move_check_w( ptree, MOVE_CURR )
-                : is_move_check_b( ptree, MOVE_CURR ) )
+      if ( IsMoveCheck( ptree, turn, MOVE_CURR ) )
 	{
 	  ptree->check_extension_done++;
 	  ptree->nsuc_check[ply+1]
@@ -351,7 +321,8 @@ search( tree_t * restrict ptree, int alpha, int beta, int turn, int depth,
 			  && I2PieceMove(MOVE_LAST) != silver ) ) )
 	{
 	  ptree->recap_extension_done++;
-	  state_node_new = node_do_null | node_do_mate | node_do_futile;
+	  state_node_new = ( node_do_null | node_do_mate | node_do_futile
+			     | node_do_recursion | node_do_hashcut );
 	  if ( ! I2IsPromote(MOVE_CURR)
 	       && I2PieceMove(MOVE_LAST) == UToCap(MOVE_LAST) )
 	    {
@@ -364,40 +335,74 @@ search( tree_t * restrict ptree, int alpha, int beta, int turn, int depth,
 
       new_depth = depth + extension - PLY_INC;
 
-      if ( ! ptree->nsuc_check[ply+1] && ! ptree->nsuc_check[ply] )
+      /* reductions */
+      if ( PLY_INC <= new_depth
+	   && first_move_expanded
+	   && ! ( state_node & node_mate_threat )
+	   && ! ptree->nsuc_check[ply]
+	   && ! UToCap(MOVE_CURR)
+	   && ! ( I2IsPromote(MOVE_CURR) && I2PieceMove(MOVE_CURR) != silver )
+	   && ptree->amove_hash[ply]  != MOVE_CURR
+	   && ptree->killers[ply].no1 != MOVE_CURR
+	   && ptree->killers[ply].no2 != MOVE_CURR )
 	{
-	  /* reductions */
-	  if ( PLY_INC <= new_depth
-	       && first_move_expanded
-	       && beta == alpha_old + 1
-	       && ! ( state_node & node_mate_threat )
-	       && ! UToCap(MOVE_CURR)
-	       && ( ! I2IsPromote(MOVE_CURR)
-		    || I2PieceMove(MOVE_CURR) == silver ) )
-	    {
-	      depth_reduced = PLY_INC;
-	      new_depth     -= PLY_INC;
-	    }
+	  unsigned int key     = phash( MOVE_CURR, turn );
+	  unsigned int good    = ptree->hist_good[key]  + 1;
+	  unsigned int triedx8 = ( ptree->hist_tried[key] + 2 ) * 8U;
 
-	  /* futility pruning */
-	  if ( new_depth < 3*PLY_INC )
-	    {
-	      int diff  = estimate_score_diff( ptree, MOVE_CURR, turn );
-	      int bound = alpha;
+	  if ( beta != alpha_old + 1 ) {
 
-	      if      ( 2*PLY_INC <= new_depth ) { bound -= EFUTIL_MG2; }
-	      else if ( 1*PLY_INC <= new_depth ) { bound -= EFUTIL_MG1; }
-	      
-	      if ( eval_max_score( ptree, MOVE_CURR, ptree->stand_pat[ply],
-				   turn, diff ) <= bound )
-		{
-		  first_move_expanded = 1;
-		  continue;
-		}
+	    if      ( good *160U < triedx8 ) { depth_reduced = PLY_INC * 3/2; }
+	    else if ( good * 50U < triedx8 ) { depth_reduced = PLY_INC * 2/2; }
+	    else if ( good * 19U < triedx8 ) { depth_reduced = PLY_INC * 1/2; }
+
+	  } else {
+	    
+	    if      ( good * 75U < triedx8 ) { depth_reduced = PLY_INC * 4/2; }
+	    else if ( good * 46U < triedx8 ) { depth_reduced = PLY_INC * 3/2; }
+	    else if ( good * 30U < triedx8 ) { depth_reduced = PLY_INC * 2/2; }
+	    else if ( good * 12U < triedx8 ) { depth_reduced = PLY_INC * 1/2; }
+	  }
+
+	  new_depth -= depth_reduced;
+	}
+
+      /* futility pruning */
+      if ( ! ptree->nsuc_check[ply+1]
+	   && ! ptree->nsuc_check[ply]
+	   && new_depth < 3*PLY_INC )
+	{
+	  int diff  = estimate_score_diff( ptree, MOVE_CURR, turn );
+	  int bound = alpha;
+	  
+	  if      ( 2*PLY_INC <= new_depth ) { bound -= EFUTIL_MG2; }
+	  else if ( 1*PLY_INC <= new_depth ) { bound -= EFUTIL_MG1; }
+	  
+	  if ( eval_max_score( ptree, MOVE_CURR, ptree->save_eval[ply],
+			       turn, diff ) <= bound )
+	    {
+	      first_move_expanded += 1;
+	      continue;
 	    }
 	}
 
       DOut( ", futil passed" );
+
+      if ( new_depth < 2*PLY_INC
+	   && ! ptree->nsuc_check[ply]
+	   && ! ptree->nsuc_check[ply+1]
+	   && ! UToCap(MOVE_CURR)
+	   && ! ( I2IsPromote(MOVE_CURR)
+	            && I2PieceMove(MOVE_CURR) != silver )
+           && ptree->amove_hash[ply]  != MOVE_CURR
+	   && ptree->killers[ply].no1 != MOVE_CURR
+	   && ptree->killers[ply].no2 != MOVE_CURR
+	   && beta == alpha_old + 1
+	   && swap( ptree, MOVE_CURR, -1, 0, turn ) <= -1 )
+	{
+	  first_move_expanded += 1;
+	  continue;
+	}
 
       MakeMove( turn, MOVE_CURR, ply );
       if ( I2From(MOVE_CURR) < nsquare
@@ -410,28 +415,15 @@ search( tree_t * restrict ptree, int alpha, int beta, int turn, int depth,
 
       if ( ! ptree->nsuc_check[ply+1] && ! ptree->nsuc_check[ply] )
 	{
-	  evaluate( ptree, ply+1, Flip(turn) );
-	  assert( ptree->stand_pat[ply] != score_bound );
+	  int score = -evaluate( ptree, ply+1, Flip(turn) );
+	  assert( ptree->save_eval[ply] != INT_MAX );
 
-	  /* reductions */
-	  if ( PLY_INC <= new_depth
-	       && first_move_expanded
-	       && ! depth_reduced
-	       && ! ( state_node & node_mate_threat )
-	       && ptree->stand_pat[ply] > -ptree->stand_pat[ply+1] )
-	    {
-	      depth_reduced  = PLY_INC;
-	      new_depth      -= PLY_INC;
-	    }
-	  
 	  /* futility pruning */
-	  if ( ( new_depth < PLY_INC && - ptree->stand_pat[ply+1] <= alpha )
-	       || ( new_depth < 2*PLY_INC
-		    && - ptree->stand_pat[ply+1] <= alpha - EFUTIL_MG1 )
-	       || ( new_depth < 3*PLY_INC
-		    && - ptree->stand_pat[ply+1] <= alpha - EFUTIL_MG2 ) )
+	  if ( ( new_depth < PLY_INC && score <= alpha )
+	       || ( new_depth < 2*PLY_INC && score <= alpha - EFUTIL_MG1 )
+	       || ( new_depth < 3*PLY_INC && score <= alpha - EFUTIL_MG2 ) )
 	    {
-	      first_move_expanded = 1;
+	      first_move_expanded += 1;
 	      UnMakeMove( turn, MOVE_CURR, ply );
 	      continue;
 	    }
@@ -442,34 +434,24 @@ search( tree_t * restrict ptree, int alpha, int beta, int turn, int depth,
 	  value = -search( ptree, -beta, -alpha, Flip(turn), new_depth, ply+1,
 			   state_node_new );
 	}
-      else if ( ! depth_reduced )
-	{
-	  value = -search( ptree, -alpha-1, -alpha, Flip(turn), new_depth,
-	  		   ply + 1, state_node_new );
-	  if ( ! SEARCH_ABORT && alpha < value && beta != alpha+1 )
-	    {
-	      value = -search( ptree, -beta, -alpha, Flip(turn), new_depth,
-			       ply + 1, state_node_new );
-	    }
-	}
       else {
 	value = -search( ptree, -alpha-1, -alpha, Flip(turn), new_depth,
 			 ply + 1, state_node_new );
-	if ( ! SEARCH_ABORT && alpha < value )
+	if ( ! SEARCH_ABORT && alpha < value && depth_reduced )
 	  {
 	    new_depth += depth_reduced;
-	    value = -search( ptree, -beta, -alpha, Flip(turn), new_depth,
+	    value = -search( ptree, -alpha-1, -alpha, Flip(turn), new_depth,
 			     ply+1, state_node_new );
 	  }
+	if ( ! SEARCH_ABORT && alpha < value && beta != alpha+1 )
+	  {
+	    value = -search( ptree, -beta, -alpha, Flip(turn), new_depth,
+			     ply + 1, state_node_new );
+	  }
       }
-
       if ( SEARCH_ABORT )
 	{
 	  UnMakeMove( turn, MOVE_CURR, ply );
-	  if ( depth >= REJEC_MIN_DEPTH )
-	    {
-	      sub_rejections( ptree, turn, ply );
-	    }
 	  return 0;
 	}
 
@@ -479,42 +461,40 @@ search( tree_t * restrict ptree, int alpha, int beta, int turn, int depth,
 	{
 	  if ( new_depth < PLY_INC
 	       && ! ptree->nsuc_check[ply+1]
-	       && ptree->stand_pat[ply] != score_bound )
+	       && ptree->save_eval[ply] != INT_MAX )
 	    {
 	      check_futile_score_quies( ptree, MOVE_CURR,
-					ptree->stand_pat[ply],
-					-ptree->stand_pat[ply+1], turn );
+					ptree->save_eval[ply],
+					-ptree->save_eval[ply+1], turn );
 	    }
 
 	  if ( beta <= value )
 	    {
 	      DOut( ", beta cut (%" PRIu64 ")\n", ptree->node_searched );
 
-	      history( ptree, ply, depth, turn, MOVE_CURR );
 	      hash_store( ptree, ply, depth, turn, value_lower, value,
 			  MOVE_CURR, state_node );
+	      hist_good( ptree, MOVE_CURR, ply, depth, turn );
 
 	      ptree->fail_high++;
 	      if ( ! first_move_expanded ) { ptree->fail_high_first++; }
 	      
-	      if ( depth >= REJEC_MIN_DEPTH )
-		{
-		  sub_rejections( ptree, turn, ply );
-		}
-
 	      assert( is_move_valid( ptree, MOVE_CURR, turn ) );
 	      return value;
 	    }
 	}
       if ( alpha < value ) { alpha = value; }
 
-      first_move_expanded = 1;
+      first_move_expanded += 1;
 #if defined(TLP)
-      if ( tlp_idle && depth >= TLP_DEPTH_SPLIT )
+      if ( ! ( ptree->nsuc_check[ply]
+	       && ptree->move_last[ply] - ptree->move_last[ply-1] < 4 )
+	   && tlp_idle
+	   && ( ( iteration_depth < 11 && PLY_INC * 3 <= depth )
+		|| PLY_INC * 4 <= depth ) )
 	{
-	  ptree->tlp_alpha      = (short)alpha;
 	  ptree->tlp_beta       = (short)beta;
-	  ptree->tlp_value      = (short)alpha;
+	  ptree->tlp_best       = (short)alpha;
 	  ptree->tlp_depth      = (unsigned char)depth;
 	  ptree->tlp_state_node = (unsigned char)state_node;
 	  ptree->tlp_turn       = (char)turn;
@@ -527,10 +507,13 @@ search( tree_t * restrict ptree, int alpha, int beta, int turn, int depth,
 		{
 		  if ( beta <= value )
 		    {
-		      if ( depth >= REJEC_MIN_DEPTH )
-			{
-			  sub_rejections( ptree, turn, ply );
-			}
+		      hash_store( ptree, ply, depth, turn, value_lower,
+				  value, MOVE_CURR, state_node );
+		      
+		      hist_good( ptree, MOVE_CURR, ply, depth, turn );
+
+		      ptree->fail_high++;
+
 		      assert( is_move_valid( ptree, MOVE_CURR, turn ) );
 		      return value;
 		    }
@@ -543,8 +526,6 @@ search( tree_t * restrict ptree, int alpha, int beta, int turn, int depth,
     }
 
     DOut( "\nall searched (%" PRIu64 ")\n", ptree->node_searched );
-
-    if ( depth >= REJEC_MIN_DEPTH ) { sub_rejections( ptree, turn, ply ); }
 
     if ( ! first_move_expanded )
       {
@@ -574,7 +555,7 @@ search( tree_t * restrict ptree, int alpha, int beta, int turn, int depth,
 
     if ( alpha != alpha_old )
       {
-	history( ptree, ply, depth, turn, ptree->pv[ply].a[ply] );
+	hist_good( ptree, ptree->pv[ply].a[ply], ply, depth, turn );
 
 	pv_copy( ptree, ply );
 
@@ -597,7 +578,7 @@ search( tree_t * restrict ptree, int alpha, int beta, int turn, int depth,
 
 
 #if defined(TLP)
-int
+int CONV
 tlp_search( tree_t * restrict ptree, int alpha, int beta, int turn,
 	    int depth, int ply, unsigned int state_node )
 {
@@ -610,23 +591,30 @@ tlp_search( tree_t * restrict ptree, int alpha, int beta, int turn,
 
   for ( ;; ) {
     lock( & ptree->tlp_ptree_parent->tlp_lock );
+    if ( ptree->tlp_abort )
+      {
+	unlock( & ptree->tlp_ptree_parent->tlp_lock );
+	return 0;
+      }
     if ( ptree->nsuc_check[ply] )
       {
 	iret = gen_next_evasion( ptree->tlp_ptree_parent, ply, turn );
       }
     else { iret = gen_next_move( ptree->tlp_ptree_parent, ply, turn ); }
+
     MOVE_CURR = ptree->tlp_ptree_parent->current_move[ply];
+    hist_add( ptree->tlp_ptree_parent, ply );
     unlock( & ptree->tlp_ptree_parent->tlp_lock );
     if ( ! iret ) { break; }
 
     ptree->nsuc_check[ply+1] = 0U;
     state_node_new           = ( node_do_mate | node_do_recap | node_do_null
-				 | node_do_futile );
+				 | node_do_futile | node_do_recursion
+				 | node_do_hashcut );
     extension                = 0;
     depth_reduced            = 0;
 
-    if ( turn ? is_move_check_w( ptree, MOVE_CURR )
-              : is_move_check_b( ptree, MOVE_CURR ) )
+    if ( IsMoveCheck( ptree, turn, MOVE_CURR ) )
       {
 	ptree->check_extension_done++;
 	ptree->nsuc_check[ply+1]
@@ -645,7 +633,8 @@ tlp_search( tree_t * restrict ptree, int alpha, int beta, int turn,
 			&& I2PieceMove(MOVE_LAST) != silver ) ) )
       {
 	ptree->recap_extension_done++;
-	state_node_new = node_do_null | node_do_mate | node_do_futile;
+	state_node_new = ( node_do_null | node_do_mate | node_do_futile
+			   | node_do_recursion | node_do_hashcut );
 	if ( ! I2IsPromote(MOVE_CURR)
 	     && I2PieceMove(MOVE_LAST) == UToCap(MOVE_LAST) )
 	  {
@@ -658,31 +647,49 @@ tlp_search( tree_t * restrict ptree, int alpha, int beta, int turn,
 
     new_depth = depth + extension - PLY_INC;
     
-    if ( ! ptree->nsuc_check[ply+1] && ! ptree->nsuc_check[ply] )
+    /* reductions */
+    if ( ! ( state_node & node_mate_threat )
+	 && ! ptree->nsuc_check[ply]
+	 && ! UToCap(MOVE_CURR)
+	 && ! ( I2IsPromote(MOVE_CURR) && I2PieceMove(MOVE_CURR) != silver )
+	 && ptree->killers[ply].no1 != MOVE_CURR
+	 && ptree->killers[ply].no2 != MOVE_CURR )
       {
-	if ( beta == alpha_old + 1
-	     && ! ( state_node & node_mate_threat )
-	     && ( ! UToCap(MOVE_CURR)
-		  && ( ! I2IsPromote(MOVE_CURR)
-		       || I2PieceMove(MOVE_CURR) == silver ) ) )
-	  {
-	    depth_reduced  = PLY_INC;
-	    new_depth     -= PLY_INC;
+	  unsigned int key     = phash( MOVE_CURR, turn );
+	  unsigned int good    = ptree->hist_good[key]  + 1;
+	  unsigned int triedx8 = ( ptree->hist_tried[key] + 2 ) * 8U;
+
+	  if ( beta != alpha_old + 1 ) {
+	    
+	    if      ( good *160U < triedx8 ) { depth_reduced = PLY_INC * 3/2; }
+	    else if ( good * 50U < triedx8 ) { depth_reduced = PLY_INC * 2/2; }
+	    else if ( good * 19U < triedx8 ) { depth_reduced = PLY_INC * 1/2; }
+	    
+	  } else {
+	    
+	    if      ( good * 75U < triedx8 ) { depth_reduced = PLY_INC * 4/2; }
+	    else if ( good * 46U < triedx8 ) { depth_reduced = PLY_INC * 3/2; }
+	    else if ( good * 30U < triedx8 ) { depth_reduced = PLY_INC * 2/2; }
+	    else if ( good * 12U < triedx8 ) { depth_reduced = PLY_INC * 1/2; }
 	  }
 
-	if ( new_depth < 3*PLY_INC )
+	  new_depth -= depth_reduced;
+      }
+    
+    if ( ! ptree->nsuc_check[ply+1]
+	 && ! ptree->nsuc_check[ply]
+	 && new_depth < 3*PLY_INC )
+      {
+	int diff  = estimate_score_diff( ptree, MOVE_CURR, turn );
+	int bound = alpha;
+	
+	if      ( 2*PLY_INC <= new_depth ) { bound -= EFUTIL_MG2; }
+	else if ( 1*PLY_INC <= new_depth ) { bound -= EFUTIL_MG1; }
+	
+	if ( eval_max_score( ptree, MOVE_CURR, ptree->save_eval[ply],
+			     turn, diff ) <= bound )
 	  {
-	    int diff  = estimate_score_diff( ptree, MOVE_CURR, turn );
-	    int bound = alpha;
-	    
-	    if      ( 2*PLY_INC <= new_depth ) { bound -= EFUTIL_MG2; }
-	    else if ( 1*PLY_INC <= new_depth ) { bound -= EFUTIL_MG1; }
-	    
-	    if ( eval_max_score( ptree, MOVE_CURR, ptree->stand_pat[ply],
-				 turn, diff ) <= bound )
-	      {
-		continue;
-	      }
+	    continue;
 	  }
       }
 
@@ -697,25 +704,13 @@ tlp_search( tree_t * restrict ptree, int alpha, int beta, int turn,
 
     if ( ! ptree->nsuc_check[ply+1] && ! ptree->nsuc_check[ply] )
       {
-	evaluate( ptree, ply+1, Flip(turn) );
-	assert( ptree->stand_pat[ply] != score_bound );
-
-	/* reductions */
-	if ( PLY_INC <= new_depth
-	     && ! depth_reduced
-	     && ! ( state_node & node_mate_threat )
-	     && ptree->stand_pat[ply] > -ptree->stand_pat[ply+1] )
-	  {
-	    depth_reduced   = PLY_INC;
-	    new_depth      -= PLY_INC;
-	  }
+	int score = -evaluate( ptree, ply+1, Flip(turn) );
+	assert( ptree->save_eval[ply] != INT_MAX );
 
 	/* futility pruning */
-	if ( ( new_depth < PLY_INC && - ptree->stand_pat[ply+1] <= alpha )
-	     || ( new_depth < 2*PLY_INC
-		  && - ptree->stand_pat[ply+1] <= alpha - EFUTIL_MG1 )
-	     || ( new_depth < 3*PLY_INC
-		  && - ptree->stand_pat[ply+1] <= alpha - EFUTIL_MG2 ) )
+	if ( ( new_depth < PLY_INC && score <= alpha )
+	     || ( new_depth < 2*PLY_INC && score <= alpha - EFUTIL_MG1 )
+	     || ( new_depth < 3*PLY_INC && score <= alpha - EFUTIL_MG2 ) )
 	  {
 	    UnMakeMove( turn, MOVE_CURR, ply );
 	    continue;
@@ -738,153 +733,86 @@ tlp_search( tree_t * restrict ptree, int alpha, int beta, int turn,
 			     ply + 1, state_node_new );
 	  }
       }
-    if ( SEARCH_ABORT )
-      {
-	UnMakeMove( turn, MOVE_CURR, ply );
-	return 0;
-      }
     
     UnMakeMove( turn, MOVE_CURR, ply );
       
-    if ( alpha < value )
-      {
-	if ( beta <= value )
+    if ( SEARCH_ABORT ) { return 0; }
+
+    if ( alpha < value ) {
+
+      alpha = value;
+      if ( beta <= value ) {
+	int num;
+
+	lock( &tlp_lock );
+	if ( ptree->tlp_abort )
 	  {
-	    lock( &tlp_lock );
-	    tlp_nabort += 1;
-	    if ( ! ptree->tlp_abort )
-	      {
-		int num;
-		for ( num = 0; num < tlp_max; num++ )
-		  if ( ptree->tlp_ptree_parent->tlp_ptrees_sibling[num]
-		       && num != ptree->tlp_id )
-		    tlp_set_abort( ptree->tlp_ptree_parent
-				   ->tlp_ptrees_sibling[num] );
-	      }
 	    unlock( &tlp_lock );
-
-	    hash_store( ptree, ply, depth, turn, value_lower,
-			value, MOVE_CURR, state_node );
-	    ptree->fail_high++;
-
-	    return value;
+	    return 0;
 	  }
-	alpha = value;
+	tlp_nabort += 1;
+
+	for ( num = 0; num < tlp_max; num++ )
+	  if ( ptree->tlp_ptree_parent->tlp_ptrees_sibling[num]
+	       && num != ptree->tlp_id )
+	    tlp_set_abort( ptree->tlp_ptree_parent->tlp_ptrees_sibling[num] );
+	
+	unlock( &tlp_lock );
+	
+	return value;
       }
+    }
   }
 
   return alpha;
 }
 #endif /* TLP */
 
-
-static void
-history( tree_t * restrict ptree, int ply, int depth, int turn,
-	 unsigned int move )
+void CONV
+pv_close( tree_t * restrict ptree, int ply, int type )
 {
-  int value, value_no1, value_no2;
+  ptree->pv[ply-1].a[ply-1] = (ptree)->current_move[ply-1];
+  ptree->pv[ply-1].length   = (unsigned char)(ply-1);
+  ptree->pv[ply-1].type     = (unsigned char)type;
+  ptree->pv[ply-1].depth    = (unsigned char)iteration_depth;
+}
 
-  if ( ptree->nsuc_check[ply] ) { return; }
-
-  if ( ! UToCap(move)
-       && ( ! I2IsPromote(move) || I2PieceMove(move) == silver ) )
-    {
-      int from = (int)I2From(move);
-      int to   = (int)I2To(move);
-
-      ptree->history[turn][to][from] += depth;
-    }
-
-  value     = p_value_ex[15+UToCap(move)];
-  value_no1 = p_value_ex[15+BOARD[I2To(ptree->amove_killer[ply].no1)]];
-  value_no2 = p_value_ex[15+BOARD[I2To(ptree->amove_killer[ply].no2)]];
-  if ( move == ptree->anext_move[ply].move_cap1 )
-    {
-      if ( ( ptree->anext_move[ply].phase_done & phase_killer1 )
-	   && UToFromToPromo(move) != ptree->amove_killer[ply].no1 )
-	{
-	  ptree->amove_killer[ply].no1_value
-	    = ptree->anext_move[ply].value_cap1 - value - 1;
-	}
-      if ( ( ptree->anext_move[ply].phase_done & phase_killer2 )
-	   && UToFromToPromo(move) != ptree->amove_killer[ply].no2 )
-	{
-	  ptree->amove_killer[ply].no2_value
-	    = ptree->anext_move[ply].value_cap1 - value - 2;
-	}
-    }
-  else if ( UToFromToPromo(move) == ptree->amove_killer[ply].no1 )
-    {
-      if ( ( ptree->anext_move[ply].phase_done & phase_cap1 )
-	   && ( ptree->amove_killer[ply].no1_value + value
-		< ptree->anext_move[ply].value_cap1 + 1 ) )
-	{
-	  ptree->amove_killer[ply].no1_value
-	    = ptree->anext_move[ply].value_cap1 - value + 1;
-	}
-      if ( ( ptree->anext_move[ply].phase_done & phase_killer2 )
-	   && ( ptree->amove_killer[ply].no1_value + value
-		< ptree->amove_killer[ply].no2_value + value_no2 + 1 ) )
-	{
-	  ptree->amove_killer[ply].no1_value
-	    = ptree->amove_killer[ply].no2_value + value_no2 - value + 1;
-	}
-    }
-  else if ( UToFromToPromo(move) == ptree->amove_killer[ply].no2 )
-    {
-      unsigned int uswap;
-      int iswap;
-      
-      if ( ( ptree->anext_move[ply].phase_done & phase_cap1 )
-	   && ( ptree->amove_killer[ply].no2_value + value
-		< ptree->anext_move[ply].value_cap1 + 1 ) )
-	{
-	  ptree->amove_killer[ply].no2_value
-	    = ptree->anext_move[ply].value_cap1 - value + 1;
-	}
-      if ( ( ptree->anext_move[ply].phase_done & phase_killer1 )
-	   && ( ptree->amove_killer[ply].no2_value + value
-		< ptree->amove_killer[ply].no1_value + value_no1 + 1 ) )
-	{
-	  ptree->amove_killer[ply].no2_value
-	    = ptree->amove_killer[ply].no1_value + value_no1 - value + 1;
-	}
-
-      uswap = ptree->amove_killer[ply].no1;
-      ptree->amove_killer[ply].no1 = ptree->amove_killer[ply].no2;
-      ptree->amove_killer[ply].no2 = uswap;
-	  
-      iswap = ptree->amove_killer[ply].no1_value;
-      ptree->amove_killer[ply].no1_value = ptree->amove_killer[ply].no2_value;
-      ptree->amove_killer[ply].no2_value = iswap;
-    }
-  else {
-    ptree->amove_killer[ply].no2 = ptree->amove_killer[ply].no1;
-    ptree->amove_killer[ply].no1 = UToFromToPromo(move);
-
-    if ( ptree->anext_move[ply].phase_done & phase_killer1 )
-      {
-	int i;
-	i  = swap( ptree, move, -MT_CAP_ROOK, MT_CAP_ROOK, turn ) - value - 1;
-
-	if ( ptree->amove_killer[ply].no1_value > i )
-	  {
-	    ptree->amove_killer[ply].no1_value = i;
-	  }
-      }
-    ptree->amove_killer[ply].no2_value = ptree->amove_killer[ply].no1_value;
-    ptree->amove_killer[ply].no1_value
-      = ptree->anext_move[ply].value_cap1 - value + 1;
-  }
+void CONV
+pv_copy( tree_t * restrict ptree, int ply )
+{
+  memcpy( &(ptree->pv[ply-1].a[ply]), &(ptree->pv[ply].a[ply]),
+	  ( ptree->pv[ply].length-ply+1 ) * sizeof(unsigned int) );
+  ptree->pv[ply-1].type     = ptree->pv[ply].type;
+  ptree->pv[ply-1].length   = ptree->pv[ply].length;
+  ptree->pv[ply-1].depth    = ptree->pv[ply].depth;
+  ptree->pv[ply-1].a[ply-1] = ptree->current_move[ply-1];
 }
 
 
-static int
+int CONV
 detect_signals( tree_t * restrict ptree )
 {
   unsigned int tnow, telapsed, tpondered, tsearched, tcount, tlimit, tmax;
-  unsigned int tmax_limit_count, tlimit_count, u;
+  unsigned int tlimit_count, u;
   int iret, easy_time, last_value, stable;
+
+#if defined(DFPN_CLIENT)
+  int is_first_move_skipped = 0;
+#endif
+
+#if defined(DFPN_CLIENT)
+  /* probe results from DFPN server */
+  if ( dfpn_client_flag_read )
+    {
+      dfpn_client_check_results();
+      if ( dfpn_client_move_unlocked != MOVE_NA ) { return 1; }
+      if ( root_move_list[root_index].dfpn_cresult == dfpn_client_win )
+	{
+	  is_first_move_skipped = 1;
+	}
+    }
+#endif
+
 
   if ( ! ( game_status & flag_nopeek ) )
     {
@@ -898,7 +826,7 @@ detect_signals( tree_t * restrict ptree )
       else if ( iret == -2 )
 	{
 	  out_warning( "%s", str_error );
-	  ShutdownClient;
+	  ShutdownAll();
 	}
       else if ( game_status & flag_quit ) { return 1; } /* EOF */
       else if ( iret )
@@ -915,7 +843,7 @@ detect_signals( tree_t * restrict ptree )
 	    {
 	      out_warning( "%s", str_error );
 	      next_cmdline( 1 );
-	      ShutdownClient;
+	      ShutdownAll();
 	    }
 	  else if ( iret == 1 ) { next_cmdline( 1 ); }
 
@@ -944,6 +872,45 @@ detect_signals( tree_t * restrict ptree )
     {
       game_status |= flag_search_error;
       return 1;
+    }
+#endif
+
+#if defined(USI)
+  if ( usi_mode != usi_off && 1000U + usi_time_out_last < tnow )
+    {
+      uint64_t nodes;
+      double dnps;
+
+#  if defined(TLP)
+      lock( &tlp_lock );
+      nodes = tlp_count_node( tlp_atree_work );
+      unlock( &tlp_lock );
+#  else
+      nodes = ptree->node_searched;
+#  endif
+
+      dnps = (double)nodes * 1000.0 / (double)( tnow - time_turn_start );
+      USIOut( "info time %u nodes %" PRIu64 " nps %d\n",
+	      tnow, nodes, (unsigned int)dnps );
+	      
+      usi_time_out_last = tnow;
+    }
+#endif
+
+#if defined(MNJ_LAN)
+  if ( sckt_mnj != SCKT_NULL && 500U + time_last_send < tnow )
+    {
+      uint64_t nodes;
+      
+#  if defined(TLP)
+      lock( &tlp_lock );
+      nodes = tlp_count_node( tlp_atree_work );
+      unlock( &tlp_lock );
+#  else
+      nodes = ptree->node_searched;
+#  endif
+      
+      MnjOut( "pid=%d n=%" PRIu64 "\n", mnj_posi_id, nodes );
     }
 #endif
 
@@ -988,12 +955,10 @@ detect_signals( tree_t * restrict ptree )
   if ( tlimit != tmax )
     {
       tcount           = tsearched;
-      tmax_limit_count = tmax;
       tlimit_count     = tlimit;
     }
   else {
     tcount           = telapsed;
-    tmax_limit_count = tmax   + tpondered;
     tlimit_count     = tlimit + tpondered;
   }
 
@@ -1005,22 +970,6 @@ detect_signals( tree_t * restrict ptree )
 
   if ( stable && tcount > tlimit ) { return 1; }
   
-  if ( stable
-       && ( tmax_limit_count * 3U < ( time_last_search - time_start ) * 5U ) )
-    {
-#if defined(DBG_EASY)
-      if ( ! easy_move )
-	{
-	  Out( "  The search can be terminated "
-	       "before it reaches time-limit.\n" );
-	  easy_move = ptree->pv[0].a[1];
-	}
-#else
-      Out( "  The search is terminated before it reaches time-limit.\n" );
-      return 1;
-#endif
-    }
-
   if ( stable
        && easy_abs > abs( last_value )
        && easy_min < last_value - easy_value
@@ -1051,7 +1000,7 @@ detect_signals( tree_t * restrict ptree )
       else if ( tsearched + 500U > u ) { easy_time = 1; }
     }
 
-  /* renew node_per_second */
+  /* update node_per_second */
   {
     double dn, dd;
 
@@ -1063,7 +1012,7 @@ detect_signals( tree_t * restrict ptree )
     else                                 { node_per_second  = u; }
   }
 
-  /* renew node_next_signal */
+  /* update node_next_signal */
   if ( ! ( game_status & flag_pondering ) && root_nmove == 1 )
     {
       u = 2000U - time_response;
@@ -1078,203 +1027,31 @@ detect_signals( tree_t * restrict ptree )
     }
   else { node_next_signal = node_per_second / 32U; }
 
-  /* renew time_last_check and node_last_check */
+  /* update time_last_check and node_last_check */
   time_last_check = tnow;
   node_last_check = 0;
 
+
+#if defined(DFPN_CLIENT)
+  if ( is_first_move_skipped )
+    {
+      game_status |= flag_skip_root_move;
+      return 1;
+    }
+#endif
        
   return 0;
 }
 
 
-int
-is_move_check_b( const tree_t * restrict ptree, unsigned int move )
-{
-  const int from = (int)I2From(move);
-  const int to   = (int)I2To(move);
-  int is_check, ipiece_move, idirec;
-  bitboard_t bb;
-
-  is_check = 0;
-
-  if ( from >= nsquare ) { ipiece_move = From2Drop(from); }
-  else {
-    ipiece_move = (int)I2PieceMove(move);
-    if ( I2IsPromote(move) ) { ipiece_move += promote; }
-    
-    idirec = (int)adirec[SQ_WKING][from];
-    if ( idirec && idirec != (int)adirec[SQ_WKING][to]
-	 && is_pinned_on_white_king( ptree, from, idirec ) )
-      {
-	is_check = 1;
-	goto end;
-      }
-  }
-  
-  switch ( ipiece_move )
-    {
-    case pawn:
-      if ( BOARD[to-nfile] == -king ) { is_check = 1; }
-      break;
-	  
-    case lance:
-      AttackBLance( bb, to );
-      if ( BBContract( bb, BB_WKING ) ) { is_check = 1; }
-      break;
-      
-    case knight:
-      if ( BBContract(abb_b_knight_attacks[to],BB_WKING) ) { is_check = 1; }
-      break;
-      
-    case silver:
-      if ( BBContract(abb_b_silver_attacks[to],BB_WKING) ) { is_check = 1; }
-      break;
-      
-    case gold:	       case pro_pawn:
-    case pro_lance:    case pro_knight:
-    case pro_silver:
-      if ( BBContract(abb_b_gold_attacks[to],BB_WKING) ) { is_check = 1; }
-      break;
-      
-    case bishop:
-      AttackBishop( bb, to );
-      if ( BBContract( bb, BB_WKING ) ) { is_check = 1; }
-      break;
-      
-    case rook:
-      AttackRook( bb, to );
-      if ( BBContract( bb, BB_WKING ) ) { is_check = 1; }
-      break;
-      
-    case king:
-      break;
-
-    case horse:
-      AttackHorse( bb, to );
-      if ( BBContract( bb, BB_WKING ) ) { is_check = 1; }
-      break;
-      
-    default:
-      assert( ipiece_move == dragon );
-      AttackDragon( bb, to );
-      if ( BBContract( bb, BB_WKING ) ) { is_check = 1; }
-      break;
-    }
-
- end:
-  return is_check;
-}
-
-
-int
-is_move_check_w( const tree_t * restrict ptree, unsigned int move )
-{
-  const int from = (int)I2From(move);
-  const int to   = (int)I2To(move);
-  int is_check, ipiece_move, idirec;
-  bitboard_t bb;
-
-  is_check = 0;
-
-  if ( from >= nsquare ) { ipiece_move = From2Drop(from); }
-  else {
-    ipiece_move = (int)I2PieceMove(move);
-    if ( I2IsPromote(move) ) { ipiece_move += promote; }
-    
-    idirec = (int)adirec[SQ_BKING][from];
-    if ( idirec && idirec != (int)adirec[SQ_BKING][to]
-	 && is_pinned_on_black_king( ptree, from, idirec ) )
-      {
-	is_check = 1;
-	goto end;
-      }
-  }
-  
-  switch ( ipiece_move )
-    {
-    case pawn:
-      if ( BOARD[to+nfile] == king ) { is_check = 1; }
-      break;
-      
-    case lance:
-      AttackWLance( bb, to );
-      if ( BBContract( bb, BB_BKING ) ) { is_check = 1; }
-      break;
-      
-    case knight:
-      if ( BBContract(abb_w_knight_attacks[to],BB_BKING) ) { is_check = 1; }
-      break;
-      
-    case silver:
-      if ( BBContract(abb_w_silver_attacks[to],BB_BKING) ) { is_check = 1; }
-      break;
-      
-    case gold:        case pro_pawn:
-    case pro_lance:   case pro_knight:
-    case pro_silver:
-      if ( BBContract(abb_w_gold_attacks[to],BB_BKING) ) { is_check = 1; }
-      break;
-      
-    case bishop:
-      AttackBishop( bb, to );
-      if ( BBContract( bb, BB_BKING ) ) { is_check = 1; }
-      break;
-      
-    case rook:
-      AttackRook( bb, to );
-      if ( BBContract( bb, BB_BKING ) ) { is_check = 1; }
-      break;
-
-    case king:
-      break;
-
-    case horse:
-      AttackHorse( bb, to );
-      if ( BBContract( bb, BB_BKING ) ) { is_check = 1; }
-      break;
-      
-    default:
-      assert( ipiece_move == dragon );
-      AttackDragon( bb, to );
-      if ( BBContract( bb, BB_BKING ) ) { is_check = 1; }
-      break;
-    }
-
- end:
-  return is_check;
-}
-
-
-void
-pv_close( tree_t * restrict ptree, int ply, int type )
-{
-  ptree->pv[ply-1].a[ply-1] = (ptree)->current_move[ply-1];
-  ptree->pv[ply-1].length   = (unsigned char)(ply-1);
-  ptree->pv[ply-1].type     = (unsigned char)type;
-  ptree->pv[ply-1].depth    = (unsigned char)iteration_depth;
-}
-
-
-void
-pv_copy( tree_t * restrict ptree, int ply )
-{
-  memcpy( &(ptree->pv[ply-1].a[ply]), &(ptree->pv[ply].a[ply]),
-	  ( ptree->pv[ply].length-ply+1 ) * sizeof(unsigned int) );
-  ptree->pv[ply-1].type     = ptree->pv[ply].type;
-  ptree->pv[ply-1].length   = ptree->pv[ply].length;
-  ptree->pv[ply-1].depth    = ptree->pv[ply].depth;
-  ptree->pv[ply-1].a[ply-1] = ptree->current_move[ply-1];
-}
-
-
-static int
+static int CONV
 detect_rep( tree_t * restrict ptree, int ply, int turn )
 {
   if ( ply < 4 ) { return detect_repetition( ptree, ply, turn, 2 ); }
   else {
     int n, i, imin, iret;
 
-    n    = root_nrep + ply - 1;
+    n    = ptree->nrep + ply - 1;
     imin = n - REP_MAX_PLY;
     if ( imin < 0 ) { imin = 0; }
 
@@ -1290,7 +1067,7 @@ detect_rep( tree_t * restrict ptree, int ply, int turn )
 }
 
 
-static int
+static int CONV
 rep_type( const tree_t * restrict ptree, int n, int i, int ply, int turn )
 {
   const unsigned int hand1 = HAND_B;
@@ -1317,4 +1094,148 @@ rep_type( const tree_t * restrict ptree, int n, int i, int ply, int turn )
   else if ( is_hand_eq_supe( hand2, hand1 ) ) { return white_superi_rep; }
 
   return no_rep;
+}
+
+
+static void CONV
+hist_add( tree_t * restrict ptree, int ply )
+{
+  if ( ptree->nsuc_check[ply] ) { return; }
+  if ( UToCap(MOVE_CURR) )      { return; }
+  if ( I2IsPromote(MOVE_CURR)
+       && I2PieceMove(MOVE_CURR) != silver ) { return; } 
+
+  assert( ptree->hist_nmove[ply] < MAX_LEGAL_MOVES );
+  ptree->hist_move[ply][ ptree->hist_nmove[ply]++ ] = MOVE_CURR;
+}
+
+
+static void CONV
+hist_good( tree_t * restrict ptree, unsigned int move_good, int ply,
+	   int depth, int turn )
+{
+  unsigned int key, move;
+  int i, n, value, value_no1, value_no2;
+
+  if ( ptree->nsuc_check[ply] ) { return; }
+
+  value     = p_value_ex[15+UToCap(move_good)];
+  value_no1 = p_value_ex[15+BOARD[I2To(ptree->amove_killer[ply].no1)]];
+  value_no2 = p_value_ex[15+BOARD[I2To(ptree->amove_killer[ply].no2)]];
+  if ( move_good == ptree->anext_move[ply].move_cap1 )
+    {
+      if ( ( ptree->anext_move[ply].phase_done & phase_killer1 )
+	   && UToFromToPromo(move_good) != ptree->amove_killer[ply].no1 )
+	{
+	  ptree->amove_killer[ply].no1_value
+	    = ptree->anext_move[ply].value_cap1 - value - 1;
+	}
+      if ( ( ptree->anext_move[ply].phase_done & phase_killer2 )
+	   && UToFromToPromo(move_good) != ptree->amove_killer[ply].no2 )
+	{
+	  ptree->amove_killer[ply].no2_value
+	    = ptree->anext_move[ply].value_cap1 - value - 2;
+	}
+    }
+  else if ( UToFromToPromo(move_good) == ptree->amove_killer[ply].no1 )
+    {
+      if ( ( ptree->anext_move[ply].phase_done & phase_cap1 )
+	   && ( ptree->amove_killer[ply].no1_value + value
+		< ptree->anext_move[ply].value_cap1 + 1 ) )
+	{
+	  ptree->amove_killer[ply].no1_value
+	    = ptree->anext_move[ply].value_cap1 - value + 1;
+	}
+      if ( ( ptree->anext_move[ply].phase_done & phase_killer2 )
+	   && ( ptree->amove_killer[ply].no1_value + value
+		< ptree->amove_killer[ply].no2_value + value_no2 + 1 ) )
+	{
+	  ptree->amove_killer[ply].no1_value
+	    = ptree->amove_killer[ply].no2_value + value_no2 - value + 1;
+	}
+    }
+  else if ( UToFromToPromo(move_good) == ptree->amove_killer[ply].no2 )
+    {
+      unsigned int uswap;
+      int iswap;
+      
+      if ( ( ptree->anext_move[ply].phase_done & phase_cap1 )
+	   && ( ptree->amove_killer[ply].no2_value + value
+		< ptree->anext_move[ply].value_cap1 + 1 ) )
+	{
+	  ptree->amove_killer[ply].no2_value
+	    = ptree->anext_move[ply].value_cap1 - value + 1;
+	}
+      if ( ( ptree->anext_move[ply].phase_done & phase_killer1 )
+	   && ( ptree->amove_killer[ply].no2_value + value
+		< ptree->amove_killer[ply].no1_value + value_no1 + 1 ) )
+	{
+	  ptree->amove_killer[ply].no2_value
+	    = ptree->amove_killer[ply].no1_value + value_no1 - value + 1;
+	}
+
+      uswap = ptree->amove_killer[ply].no1;
+      ptree->amove_killer[ply].no1 = ptree->amove_killer[ply].no2;
+      ptree->amove_killer[ply].no2 = uswap;
+	  
+      iswap = ptree->amove_killer[ply].no1_value;
+      ptree->amove_killer[ply].no1_value = ptree->amove_killer[ply].no2_value;
+      ptree->amove_killer[ply].no2_value = iswap;
+    }
+  else {
+    ptree->amove_killer[ply].no2 = ptree->amove_killer[ply].no1;
+    ptree->amove_killer[ply].no1 = UToFromToPromo(move_good);
+
+    if ( ptree->anext_move[ply].phase_done & phase_killer1 )
+      {
+	i  = swap( ptree, move_good, -MT_CAP_ROOK, MT_CAP_ROOK, turn );
+	i -= value + 1;
+
+	if ( ptree->amove_killer[ply].no1_value > i )
+	  {
+	    ptree->amove_killer[ply].no1_value = i;
+	  }
+      }
+    ptree->amove_killer[ply].no2_value = ptree->amove_killer[ply].no1_value;
+    ptree->amove_killer[ply].no1_value
+      = ptree->anext_move[ply].value_cap1 - value + 1;
+  }
+
+
+  if ( UToCap(move_good) ) { return; }
+  if ( I2IsPromote(move_good)
+       && I2PieceMove(move_good) != silver ) { return; }
+
+  if ( ptree->killers[ply].no1 != move_good )
+    {
+      ptree->killers[ply].no2 = ptree->killers[ply].no1;
+      ptree->killers[ply].no1 = move_good;
+    }
+
+  if ( depth < 1 ) { depth = 1; }
+
+  n = ptree->hist_nmove[ply];
+  for ( i = 0; i < n; i++ )
+    {
+      move = ptree->hist_move[ply][i];
+      assert( is_move_valid( ptree, move, turn ) );
+
+      key = phash( move, turn );
+      if ( ptree->hist_tried[key] >= HIST_MAX )
+	{
+	  ptree->hist_good[key]  /= 2U;
+	  ptree->hist_tried[key] /= 2U;
+	}
+
+      assert( ptree->hist_tried[key] < HIST_MAX );
+      ptree->hist_tried[key]
+	= (unsigned short)( (int)ptree->hist_tried[key] + depth );
+    }
+
+  assert( is_move_valid( ptree, move_good, turn ) );
+  key = phash( move_good, turn );
+
+  assert( ptree->hist_good[key] < HIST_MAX );
+  ptree->hist_good[key]
+    = (unsigned short)( (int)ptree->hist_good[key] + depth );
 }
