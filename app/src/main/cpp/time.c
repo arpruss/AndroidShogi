@@ -6,6 +6,7 @@
 #endif
 #include "shogi.h"
 #include "shogi_jni.h"
+#include <errno.h>
 
 
 void CONV
