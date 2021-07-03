@@ -27,6 +27,13 @@
     />
   <PreferenceCategory android:title="Advanced settings"/>
   <ListPreference
+      android:title="@string/cores"
+      android:key="cores"
+      android:defaultValue="4"
+      android:entries="@array/cores"
+      android:entryValues="@array/cores"/>
+  />
+  <ListPreference
     android:title="@string/log_save_format"
     android:key="log_save_format"
     android:defaultValue="kif_dos"

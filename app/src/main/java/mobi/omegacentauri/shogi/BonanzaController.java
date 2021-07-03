@@ -19,6 +19,7 @@ import android.util.Log;
 public class BonanzaController {
     private static final String TAG = "BonanzaController";
     private final int mComputerDifficulty;
+    private final int mCores;
     private static final int maxTime[][] = new int[][]{
             {60, 1},
             {60, 1},
@@ -49,9 +50,10 @@ public class BonanzaController {
     private static final int C_UNDO = 3;
     private static final int C_DESTROY = 4;
 
-    public BonanzaController(Handler handler, int difficulty) {
+    public BonanzaController(Handler handler, int difficulty, int cores) {
         mOutputHandler = handler;
         mComputerDifficulty = difficulty;
+        mCores = cores;
         mInstanceId = -1;
         mThread = new HandlerThread("BonanzaController");
         mThread.start();
@@ -286,7 +288,7 @@ public class BonanzaController {
         }
         mInstanceId = BonanzaJNI.startGame(
                 resumeInstanceId, board, (nextPlayer == Player.BLACK) ? 0 : 1, mComputerDifficulty,
-                maxTime[mComputerDifficulty][0], maxTime[mComputerDifficulty][1], jr);
+                mCores, maxTime[mComputerDifficulty][0], maxTime[mComputerDifficulty][1], jr);
         if (jr.status != BonanzaJNI.R_OK) {
             throw new AssertionError(String.format("startGame failed: %d %s", jr.status, jr.error));
         }

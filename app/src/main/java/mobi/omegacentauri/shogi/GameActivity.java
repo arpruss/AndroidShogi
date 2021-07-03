@@ -113,7 +113,7 @@ public class GameActivity extends Activity {
             mBoard, mBoard,
             mPlays, mNextPlayer, null);
     mStatusView.updateThinkTimes(mBlackThinkTimeMs, mWhiteThinkTimeMs);
-    mController = new BonanzaController(mEventHandler, mComputerLevel);
+    mController = new BonanzaController(mEventHandler, mComputerLevel, Math.min(Util.numberOfCores(),Integer.parseInt(mPrefs.getString("cores","4"))));
     if (mGameState == GameState.ACTIVE)
         mController.start(savedInstanceState, mBoard, mNextPlayer);
 
@@ -266,6 +266,8 @@ public class GameActivity extends Activity {
       mPlays = new ArrayList<Play>();
       mMoveCookies = new ArrayList<Integer>();
     }
+
+    BonanzaJNI.abort();
   }
 
   private final long initializeLong(Bundle b, String bundle_key, SharedPreferences prefs, String pref_key, long dflt) {

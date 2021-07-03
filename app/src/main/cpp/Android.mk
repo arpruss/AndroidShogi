@@ -18,10 +18,11 @@ LOCAL_SRC_FILES := \
 #                   play a game, e.g., book composition and optimization of
 #                   evaluation function.
 # -DTLP             enables thread-level parallel search.
+# -DTLP_MAX_THREADS=n  sets maximum number of threads
 # -DMPV             enables multi-PV search.
 # -DCSA_LAN         enables bonanza to talk CSA Shogi TCP/IP protcol.
 # -DNO_LOGGING      suppresses dumping log files.
 
-LOCAL_CFLAGS := -DMINIMUM -DNDEBUG -std=gnu99 -DNO_LOGGING -DANDROID -DNO_STDOUT -O3
+LOCAL_CFLAGS := -DMINIMUM -DNDEBUG -std=gnu99 -DNO_LOGGING -DANDROID -DNO_STDOUT -DTLP -DTLP_MAX_THREADS=8 -O3
 
 include $(BUILD_SHARED_LIBRARY)

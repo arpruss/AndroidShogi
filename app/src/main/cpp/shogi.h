@@ -136,7 +136,9 @@ extern unsigned char ailast_one[512];
 
 #define MPV_MAX_PV              16
 
+#ifndef TLP_MAX_THREADS
 #define TLP_MAX_THREADS         8
+#endif
 #define TLP_NUM_WORK           ( TLP_MAX_THREADS * 8 )
 
 #define TIME_CHECK_MIN_NODE     10000U

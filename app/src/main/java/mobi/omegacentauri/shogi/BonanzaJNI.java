@@ -81,6 +81,7 @@ public class BonanzaJNI {
       Board initialBoard,
       int next_turn,
       int difficulty,
+      int numCores,
       int total_think_time_secs,    
       int per_turn_think_time_secs,
       Result result);
