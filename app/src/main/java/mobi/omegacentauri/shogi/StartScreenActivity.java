@@ -47,9 +47,9 @@ public class StartScreenActivity extends Activity {
     private BonanzaInitializeThread bonanzaInitializeThread = null;
     private Button pickLogButton;
     static XZDataFile[] dataFiles = new XZDataFile[]{
-            new XZDataFile("https://github.com/arpruss/AndroidShogi/raw/bonanza6/data/book.bin.xz",
+            new XZDataFile("https://github.com/arpruss/AndroidShogi/raw/95aa56279e60b1485f6f326add8bc06b3ce73867/data/book.bin.xz",
                     "book.bin", 426536),
-            new XZDataFile("https://github.com/arpruss/AndroidShogi/raw/bonanza6/data/fv.bin.xz",
+            new XZDataFile("https://github.com/arpruss/AndroidShogi/raw/95aa56279e60b1485f6f326add8bc06b3ce73867/data/fv.bin.xz",
                     "fv.bin", 186268248),
 
     };
