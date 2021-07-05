@@ -9,6 +9,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.os.Build;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -122,6 +123,31 @@ public class Util {
       catch(Exception e) {
         return 1;
       }
+    }
+  }
+
+  static private String getStreamFile(InputStream stream) {
+    BufferedReader reader;
+    try {
+      reader = new BufferedReader(new InputStreamReader(stream));
+
+      String text = "";
+      String line;
+      while (null != (line=reader.readLine()))
+        text = text + line;
+      return text;
+    } catch (IOException e) {
+      // TODO Auto-generated catch block
+      return "";
+    }
+  }
+
+  static public String getAssetFile(Context context, String assetName) {
+    try {
+      return getStreamFile(context.getAssets().open(assetName));
+    } catch (IOException e) {
+      // TODO Auto-generated catch block
+      return "";
     }
   }
 

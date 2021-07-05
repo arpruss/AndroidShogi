@@ -45,4 +45,7 @@
     android:title="@string/human_player_name"
     android:defaultValue="@string/default_human_player_name"
   />
+  <PreferenceCategory android:title="Licenses and Copyrights">
+    <Preference android:key="licenses" android:title="View Licenses and Copyrights"/>
+  </PreferenceCategory>
 </PreferenceScreen>
