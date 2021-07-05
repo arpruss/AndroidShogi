@@ -47,9 +47,9 @@ piece_set() {
     piece $1 UM uma
 }
 
-#animals
-#piece_set international
-#piece_set kanji_brown
-#piece_set kanji_light
+animals
+piece_set international
+piece_set kanji_brown
+piece_set kanji_light
 piece_set kanji_light_threedim
-#piece_set kanji_red_wood
+piece_set kanji_red_wood
