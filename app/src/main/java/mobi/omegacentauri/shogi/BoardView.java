@@ -27,6 +27,8 @@ import android.widget.FrameLayout;
 public class BoardView extends FrameLayout implements View.OnTouchListener {
     static public final String TAG = "ShogiView";
 
+    static final int CHALLENGING_KING = Piece.NUM_TYPES;
+
     /**
      * Interface for communicating user moves to the owner of this view.
      * onHumanMove is called when a human player moves a piece, or drops a
@@ -714,6 +716,8 @@ public class BoardView extends FrameLayout implements View.OnTouchListener {
             int piece,
             float sx, float sy, int alpha) {
         boolean isBlack = (Board.player(piece) == Player.BLACK);
+        if (isBlack && piece == Piece.OU)
+            piece = CHALLENGING_KING;
         BitmapDrawable[] bitmaps = mBitmaps[isBlack != mFlipped ? 0 : 1][isBlack ? 0 : 1];
         BitmapDrawable b = bitmaps[Board.type(piece)];
         b.setBounds((int) sx, (int) sy,
@@ -749,7 +753,7 @@ public class BoardView extends FrameLayout implements View.OnTouchListener {
         final String prefix = prefs.getString("piece_style", "kinki_simple");
         boolean darkenBlack = prefs.getBoolean("darken_black", false);
         final Resources r = getResources();
-        mBitmaps = new BitmapDrawable[2][2][Piece.NUM_TYPES];
+        mBitmaps = new BitmapDrawable[2][2][Piece.NUM_TYPES+1];
         String koma_names[] = {
                 null,
                 "fu", "kyo", "kei", "gin", "kin", "kaku", "hi", "ou",
@@ -759,9 +763,20 @@ public class BoardView extends FrameLayout implements View.OnTouchListener {
         final Matrix flip = new Matrix();
         flip.postRotate(180);
 
-        for (int i = 1; i < Piece.NUM_TYPES; ++i) {
-            if (koma_names[i] == null) continue;
-            int id = r.getIdentifier(String.format("@mobi.omegacentauri.shogi:drawable/%s_%s", prefix, koma_names[i]), null, null);
+        for (int i = 1; i < Piece.NUM_TYPES+1; ++i) {
+            int id = 0;
+            String name = null;
+            if (i == CHALLENGING_KING) {
+                id = r.getIdentifier(String.format("@mobi.omegacentauri.shogi:drawable/%s_%s", prefix, "gyokusho"), null, null);
+                if (id == 0)
+                    name = "ou";
+            }
+            else {
+                if (koma_names[i] == null) continue;
+                name = koma_names[i];
+            }
+            if (id == 0)
+                id = r.getIdentifier(String.format("@mobi.omegacentauri.shogi:drawable/%s_%s", prefix, name), null, null);
             Bitmap base = BitmapFactory.decodeResource(r, id);
             mBitmaps[0][1][i] = new BitmapDrawable(getResources(), base);
             Bitmap flipped = Bitmap.createBitmap(base, 0, 0, base.getWidth(), base.getHeight(),
@@ -782,7 +797,6 @@ public class BoardView extends FrameLayout implements View.OnTouchListener {
             else {
                 mBitmaps[0][0][i] = mBitmaps[0][1][i];
                 mBitmaps[1][0][i] = mBitmaps[1][1][i];
-
             }
         }
     }
