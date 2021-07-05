@@ -121,6 +121,11 @@
 
     <string-array name="piece_style">
         <item>Animal</item>
+        <item>International</item>
+        <item>Kanji, brown</item>
+        <item>Kanji, light</item>
+        <item>Kanji, 3D</item>
+        <item>Kanji, red wood</item>
         <item>Kinki</item>
         <item>Kinki (simple)</item>
         <item>Chess</item>
@@ -129,6 +134,11 @@
 
     <string-array name="piece_style_values">
         <item>animal</item>
+        <item>international</item>
+        <item>kanji_brown</item>
+        <item>kanji_light</item>
+        <item>kanji_light_threedim</item>
+        <item>kanji_red_wood</item>
         <item>kinki</item>
         <item>kinki_simple</item>
         <item>nn</item>

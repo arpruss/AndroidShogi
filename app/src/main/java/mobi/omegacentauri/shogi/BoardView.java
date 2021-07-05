@@ -750,7 +750,7 @@ public class BoardView extends FrameLayout implements View.OnTouchListener {
     // Load bitmaps for pieces. Called once when this view is created.
     private final void initializePieceBitmaps(Context context) {
         final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
-        final String prefix = prefs.getString("piece_style", "kinki_simple");
+        final String prefix = prefs.getString("piece_style", "kanji_red_wood");
         boolean darkenBlack = prefs.getBoolean("darken_black", false);
         final Resources r = getResources();
         mBitmaps = new BitmapDrawable[2][2][Piece.NUM_TYPES+1];

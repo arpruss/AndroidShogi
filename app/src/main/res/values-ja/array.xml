@@ -29,6 +29,11 @@
 
   <string-array name="piece_style">
     <item>Animal</item>
+    <item>International</item>
+    <item>Kanji, brown</item>
+    <item>Kanji, light</item>
+    <item>Kanji, 3D</item>
+    <item>Kanji, red wood</item>
     <item>錦旗</item>
     <item>錦旗(一字)</item>
     <item>Chess</item>
