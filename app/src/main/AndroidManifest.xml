@@ -2,9 +2,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="mobi.omegacentauri.shogi"
     android:label="AndroidShogi"
-    android:versionCode="352"
+    android:versionCode="353"
 
-    android:versionName="3.52">
+    android:versionName="3.53">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
