@@ -19,6 +19,7 @@ import android.graphics.Typeface;
 import android.graphics.drawable.BitmapDrawable;
 import android.preference.PreferenceManager;
 import android.util.AttributeSet;
+import android.util.TypedValue;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.FrameLayout;
@@ -694,6 +695,7 @@ public class BoardView extends FrameLayout implements View.OnTouchListener {
 
         // Draw the gridlines
         p.setColor(mBoardName.contains("black") ? 0xffffffff : 0xff000000);
+        p.setStrokeWidth(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, 1, getResources().getDisplayMetrics()));
         for (int i = 0; i < Board.DIM; ++i) {
             final float sx = layout.screenX(i);
             final float sy = layout.screenY(i);
