@@ -147,7 +147,6 @@
 
     <string-array name="board_style">
         <item>Blackened rough wood</item>
-        <item>Grainy wood</item>
         <item>Light wood</item>
         <item>Plain</item>
         <item>Rich brown wood</item>
@@ -156,7 +155,6 @@
 
     <string-array name="board_style_values">
         <item>board_rough_blackened</item>
-        <item>board_grainy</item>
         <item>board_light</item>
         <item>plain</item>
         <item>board_rich_brown</item>
