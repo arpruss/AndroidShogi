@@ -15,6 +15,13 @@
     android:entries="@array/piece_style"
     android:entryValues="@array/piece_style_values"/>
     />
+  <ListPreference
+      android:title="@string/board_style"
+      android:key="board"
+      android:defaultValue="board_rich_brown"
+      android:entries="@array/board_style"
+      android:entryValues="@array/board_style_values"/>
+  />
   <EditTextPreference
      android:key="game_log_dir"
      android:defaultValue="/sdcard/ShogiLog"

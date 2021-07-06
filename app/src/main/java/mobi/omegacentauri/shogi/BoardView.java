@@ -19,7 +19,6 @@ import android.graphics.Typeface;
 import android.graphics.drawable.BitmapDrawable;
 import android.preference.PreferenceManager;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.FrameLayout;
@@ -28,6 +27,8 @@ public class BoardView extends FrameLayout implements View.OnTouchListener {
     static public final String TAG = "ShogiView";
 
     static final int CHALLENGING_KING = Piece.NUM_TYPES;
+
+    static String mBoardName;
 
     /**
      * Interface for communicating user moves to the owner of this view.
@@ -44,6 +45,8 @@ public class BoardView extends FrameLayout implements View.OnTouchListener {
         mBoard = new Board();
         initializePieceBitmaps(context);
         setOnTouchListener(this);
+        final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+        mBoardName = prefs.getString("board", "board_rich_brown");
     }
 
     /**
@@ -427,6 +430,7 @@ public class BoardView extends FrameLayout implements View.OnTouchListener {
     // Bitmap for all the pieces.
     //   First index is orientation (0=upward, 1=downward), second is color (0=black, 1=white)
     private BitmapDrawable mBitmaps[][][];
+    private BitmapDrawable board = null;
 
     private boolean mFlipped;        // if true, flip the board upside down.
     private Player mCurrentPlayer;   // Player currently holding the turn
@@ -660,16 +664,36 @@ public class BoardView extends FrameLayout implements View.OnTouchListener {
 
     private EventListener mListener;
     private ArrayList<Player> mHumanPlayers;
+    private Bitmap mBoardBitmap = null;
+    private int mBoardWidth = -1;
+    private int mBoardHeight = -1;
 
     private final void drawEmptyBoard(Canvas canvas, ScreenLayout layout) {
         // Fill the board square
         Rect boardRect = layout.getBoard();
         Paint p = new Paint();
-        p.setColor(0xfff5deb3);
-        canvas.drawRect(boardRect, p);
+
+        if (mBoardName.equals("plain")) {
+            p.setColor(0xfff5deb3);
+            canvas.drawRect(boardRect, p);
+        }
+        else {
+            if (boardRect.width() != mBoardWidth || mBoardHeight != mBoardHeight) {
+                if (mBoardBitmap != null) {
+                    mBoardBitmap.recycle();
+                    mBoardBitmap = null;
+                }
+                int id = getResources().getIdentifier(String.format("@mobi.omegacentauri.shogi:drawable/%s", mBoardName), null, null);
+                Bitmap base = BitmapFactory.decodeResource(getResources(), id);
+                mBoardWidth = boardRect.width();
+                mBoardHeight = boardRect.height();
+                mBoardBitmap = Bitmap.createScaledBitmap(base, mBoardWidth, mBoardHeight, true);
+            }
+            canvas.drawBitmap(mBoardBitmap,boardRect.left,boardRect.top,p);
+        }
 
         // Draw the gridlines
-        p.setColor(0xff000000);
+        p.setColor(mBoardName.contains("black") ? 0xffffffff : 0xff000000);
         for (int i = 0; i < Board.DIM; ++i) {
             final float sx = layout.screenX(i);
             final float sy = layout.screenY(i);

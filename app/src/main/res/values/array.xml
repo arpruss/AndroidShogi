@@ -145,6 +145,22 @@
         <item>dm</item>
     </string-array>
 
+    <string-array name="board_style">
+        <item>Blackened rough wood</item>
+        <item>Light wood</item>
+        <item>Plain</item>
+        <item>Rich brown wood</item>
+        <item>Yellowish wood</item>
+    </string-array>
+
+    <string-array name="board_style_values">
+        <item>board_rough_blackened</item>
+        <item>board_light</item>
+        <item>plain</item>
+        <item>board_rich_brown</item>
+        <item>board_yellowish</item>
+    </string-array>
+
     <string-array name="log_save_format">
         <item>KIF (MS-DOS)</item>
         <item>KIF (UTF-8)</item>
