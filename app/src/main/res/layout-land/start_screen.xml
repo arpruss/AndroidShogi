@@ -4,18 +4,16 @@
     android:layout_height="fill_parent"
     android:orientation="horizontal" >
 
-  <ImageView
-      android:contentDescription="splash"
-      android:layout_width="wrap_content"
-      android:layout_height="wrap_content"
-      android:layout_gravity="center"
-      android:layout_weight="0"
-      android:src="@drawable/splash" />
+  <mobi.omegacentauri.shogi.SplashView
+      android:id="@+id/splashview"
+      android:layout_width="fill_parent"
+      android:layout_height="fill_parent"
+      />
 
   <LinearLayout
-      android:layout_width="fill_parent"
-      android:layout_height="wrap_content"
+      android:layout_width="0dp"
       android:layout_weight="1"
+      android:layout_height="wrap_content"
       android:layout_gravity="bottom"
       android:baselineAligned="false"
       android:orientation="vertical" >
@@ -24,14 +22,14 @@
       android:id="@+id/data_download_button"
       android:layout_gravity="center_horizontal"
       android:layout_width="120sp"
-      android:layout_height="50sp"
+      android:layout_height="55sp"
       android:text="@string/engine_data_download" />
 
     <Button
         android:id="@+id/new_game_button"
         android:layout_width="120sp"
         android:layout_gravity="center_horizontal"
-        android:layout_height="50sp"
+        android:layout_height="55sp"
         android:visibility="gone"
         android:text="@string/new_game" />
 
@@ -39,14 +37,14 @@
       android:id="@+id/pick_log_button"
       android:layout_width="120sp"
         android:layout_gravity="center_horizontal"
-      android:layout_height="50sp"
+      android:layout_height="55sp"
       android:layout_weight="1"
       android:text="@string/game_logs" />
 
   <Button
       android:id="@+id/options_button"
       android:layout_width="120sp"
-      android:layout_height="50sp"
+      android:layout_height="55sp"
       android:layout_gravity="center_horizontal"
       android:layout_weight="1"
       android:text="@string/options" />
@@ -54,7 +52,7 @@
     <Button
         android:id="@+id/help_button"
         android:layout_width="120sp"
-        android:layout_height="50sp"
+        android:layout_height="55sp"
         android:layout_gravity="center_horizontal"
         android:layout_weight="1"
         android:text="@string/help" />

@@ -7,7 +7,7 @@
     >
     <include layout="@layout/status"/>
  <mobi.omegacentauri.shogi.BoardView
-	  android:id="@+id/boardview"
+    android:id="@+id/boardview"
     android:layout_width="fill_parent"
     android:layout_height="0dp"
     android:layout_weight="1"

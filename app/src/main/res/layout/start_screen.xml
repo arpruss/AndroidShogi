@@ -4,18 +4,17 @@
     android:layout_height="fill_parent"
     android:orientation="vertical" >
 
-  <ImageView
-      android:contentDescription="splash"
-      android:layout_width="wrap_content"
-      android:layout_height="wrap_content"
-      android:layout_gravity="center"
+  <mobi.omegacentauri.shogi.SplashView
+      android:id="@+id/splashview"
+      android:layout_width="fill_parent"
+      android:layout_height="0dp"
       android:layout_weight="1"
-      android:src="@drawable/splash" />
+      android:layout_gravity="top|fill_vertical|center_horizontal"
+      />
 
   <LinearLayout
       android:layout_width="fill_parent"
       android:layout_height="wrap_content"
-      android:layout_weight="2"
       android:baselineAligned="false"
       android:orientation="horizontal" >
 

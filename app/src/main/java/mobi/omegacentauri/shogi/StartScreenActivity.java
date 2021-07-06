@@ -110,6 +110,10 @@ public class StartScreenActivity extends Activity {
             }
         });
 
+        final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        int id = BoardView.getBoardDrawable(this, prefs.getString("board", "board_rich_brown"));
+
+
         checkIfReady();
     }
 
@@ -140,6 +144,7 @@ public class StartScreenActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        ((SplashView)findViewById(R.id.splashview)).invalidate();
         checkIfReady();
     }
 

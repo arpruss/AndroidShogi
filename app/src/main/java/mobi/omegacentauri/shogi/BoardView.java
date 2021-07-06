@@ -28,8 +28,10 @@ public class BoardView extends FrameLayout implements View.OnTouchListener {
     static public final String TAG = "ShogiView";
 
     static final int CHALLENGING_KING = Piece.NUM_TYPES;
+    public static final int BOARD_PLAIN_COLOR = 0xfff5deb3;
 
     static String mBoardName;
+    private final Context mContext;
 
     /**
      * Interface for communicating user moves to the owner of this view.
@@ -42,6 +44,7 @@ public class BoardView extends FrameLayout implements View.OnTouchListener {
 
     public BoardView(Context context, AttributeSet attrs) {
         super(context, attrs);
+        mContext = context;
         mCurrentPlayer = Player.INVALID;
         mBoard = new Board();
         initializePieceBitmaps(context);
@@ -675,26 +678,32 @@ public class BoardView extends FrameLayout implements View.OnTouchListener {
         Paint p = new Paint();
 
         if (mBoardName.equals("plain")) {
-            p.setColor(0xfff5deb3);
+            p.setColor(BOARD_PLAIN_COLOR);
             canvas.drawRect(boardRect, p);
         }
         else {
-            if (boardRect.width() != mBoardWidth || mBoardHeight != mBoardHeight) {
+            if (boardRect.width() != mBoardWidth || boardRect.height() != mBoardHeight) {
                 if (mBoardBitmap != null) {
                     mBoardBitmap.recycle();
                     mBoardBitmap = null;
                 }
-                int id = getResources().getIdentifier(String.format("@mobi.omegacentauri.shogi:drawable/%s", mBoardName), null, null);
-                Bitmap base = BitmapFactory.decodeResource(getResources(), id);
-                mBoardWidth = boardRect.width();
-                mBoardHeight = boardRect.height();
-                mBoardBitmap = Bitmap.createScaledBitmap(base, mBoardWidth, mBoardHeight, true);
+                int id = getBoardDrawable(mContext, mBoardName);
+                if (id == 0) {
+                    p.setColor(BOARD_PLAIN_COLOR);
+                    canvas.drawRect(boardRect, p);
+                }
+                else {
+                    Bitmap base = BitmapFactory.decodeResource(getResources(), id);
+                    mBoardWidth = boardRect.width();
+                    mBoardHeight = boardRect.height();
+                    mBoardBitmap = Bitmap.createScaledBitmap(base, mBoardWidth, mBoardHeight, true);
+                }
             }
             canvas.drawBitmap(mBoardBitmap,boardRect.left,boardRect.top,p);
         }
 
         // Draw the gridlines
-        p.setColor(mBoardName.contains("black") ? 0xffffffff : 0xff000000);
+        p.setColor(mBoardName.contains("black") ? 0xc0ffffff : 0xc0000000);
         p.setStrokeWidth(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, 1, getResources().getDisplayMetrics()));
         for (int i = 0; i < Board.DIM; ++i) {
             final float sx = layout.screenX(i);
@@ -702,6 +711,12 @@ public class BoardView extends FrameLayout implements View.OnTouchListener {
             canvas.drawLine(sx, boardRect.top, sx, boardRect.bottom, p);
             canvas.drawLine(boardRect.left, sy, boardRect.right, sy, p);
         }
+    }
+
+    static public int getBoardDrawable(Context c, String name) {
+        if (name.equals("plain"))
+            return 0;
+        return c.getResources().getIdentifier(String.format("@mobi.omegacentauri.shogi:drawable/%s", name), null, null);
     }
 
     /**
@@ -776,7 +791,7 @@ public class BoardView extends FrameLayout implements View.OnTouchListener {
     // Load bitmaps for pieces. Called once when this view is created.
     private final void initializePieceBitmaps(Context context) {
         final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
-        final String prefix = prefs.getString("piece_style", "kanji_red_wood");
+        final String prefix = prefs.getString("piece_style", "kanji_light_threedim");
         boolean darkenBlack = prefs.getBoolean("darken_black", false);
         final Resources r = getResources();
         mBitmaps = new BitmapDrawable[2][2][Piece.NUM_TYPES+1];
@@ -812,7 +827,7 @@ public class BoardView extends FrameLayout implements View.OnTouchListener {
                 Bitmap baseBlack = Bitmap.createBitmap(base.getWidth(), base.getHeight(), Bitmap.Config.ARGB_8888);
                 Canvas c = new Canvas(baseBlack);
                 Paint p = new Paint();
-                p.setColorFilter(new LightingColorFilter(0xFFD0D0D0, 0));
+                p.setColorFilter(new LightingColorFilter(0xFFC8C8C8, 0));
                 c.drawBitmap(base, 0,0, p);
                 mBitmaps[0][0][i] = new BitmapDrawable(getResources(), baseBlack);
                 Bitmap flippedBlack = Bitmap.createBitmap(base.getWidth(), base.getHeight(), Bitmap.Config.ARGB_8888);
