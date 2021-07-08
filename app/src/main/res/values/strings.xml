@@ -81,4 +81,5 @@
     <string name="cores">Maximum number of CPU cores to use</string>
     <string name="fatal_error">Error</string>
     <string name="board_style">Board Style</string>
+    <string name="fuzzy">Fuzzy touch recognition</string>
 </resources>

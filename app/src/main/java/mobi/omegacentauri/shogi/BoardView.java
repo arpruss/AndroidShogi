@@ -32,6 +32,8 @@ public class BoardView extends FrameLayout implements View.OnTouchListener {
 
     static String mBoardName;
     private final Context mContext;
+    private final SharedPreferences mPrefs;
+    private boolean mExactPosition = true;
 
     /**
      * Interface for communicating user moves to the owner of this view.
@@ -45,12 +47,13 @@ public class BoardView extends FrameLayout implements View.OnTouchListener {
     public BoardView(Context context, AttributeSet attrs) {
         super(context, attrs);
         mContext = context;
+        mPrefs = PreferenceManager.getDefaultSharedPreferences(context);
         mCurrentPlayer = Player.INVALID;
         mBoard = new Board();
         initializePieceBitmaps(context);
         setOnTouchListener(this);
-        final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
-        mBoardName = prefs.getString("board", "board_rich_brown");
+        mBoardName = mPrefs.getString("board", "board_rich_brown");
+        mExactPosition = !mPrefs.getBoolean("fuzzy", false);
     }
 
     /**
@@ -116,15 +119,20 @@ public class BoardView extends FrameLayout implements View.OnTouchListener {
      * Helper class for finding a piece that the user is intending to move.
      */
     static private class NearestSquareFinder {
+        private final int mSquareDim;
+        private boolean mExactPosition;
+
         // sx and sy are screen location of the touch event, in pixels.
-        public NearestSquareFinder(ScreenLayout layout, float sx, float sy) {
+        public NearestSquareFinder(ScreenLayout layout, float sx, float sy, boolean exactPosition) {
             mLayout = layout;
             mSx = sx;
             mSy = sy;
+            mExactPosition = exactPosition;
 
             mMinDistance = 9999;
             mPx = mPy = -1;
             mType = S_INVALID;
+            mSquareDim = mLayout.getSquareDim();
         }
 
         // Find empty spots near <mSx, mSy> at which "player" can drop
@@ -133,8 +141,9 @@ public class BoardView extends FrameLayout implements View.OnTouchListener {
                 Board board, Player player, int pieceToDrop) {
             int px = mLayout.boardX(mSx);
             int py = mLayout.boardY(mSy);
-            for (int i = -1; i <= 1; ++i) {
-                for (int j = -1; j <= 1; ++j) {
+            int delta = mExactPosition ? 0 : 1;
+            for (int i = -delta; i <= delta; ++i) {
+                for (int j = -delta; j <= delta; ++j) {
                     int x = px + i;
                     int y = py + j;
                     if (x >= 0 && x < Board.DIM && y >= 0 && y < Board.DIM) {
@@ -154,8 +163,9 @@ public class BoardView extends FrameLayout implements View.OnTouchListener {
         public final void findNearestPlayersPieceOnBoard(Board board, Player player) {
             int px = mLayout.boardX(mSx);
             int py = mLayout.boardY(mSy);
-            for (int i = -1; i <= 1; ++i) {
-                for (int j = -1; j <= 1; ++j) {
+            int delta = mExactPosition ? 0 : 1;
+            for (int i = -delta; i <= delta; ++i) {
+                for (int j = -delta; j <= delta; ++j) {
                     int x = px + i;
                     int y = py + j;
                     if (x >= 0 && x < Board.DIM && y >= 0 && y < Board.DIM) {
@@ -172,10 +182,13 @@ public class BoardView extends FrameLayout implements View.OnTouchListener {
 
         private final void tryScreenPosition(float sx, float sy,
                                              int px, int py, int type) {
-            float centerX = sx + mLayout.getSquareDim() / 2;
-            float centerY = sy + mLayout.getSquareDim() / 2;
+            float centerX = sx + mSquareDim / 2;
+            float centerY = sy + mSquareDim / 2;
+            if (mExactPosition && (Math.abs(centerX - mSx) >= mSquareDim/2 || Math.abs(centerY - mSy) >= mSquareDim/2) ) {
+                return;
+            }
             double distance = Math.hypot(centerX - mSx, centerY - mSy);
-            if (distance < mMinDistance && distance < mLayout.getSquareDim()) {
+            if (distance < mMinDistance && distance < mSquareDim) {
                 mMinDistance = distance;
                 mPx = px;
                 mPy = py;
@@ -227,7 +240,7 @@ public class BoardView extends FrameLayout implements View.OnTouchListener {
             mMoveFrom = null;
             mMoveTo = null;
 
-            NearestSquareFinder finder = new NearestSquareFinder(layout, event.getX(), event.getY());
+            NearestSquareFinder finder = new NearestSquareFinder(layout, event.getX(), event.getY(), mExactPosition);
             finder.findNearestPlayersPieceOnBoard(mBoard, mCurrentPlayer);
 
             ArrayList<CapturedPiece> captured = listCapturedPieces(layout, mCurrentPlayer);
@@ -250,7 +263,7 @@ public class BoardView extends FrameLayout implements View.OnTouchListener {
         boolean needInvalidation = false;
         if (mMoveFrom != null) {
             // User dragging a piece to move
-            NearestSquareFinder finder = new NearestSquareFinder(layout, event.getX(), event.getY());
+            NearestSquareFinder finder = new NearestSquareFinder(layout, event.getX(), event.getY(), mExactPosition);
             if (mMoveFrom instanceof PositionOnBoard) {
                 PositionOnBoard from = (PositionOnBoard) mMoveFrom;
                 ArrayList<Board.Position> dests = mBoard.possibleMoveDestinations(from.x, from.y);
@@ -409,10 +422,10 @@ public class BoardView extends FrameLayout implements View.OnTouchListener {
             // TODO(saito) draw a big circle around mMoveTo so that people
             // with chubby finger can still see the destination.
             Paint cp = new Paint();
-            float radius = squareDim * 0.9f;
+            float radius = squareDim * 1.1f;
             float cx = layout.screenX(mMoveTo.x) + squareDim / 2.0f;
             float cy = layout.screenY(mMoveTo.y) + squareDim / 2.0f;
-            cp.setShader(new RadialGradient(cx, cy, radius, 0xffb8860b, 0x00b8860b, Shader.TileMode.MIRROR));
+            cp.setShader(new RadialGradient(cx, cy, radius, 0xffb8860b, 0x20b8860b, Shader.TileMode.MIRROR));
 
             canvas.drawCircle(cx, cy, radius, cp);
             drawPiece(canvas, layout, pieceToMove,
@@ -790,9 +803,8 @@ public class BoardView extends FrameLayout implements View.OnTouchListener {
 
     // Load bitmaps for pieces. Called once when this view is created.
     private final void initializePieceBitmaps(Context context) {
-        final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
-        final String prefix = prefs.getString("piece_style", "kanji_light_threedim");
-        boolean darkenBlack = prefs.getBoolean("darken_black", false);
+        final String prefix = mPrefs.getString("piece_style", "kanji_light_threedim");
+        boolean darkenBlack = mPrefs.getBoolean("darken_black", false);
         final Resources r = getResources();
         mBitmaps = new BitmapDrawable[2][2][Piece.NUM_TYPES+1];
         String koma_names[] = {

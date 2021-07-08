@@ -32,6 +32,11 @@
     android:defaultValue="false"
     android:title="@string/darken_black"
     />
+  <CheckBoxPreference
+      android:key="fuzzy"
+      android:defaultValue="false"
+      android:title="@string/fuzzy"
+      />
   <PreferenceCategory android:title="Advanced settings"/>
   <ListPreference
       android:title="@string/cores"
