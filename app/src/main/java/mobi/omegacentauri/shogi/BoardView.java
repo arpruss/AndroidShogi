@@ -17,15 +17,17 @@ import android.graphics.Rect;
 import android.graphics.Shader;
 import android.graphics.Typeface;
 import android.graphics.drawable.BitmapDrawable;
+import android.inputmethodservice.Keyboard;
 import android.preference.PreferenceManager;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.util.TypedValue;
+import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.FrameLayout;
 
-public class BoardView extends FrameLayout implements View.OnTouchListener {
+public class BoardView extends FrameLayout implements View.OnTouchListener, KeyboardControl.ShowCursor {
     static public final String TAG = "ShogiView";
 
     static final int CHALLENGING_KING = Piece.NUM_TYPES;
@@ -44,6 +46,19 @@ public class BoardView extends FrameLayout implements View.OnTouchListener {
     private float[] fingerStops = new float[] {
         0f, .6f, .8f, 1f
     };
+
+    @Override
+    public void showCursor(KeyboardControl.CursorPosition cp) {
+
+    }
+
+    @Override
+    public void hideCursor() {
+
+    }
+
+    public void updateKeyPositions(KeyboardControl keyboardControl) {
+    }
 
     /**
      * Interface for communicating user moves to the owner of this view.
