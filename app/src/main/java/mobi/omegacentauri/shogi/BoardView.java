@@ -19,6 +19,7 @@ import android.graphics.Typeface;
 import android.graphics.drawable.BitmapDrawable;
 import android.preference.PreferenceManager;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.MotionEvent;
 import android.view.View;
@@ -34,6 +35,15 @@ public class BoardView extends FrameLayout implements View.OnTouchListener {
     private final Context mContext;
     private final SharedPreferences mPrefs;
     private boolean mExactPosition = true;
+    private int[] fingerColors = new int[] {
+            0x00008000,
+            0x00008000,
+            0xC0008000,
+            0x00008000
+    };
+    private float[] fingerStops = new float[] {
+        0f, .6f, .8f, 1f
+    };
 
     /**
      * Interface for communicating user moves to the owner of this view.
@@ -118,9 +128,19 @@ public class BoardView extends FrameLayout implements View.OnTouchListener {
     /**
      * Helper class for finding a piece that the user is intending to move.
      */
-    static private class NearestSquareFinder {
+    private class NearestSquareFinder {
         private final int mSquareDim;
-        private boolean mExactPosition;
+        private final boolean mExactPosition;
+        private ScreenLayout mLayout;
+
+        // Screen pixel position of the touch event
+        private float mSx;
+        private float mSy;
+
+        private double mMinDistance;
+        private int mPx;
+        private int mPy;
+        private int mType;
 
         // sx and sy are screen location of the touch event, in pixels.
         public NearestSquareFinder(ScreenLayout layout, float sx, float sy, boolean exactPosition) {
@@ -184,10 +204,13 @@ public class BoardView extends FrameLayout implements View.OnTouchListener {
                                              int px, int py, int type) {
             float centerX = sx + mSquareDim / 2;
             float centerY = sy + mSquareDim / 2;
+
             if (mExactPosition && (Math.abs(centerX - mSx) >= mSquareDim/2 || Math.abs(centerY - mSy) >= mSquareDim/2) ) {
                 return;
             }
+
             double distance = Math.hypot(centerX - mSx, centerY - mSy);
+
             if (distance < mMinDistance && distance < mSquareDim) {
                 mMinDistance = distance;
                 mPx = px;
@@ -196,7 +219,7 @@ public class BoardView extends FrameLayout implements View.OnTouchListener {
             }
         }
 
-        private static final boolean isDoublePawn(Board board, int pieceToDrop, int px, int py) {
+        private final boolean isDoublePawn(Board board, int pieceToDrop, int px, int py) {
             if (Board.type(pieceToDrop) == Piece.FU) {
                 for (int y = 0; y < Board.DIM; ++y) {
                     if (y != py && board.getPiece(px, y) == pieceToDrop) return true;
@@ -217,22 +240,24 @@ public class BoardView extends FrameLayout implements View.OnTouchListener {
             return mPy;
         }
 
-        private ScreenLayout mLayout;
+        public boolean checkHysteresis(PositionOnBoard moveTo) {
+            if (moveTo != null && moveTo instanceof PositionOnBoard) {
+                float centerMoveX = mLayout.screenX(moveTo.x) + mSquareDim / 2;
+                float centerMoveY = mLayout.screenY(moveTo.y) + mSquareDim / 2;
+                float distanceFromMove = Math.max(Math.abs(centerMoveX - mSx), Math.abs(centerMoveY - mSy));
+                float threshold = 0.67f * mSquareDim;
 
-        // Screen pixel position of the touch event
-        private float mSx;
-        private float mSy;
-
-        private double mMinDistance;
-        private int mPx;
-        private int mPy;
-        private int mType;
+                return distanceFromMove < threshold;
+            }
+            return false;
+        }
     }
 
     public boolean onTouch(View v, MotionEvent event) {
         if (!isHumanPlayer(mCurrentPlayer)) return false;
 
         ScreenLayout layout = getScreenLayout();
+
         int action = event.getAction();
 
         if (action == MotionEvent.ACTION_DOWN) {
@@ -250,6 +275,7 @@ public class BoardView extends FrameLayout implements View.OnTouchListener {
             }
             if (finder.nearestType() == S_PIECE) {
                 mMoveFrom = new PositionOnBoard(finder.nearestX(), finder.nearestY());
+                mMoveTo = new PositionOnBoard(finder.nearestX(), finder.nearestY());
             } else if (finder.nearestType() == S_CAPTURED) {
                 // Dropping a captured piece
                 mMoveFrom = captured.get(finder.nearestX());
@@ -280,13 +306,15 @@ public class BoardView extends FrameLayout implements View.OnTouchListener {
                 finder.findNearestEmptySquareOnBoard(mBoard, mCurrentPlayer, p.piece);
             }
 
-            if (finder.nearestType() != S_INVALID) {
-                final PositionOnBoard to = new PositionOnBoard(finder.nearestX(), finder.nearestY());
-                needInvalidation = !to.equals(mMoveTo);
-                mMoveTo = to;
-            } else {
-                needInvalidation = (mMoveTo != null);
-                mMoveTo = null;
+            if (!finder.checkHysteresis(mMoveTo)) {
+                if (finder.nearestType() != S_INVALID) {
+                    final PositionOnBoard to = new PositionOnBoard(finder.nearestX(), finder.nearestY());
+                    needInvalidation = !to.equals(mMoveTo);
+                    mMoveTo = to;
+                } else {
+                    needInvalidation = (mMoveTo != null);
+                    mMoveTo = null;
+                }
             }
         }
         if (action == MotionEvent.ACTION_UP) {
@@ -315,6 +343,39 @@ public class BoardView extends FrameLayout implements View.OnTouchListener {
         return true;
     }
 
+    private void prepareGraphics(Rect boardRect) {
+        if ( boardRect.width() == mBoardWidth &&
+                boardRect.height() == mBoardHeight &&
+                mFlipped == mBoardFlipped) {
+            return;
+        }
+
+        mBoardWidth = boardRect.width();
+        mBoardHeight = boardRect.height();
+        mBoardFlipped = mFlipped;
+
+        if (mBoardBitmap != null) {
+            mBoardBitmap.recycle();
+            mBoardBitmap = null;
+        }
+
+        int id = mBoardName.equals("plain") ? 0 : getBoardDrawable(mContext, mBoardName);
+        if (id == 0) {
+            mBoardBitmap = null;
+        }
+        else {
+            Bitmap base = BitmapFactory.decodeResource(getResources(), id);
+            Matrix matrix = new Matrix();
+            matrix.setScale((float)mBoardWidth/base.getWidth(),(float)mBoardHeight/base.getHeight());
+            if (mFlipped) {
+                matrix.postRotate(180);
+            }
+
+            mBoardBitmap = Bitmap.createBitmap(base, 0, 0, base.getWidth(), base.getHeight(), matrix, true);
+        }
+
+    }
+
     private static final int ANIM_DRAW_LAST_BOARD = 1;
     private static final int ANIM_HIDE_PIECE_FROM = 2;
     private static final int ANIM_HIGHLIGHT_PIECE_TO = 8;
@@ -324,9 +385,11 @@ public class BoardView extends FrameLayout implements View.OnTouchListener {
     //
     @Override
     public void onDraw(Canvas canvas) {
-
         if (mBoard == null) return;
+
         ScreenLayout layout = getScreenLayout();
+        prepareGraphics(layout.getBoard());
+
         int squareDim = layout.getSquareDim();
 
         drawEmptyBoard(canvas, layout);
@@ -380,7 +443,7 @@ public class BoardView extends FrameLayout implements View.OnTouchListener {
             float cx = layout.screenX(mLastMove.toX()) + squareDim / 2.0f;
             float cy = layout.screenY(mLastMove.toY()) + squareDim / 2.0f;
             float radius = squareDim * 0.9f;
-            cp.setShader(new RadialGradient(cx, cy, 20, 0xffb8860b, 0x00b8860b, Shader.TileMode.MIRROR));
+            cp.setShader(new RadialGradient(cx, cy, squareDim * 0.2f, 0xffb8860b, 0x00b8860b, Shader.TileMode.MIRROR));
             canvas.drawCircle(cx, cy, radius, cp);
         }
 
@@ -425,7 +488,8 @@ public class BoardView extends FrameLayout implements View.OnTouchListener {
             float radius = squareDim * 1.1f;
             float cx = layout.screenX(mMoveTo.x) + squareDim / 2.0f;
             float cy = layout.screenY(mMoveTo.y) + squareDim / 2.0f;
-            cp.setShader(new RadialGradient(cx, cy, radius, 0xffb8860b, 0x20b8860b, Shader.TileMode.MIRROR));
+            //cp.setShader(new RadialGradient(cx, cy, radius, 0xffb8860b, 0x20b8860b, Shader.TileMode.MIRROR));
+            cp.setShader(new RadialGradient(cx,cy,radius,fingerColors,fingerStops,Shader.TileMode.MIRROR));
 
             canvas.drawCircle(cx, cy, radius, cp);
             drawPiece(canvas, layout, pieceToMove,
@@ -684,34 +748,18 @@ public class BoardView extends FrameLayout implements View.OnTouchListener {
     private Bitmap mBoardBitmap = null;
     private int mBoardWidth = -1;
     private int mBoardHeight = -1;
+    private boolean mBoardFlipped = false;
 
     private final void drawEmptyBoard(Canvas canvas, ScreenLayout layout) {
         // Fill the board square
         Rect boardRect = layout.getBoard();
         Paint p = new Paint();
 
-        if (mBoardName.equals("plain")) {
+        if (mBoardBitmap == null) {
             p.setColor(BOARD_PLAIN_COLOR);
             canvas.drawRect(boardRect, p);
         }
         else {
-            if (boardRect.width() != mBoardWidth || boardRect.height() != mBoardHeight) {
-                if (mBoardBitmap != null) {
-                    mBoardBitmap.recycle();
-                    mBoardBitmap = null;
-                }
-                int id = getBoardDrawable(mContext, mBoardName);
-                if (id == 0) {
-                    p.setColor(BOARD_PLAIN_COLOR);
-                    canvas.drawRect(boardRect, p);
-                }
-                else {
-                    Bitmap base = BitmapFactory.decodeResource(getResources(), id);
-                    mBoardWidth = boardRect.width();
-                    mBoardHeight = boardRect.height();
-                    mBoardBitmap = Bitmap.createScaledBitmap(base, mBoardWidth, mBoardHeight, true);
-                }
-            }
             canvas.drawBitmap(mBoardBitmap,boardRect.left,boardRect.top,p);
         }
 
