@@ -57,7 +57,7 @@ public class BoardView extends FrameLayout implements View.OnTouchListener, Keyb
 
     }
 
-    public void updateKeyPositions(KeyboardControl keyboardControl) {
+    public void addKeyPositions(KeyboardControl keyboardControl) {
     }
 
     /**

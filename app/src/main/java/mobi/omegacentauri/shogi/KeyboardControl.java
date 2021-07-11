@@ -14,7 +14,7 @@ public class KeyboardControl implements View.OnKeyListener {
     public long mTouchedAt = -1;
 
     CursorPosition mCurrent = null;
-    List<CursorPosition> mPositions;
+    ArrayList<CursorPosition> mPositions;
 
     public KeyboardControl() {
         mPositions = new ArrayList<CursorPosition>();
@@ -42,6 +42,22 @@ public class KeyboardControl implements View.OnKeyListener {
 
     public void clear() {
         mPositions.clear();
+    }
+
+    public void clearForView(View w) {
+        if (mCurrent != null && mCurrent.mView == w) {
+            hide();
+            if (mTouchedAt >= 0) {
+                MotionEvent m = MotionEvent.obtain(mTouchedAt, SystemClock.uptimeMillis(), MotionEvent.ACTION_CANCEL, mCurrent.mX, mCurrent.mY, 0);
+                mTouchedAt = -1;
+                mCurrent.mTouch.onTouch(mCurrent.mView, m);
+            }
+            mCurrent = null;
+        }
+        for (int i = mPositions.size() - 1 ; i >= 0 ; i--) {
+            if (mPositions.get(i).mView == w)
+                mPositions.remove(i);
+        }
     }
 
     public void add(CursorPosition cp) {
@@ -146,6 +162,7 @@ public class KeyboardControl implements View.OnKeyListener {
             }
             else {
                 m = MotionEvent.obtain(mTouchedAt, SystemClock.uptimeMillis(), MotionEvent.ACTION_CANCEL, mCurrent.mX, mCurrent.mY, 0);
+                mTouchedAt = -1;
             }
             mCurrent.mTouch.onTouch(mCurrent.mView, m);
         }
