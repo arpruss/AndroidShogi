@@ -2,6 +2,7 @@ package mobi.omegacentauri.shogi;
 
 import java.util.ArrayList;
 
+import android.app.ActionBar;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -13,10 +14,12 @@ import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.ImageButton;
 import android.widget.SeekBar;
+import android.widget.TextView;
 
 /**
  * Activity for replaying a saved game
@@ -62,7 +65,9 @@ public class ReplayGameActivity extends Activity {
                     WindowManager.LayoutParams.FLAG_FULLSCREEN);
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
-            getActionBar().hide();
+            ActionBar a = getActionBar();
+            if (a != null)
+                a.hide();
         }
         setContentView(R.layout.replay_game);
         initializeInstanceState(savedInstanceState);
@@ -101,6 +106,20 @@ public class ReplayGameActivity extends Activity {
                 }
             }
         });
+        TextView tb = (TextView)findViewById(R.id.flip_text_button);
+        tb.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View view, MotionEvent motionEvent) {
+                if (motionEvent.getAction() == MotionEvent.ACTION_UP) {
+                    view.performClick();
+                    view.clearFocus();
+                    return true;
+                }
+                return true;
+            }
+        });
+        tb.clearFocus();
+        mBoardView.requestFocus();
 
         View undo = findViewById(R.id.undo_text_button);
         if (undo != null)
@@ -230,6 +249,7 @@ public class ReplayGameActivity extends Activity {
 
     public void flipClick(View view) {
         flipScreen();
+        mBoardView.requestFocus();
     }
 
     public void infoClick(View view) {

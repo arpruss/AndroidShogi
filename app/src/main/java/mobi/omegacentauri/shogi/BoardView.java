@@ -1,5 +1,7 @@
 package mobi.omegacentauri.shogi;
 
+// TODO: animate from capture
+
 import java.util.ArrayList;
 
 import android.content.Context;
@@ -25,7 +27,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.widget.FrameLayout;
 
-public class BoardView extends FrameLayout implements View.OnTouchListener, KeyboardControl.ShowCursor {
+public class BoardView extends FrameLayout implements View.OnTouchListener, KeyboardControl.KeyboardRespondent {
     static public final String TAG = "ShogiView";
 
     static final int CHALLENGING_KING = Piece.NUM_TYPES;
@@ -50,15 +52,27 @@ public class BoardView extends FrameLayout implements View.OnTouchListener, Keyb
     @Override
     public void showCursor(KeyboardControl.CursorPosition cp) {
         mCursor = (XY)cp.mExtras;
-        Log.v("shogilog", "show xy "+mCursor.x+" "+mCursor.y);
         invalidate();
     }
 
     @Override
     public void hideCursor() {
         mCursor = null;
-        Log.v("shogilog", "hide");
         invalidate();
+    }
+
+    @Override
+    public boolean isValid(KeyboardControl.CursorPosition cp) {
+        XY xy = (XY)cp.mExtras;
+        if (xy.y == XY.BLACK_CAPTURED) {
+            return mCurrentPlayer.equals(Player.BLACK) && isHumanPlayer(Player.BLACK) &&
+                xy.x < listCapturedPieces(getScreenLayout(), Player.BLACK).size();
+        }
+        else if (xy.y == XY.WHITE_CAPTURED) {
+            return mCurrentPlayer.equals(Player.WHITE) && isHumanPlayer(Player.WHITE) &&
+                    xy.x < listCapturedPieces(getScreenLayout(), Player.WHITE).size();
+        }
+        return true;
     }
 
     /**
@@ -122,6 +136,9 @@ public class BoardView extends FrameLayout implements View.OnTouchListener, Keyb
             Player currentPlayer,
             Play lastMove,
             boolean animateMove) {
+
+        animateMove = false; //TODO: fix
+
         mCurrentPlayer = currentPlayer;
         mLastBoard = null;
         if (lastBoard != null) mLastBoard = new Board(lastBoard);
@@ -357,6 +374,12 @@ public class BoardView extends FrameLayout implements View.OnTouchListener, Keyb
             mMoveFrom = null;
             needInvalidation = true;
         }
+
+        if (action == MotionEvent.ACTION_CANCEL) {
+            mMoveTo = null;
+            mMoveFrom = null;
+            needInvalidation = true;
+        }
         if (needInvalidation) invalidate();
         return true;
     }
@@ -442,10 +465,10 @@ public class BoardView extends FrameLayout implements View.OnTouchListener, Keyb
 
 
             for (int y=Math.min(XY.BLACK_CAPTURED,XY.WHITE_CAPTURED) ; y <= Math.max(XY.BLACK_CAPTURED,XY.WHITE_CAPTURED); y++) {
-                if (y == XY.BLACK_CAPTURED && !isHumanPlayer(Player.BLACK))
+                /*if (y == XY.BLACK_CAPTURED && !isHumanPlayer(Player.BLACK))
                     continue;
                 if (y == XY.WHITE_CAPTURED && !isHumanPlayer(Player.WHITE))
-                    continue;
+                    continue; */
                 for (int x = 0; x < 7; x++) {
                     XY xy = new XY(x, y);
                     mKeyboardControl.add(new KeyboardControl.CursorPosition(this,
@@ -483,19 +506,26 @@ public class BoardView extends FrameLayout implements View.OnTouchListener, Keyb
         drawEmptyBoard(canvas, layout);
         final long now = System.currentTimeMillis();
         int animation = 0;
+        double animationStage = -1;
 
         if (mLastMove != null && mNextAnimationTime >= 0 && mNextAnimationTime <= now) {
-            int seq = (int) ((now - mAnimationStartTime) / ANIMATION_INTERVAL);
+            animationStage = (double)(now - mAnimationStartTime) / ANIMATION_INTERVAL;
+            int seq = (int) Math.floor(animationStage);
             switch (seq) {
                 case 0:
-                case 2:
-                    animation |= ANIM_HIDE_PIECE_FROM | ANIM_DRAW_LAST_BOARD;
+                    animation |= ANIM_HIDE_PIECE_FROM | ANIM_DRAW_LAST_BOARD | ANIM_HIGHLIGHT_PIECE_TO;
                     break;
                 case 1:
-                    animation |= ANIM_DRAW_LAST_BOARD;
+                    animation |= ANIM_HIGHLIGHT_PIECE_TO;
                     break;
+//                case 1:
+//                    animation |= ANIM_HIDE_PIECE_FROM | ANIM_DRAW_LAST_BOARD | ANIM_HIGHLIGHT_PIECE_TO;
+//                    break;
+/*                case 2:
+                    animation |= ANIM_HIDE_PIECE_FROM | ANIM_DRAW_LAST_BOARD | ANIM_HIGHLIGHT_PIECE_TO;
+                    break; */
             }
-            ++seq;
+//            ++seq;
         }
 
         if (animation == 0 && mLastMove != null) {
@@ -508,13 +538,22 @@ public class BoardView extends FrameLayout implements View.OnTouchListener, Keyb
         for (int y = 0; y < Board.DIM; ++y) {
             for (int x = 0; x < Board.DIM; ++x) {
                 int piece = board.getPiece(x, y);
+                if (piece == 0) continue;
+                int alpha = 255;
+
+                float screenX = layout.screenX(x);
+                float screenY = layout.screenY(y);
+
                 if ((animation & ANIM_HIDE_PIECE_FROM) != 0 &&
                         x == mLastMove.fromX() &&
                         y == mLastMove.fromY()) {
-                    piece = 0;
+                    if (animationStage < 0)
+                        animationStage = 0;
+                    if (animationStage > 1)
+                        animationStage = 1;
+                    screenX = (float) (layout.screenX(mLastMove.toX()) * animationStage + screenX * (1-animationStage));
+                    screenY = (float) (layout.screenY(mLastMove.toY()) * animationStage + screenY * (1-animationStage));
                 }
-                if (piece == 0) continue;
-                int alpha = 255;
 
                 // A piece that the user is trying to move will be draw with a bit of
                 // transparency.
@@ -522,7 +561,7 @@ public class BoardView extends FrameLayout implements View.OnTouchListener, Keyb
                     PositionOnBoard p = (PositionOnBoard) mMoveFrom;
                     if (x == p.x && y == p.y) alpha = 64;
                 }
-                drawPiece(canvas, layout, piece, layout.screenX(x), layout.screenY(y), alpha);
+                drawPiece(canvas, layout, piece, screenX, screenY, alpha);
             }
         }
 
@@ -590,7 +629,7 @@ public class BoardView extends FrameLayout implements View.OnTouchListener, Keyb
         }
 
         if (animation != 0) {
-            postInvalidateDelayed(ANIMATION_INTERVAL);
+            postInvalidateDelayed(50);
         }
     }
 
@@ -832,7 +871,7 @@ public class BoardView extends FrameLayout implements View.OnTouchListener, Keyb
     private Play mLastMove;
     private long mAnimationStartTime;
     private long mNextAnimationTime;
-    private final int ANIMATION_INTERVAL = 120;
+    private final int ANIMATION_INTERVAL = 300;
 
     private EventListener mListener;
     private ArrayList<Player> mHumanPlayers;
@@ -978,7 +1017,7 @@ public class BoardView extends FrameLayout implements View.OnTouchListener, Keyb
                 Bitmap baseBlack = Bitmap.createBitmap(base.getWidth(), base.getHeight(), Bitmap.Config.ARGB_8888);
                 Canvas c = new Canvas(baseBlack);
                 Paint p = new Paint();
-                p.setColorFilter(new LightingColorFilter(0xFFC8C8C8, 0));
+                p.setColorFilter(new LightingColorFilter(0xFFC0C0C0, 0));
                 c.drawBitmap(base, 0,0, p);
                 mBitmaps[0][0][i] = new BitmapDrawable(getResources(), baseBlack);
                 Bitmap flippedBlack = Bitmap.createBitmap(base.getWidth(), base.getHeight(), Bitmap.Config.ARGB_8888);

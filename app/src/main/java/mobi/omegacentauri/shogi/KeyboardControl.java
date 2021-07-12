@@ -4,12 +4,12 @@ package mobi.omegacentauri.shogi;
 
 import android.os.SystemClock;
 import android.util.Log;
+import android.view.HapticFeedbackConstants;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 
 import java.util.ArrayList;
-import java.util.List;
 
 // TODO: ignore invisible views
 
@@ -17,7 +17,27 @@ public class KeyboardControl {
     public long mTouchedAt = -1;
 
     CursorPosition mCurrent = null;
+    CursorPosition mStartMove = null;
     ArrayList<CursorPosition> mPositions;
+    static final KeyboardRespondent defaultRespondent = new KeyboardRespondent() {
+        @Override
+        public void showCursor(CursorPosition cp) {
+        }
+
+        @Override
+        public void hideCursor() {
+        }
+
+        @Override
+        public boolean isValid(CursorPosition cp) {
+            try {
+                return cp.mView.getVisibility() == View.VISIBLE;
+            }
+            catch(Exception e) {
+                return false;
+            }
+        }
+    };
 
     public KeyboardControl() {
         mPositions = new ArrayList<CursorPosition>();
@@ -26,31 +46,44 @@ public class KeyboardControl {
     public void clearTouch() {
         if (mCurrent != null && mTouchedAt >= 0) {
             if (mCurrent.mTouch != null) {
-                MotionEvent m = MotionEvent.obtain(mTouchedAt, SystemClock.uptimeMillis(), MotionEvent.ACTION_UP, mCurrent.mX, mCurrent.mY, 0);
+                Log.v("shogilog", "Clearing touch");
+                MotionEvent m = MotionEvent.obtain(mTouchedAt, SystemClock.uptimeMillis(), MotionEvent.ACTION_CANCEL, mCurrent.mX, mCurrent.mY, 0);
                 mCurrent.mTouch.onTouch(mCurrent.mView, m);
             }
             hide();
         }
         mTouchedAt = -1;
+        mStartMove = null;
     }
 
     public void press() {
+        if (mCurrent != null)
+            mCurrent.mView.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);
         if (mTouchedAt >= 0) {
-            clearTouch();
+            if (mCurrent != null && mCurrent.mTouch != null) {
+                MotionEvent m = MotionEvent.obtain(mTouchedAt, SystemClock.uptimeMillis(), MotionEvent.ACTION_UP, mCurrent.mX, mCurrent.mY, 0);
+                mCurrent.mTouch.onTouch(mCurrent.mView, m);
+                mStartMove = null;
+                mTouchedAt = -1;
+            }
         }
         else if (mCurrent != null) {
             if (mCurrent.mTouch != null) {
+                Log.v("shogilog", "pressing");
                 mTouchedAt = SystemClock.uptimeMillis();
                 MotionEvent m = MotionEvent.obtain(mTouchedAt, SystemClock.uptimeMillis(), MotionEvent.ACTION_DOWN, mCurrent.mX, mCurrent.mY, 0);
                 mCurrent.mTouch.onTouch(mCurrent.mView, m);
+                mStartMove = mCurrent;
             }
-            else if (mCurrent.mView != null)
+            else
                 mCurrent.mView.performClick();
         }
     }
 
     public void clear() {
         mPositions.clear();
+        mStartMove = null;
+        mCurrent = null;
     }
 
     public void clearForView(View w) {
@@ -59,6 +92,7 @@ public class KeyboardControl {
             if (mTouchedAt >= 0) {
                 MotionEvent m = MotionEvent.obtain(mTouchedAt, SystemClock.uptimeMillis(), MotionEvent.ACTION_CANCEL, mCurrent.mX, mCurrent.mY, 0);
                 mTouchedAt = -1;
+                mStartMove = null;
                 mCurrent.mTouch.onTouch(mCurrent.mView, m);
             }
             mCurrent = null;
@@ -67,6 +101,8 @@ public class KeyboardControl {
             if (mPositions.get(i).mView == w)
                 mPositions.remove(i);
         }
+        if (mStartMove != null && mStartMove.mView == w)
+            mStartMove = null;
     }
 
     public void add(CursorPosition cp) {
@@ -82,6 +118,8 @@ public class KeyboardControl {
         int ny = mCurrent.getY();
         int bestNX = Integer.MAX_VALUE;
         for (CursorPosition cp : mPositions) {
+            if (! cp.mRespondent.isValid(cp))
+                continue;
             if (cp.getY() == ny) {
                 int x = cp.getX();
                 if (x > nx)
@@ -90,6 +128,8 @@ public class KeyboardControl {
         }
         if (bestNX == Integer.MAX_VALUE)
             for (CursorPosition cp : mPositions) {
+                if (! cp.mRespondent.isValid(cp))
+                    continue;
                 int x = cp.getX();
                 if (x > nx)
                     bestNX = Math.min(bestNX, x);
@@ -97,6 +137,8 @@ public class KeyboardControl {
         if (bestNX == Integer.MAX_VALUE)
             return;
         closest(bestNX, mCurrent.getY(), 0);
+        if (mCurrent != null)
+            mCurrent.mView.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);
     }
 
     public void left() {
@@ -108,6 +150,8 @@ public class KeyboardControl {
         int ny = mCurrent.getY();
         int bestNX = Integer.MIN_VALUE;
         for (CursorPosition cp : mPositions) {
+            if (! cp.mRespondent.isValid(cp))
+                continue;
             if (cp.getY() == ny) {
                 int x = cp.getX();
                 if (x < nx)
@@ -116,6 +160,8 @@ public class KeyboardControl {
         }
         if (bestNX == Integer.MIN_VALUE)
             for (CursorPosition cp : mPositions) {
+                if (! cp.mRespondent.isValid(cp))
+                    continue;
                 int x = cp.getX();
                 if (x < nx)
                     bestNX = Math.max(bestNX, x);
@@ -134,6 +180,8 @@ public class KeyboardControl {
         int ny = mCurrent.getY();
         int bestNY = Integer.MAX_VALUE;
         for (CursorPosition cp : mPositions) {
+            if (! cp.mRespondent.isValid(cp))
+                continue;
             if (cp.getX() == nx) {
                 int y = cp.getY();
                 if (y > ny)
@@ -142,6 +190,8 @@ public class KeyboardControl {
         }
         if (bestNY == Integer.MAX_VALUE)
             for (CursorPosition cp : mPositions) {
+                if (! cp.mRespondent.isValid(cp))
+                    continue;
                 int y = cp.getY();
                 if (y > ny)
                     bestNY = Math.min(bestNY, y);
@@ -160,6 +210,8 @@ public class KeyboardControl {
         int nx = mCurrent.getX();
         int bestNY = Integer.MIN_VALUE;
         for (CursorPosition cp : mPositions) {
+            if (! cp.mRespondent.isValid(cp))
+                continue;
             if (nx == cp.getX()) {
                 int y = cp.getY();
                 if (y < ny)
@@ -168,6 +220,8 @@ public class KeyboardControl {
         }
         if (bestNY == Integer.MIN_VALUE)
             for (CursorPosition cp : mPositions) {
+                if (! cp.mRespondent.isValid(cp))
+                    continue;
                 int y = cp.getY();
                 if (y < ny)
                     bestNY = Math.max(bestNY, y);
@@ -182,6 +236,8 @@ public class KeyboardControl {
         int bestDistance = Integer.MAX_VALUE;
         CursorPosition best = null;
         for (CursorPosition cp : mPositions) {
+            if (! cp.mRespondent.isValid(cp))
+                continue;
             if (coordinateToMove == 0) {
                 int cpX = cp.getX();
                 int dY = Math.abs(y-cp.getY());
@@ -200,8 +256,6 @@ public class KeyboardControl {
             }
         }
 
-        Log.v("shogilog", "bestXY "+best.getX()+" "+best.getY());
-
         if (mCurrent != best && best != null && mCurrent != null && mTouchedAt >= 0) {
             MotionEvent m;
             if (mCurrent.mView == best.mView) {
@@ -217,6 +271,31 @@ public class KeyboardControl {
             mCurrent = best;
 
         show();
+        if (mCurrent != null)
+            mCurrent.mView.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);
+    }
+
+    public void nextView() {
+        if (mCurrent == null) {
+            center();
+            return;
+        }
+        clearTouch();
+        hide();
+        int n = mPositions.size();
+        for (int i=0; i<n; i++) {
+            if (mPositions.get(i) == mCurrent) {
+                for (int j=1; j<=mPositions.size(); j++) {
+                    CursorPosition cp = mPositions.get((i+j)%n);
+                    if (cp.mRespondent.isValid(cp) && cp.mView != mCurrent.mView) {
+                        mCurrent = cp;
+                        mCurrent.mView.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);
+                        show();
+                        return;
+                    }
+                }
+            }
+        }
     }
 
     public void center() {
@@ -226,6 +305,8 @@ public class KeyboardControl {
         int maxX = Integer.MIN_VALUE;
         int maxY = Integer.MIN_VALUE;
         for (CursorPosition cp : mPositions) {
+            if (! cp.mRespondent.isValid(cp))
+                continue;
             int x = cp.getX();
             int y = cp.getY();
             minX = Math.min(x,minX);
@@ -238,6 +319,8 @@ public class KeyboardControl {
         double cy = (minY + maxY)/2.;
         double bestDistance = Float.MAX_VALUE;
         for (CursorPosition cp : mPositions) {
+            if (! cp.mRespondent.isValid(cp))
+                continue;
             double d = Math.hypot(cp.getX()-cx, cp.getY()-cy);
             if (d < bestDistance) {
                 bestDistance = d;
@@ -246,30 +329,26 @@ public class KeyboardControl {
         }
         mCurrent = best;
         show();
+        if (mCurrent != null)
+            mCurrent.mView.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);
     }
 
     private void show() {
         if (mCurrent != null) {
-            if (mCurrent.mShow != null)
-                mCurrent.mShow.showCursor(mCurrent);
-            if (mCurrent.mView != null) {
-                mCurrent.mView.requestFocus();
-            }
+            mCurrent.mRespondent.showCursor(mCurrent);
+            mCurrent.mView.requestFocus();
         }
     }
 
     private void hide() {
         if (mCurrent != null) {
-            if (mCurrent.mShow != null)
-                mCurrent.mShow.hideCursor();
-            if (mCurrent.mView != null)
-                mCurrent.mView.clearFocus();
+            mCurrent.mRespondent.hideCursor();
+            mCurrent.mView.clearFocus();
         }
     }
 
     public boolean onKeyDown(int keyCode, KeyEvent event) {
 
-        Log.v("shogilog", "key "+keyCode);
         switch (keyCode) {
             case KeyEvent.KEYCODE_DPAD_LEFT:
                 left();
@@ -287,8 +366,28 @@ public class KeyboardControl {
             case KeyEvent.KEYCODE_ENTER:
                 press();
                 return true;
+            case KeyEvent.KEYCODE_ESCAPE:
+                cancel();
+                return true;
+            case KeyEvent.KEYCODE_TAB:
+                nextView();
+                return true;
         }
         return false;
+    }
+
+    private void cancel() {
+        if (mCurrent != null && mTouchedAt >= 0) {
+            if (mCurrent.mTouch != null) {
+                MotionEvent m = MotionEvent.obtain(mTouchedAt, SystemClock.uptimeMillis(), MotionEvent.ACTION_CANCEL, mCurrent.mX, mCurrent.mY, 0);
+                mCurrent.mTouch.onTouch(mCurrent.mView, m);
+            }
+            mTouchedAt = -1;
+            hide();
+            mCurrent = mStartMove;
+            mStartMove = null;
+            show();
+        }
     }
 
     public void reset() {
@@ -299,15 +398,15 @@ public class KeyboardControl {
 
     static public class CursorPosition {
         private final View mView;
-        private final ShowCursor mShow;
+        private final KeyboardRespondent mRespondent;
         private final View.OnTouchListener mTouch;
         public final int mX;
         public final int mY;
         public final Object mExtras;
 
-        public CursorPosition(View view, ShowCursor show, View.OnTouchListener touch, int x, int y, Object extras) {
+        public CursorPosition(View view, KeyboardRespondent respondent, View.OnTouchListener touch, int x, int y, Object extras) {
             mView = view;
-            mShow = show;
+            mRespondent = respondent == null ? defaultRespondent : respondent;
             mTouch = touch;
             mX = x;
             mY = y;
@@ -327,8 +426,9 @@ public class KeyboardControl {
         }
     }
 
-    public interface ShowCursor {
+    public interface KeyboardRespondent {
         public void showCursor(CursorPosition cp);
         public void hideCursor();
+        public boolean isValid(CursorPosition cp);
     }
 }

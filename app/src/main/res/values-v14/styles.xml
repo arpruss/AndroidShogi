@@ -1,8 +1,11 @@
 <resources>
-    <style name="AppTheme" parent="android:Theme.DeviceDefault"/>
+    <style name="AppTheme" parent="android:Theme.DeviceDefault">
+        <item name="android:hapticFeedbackEnabled">true</item>
+    </style>
     <style name="AppTheme.Black" parent="android:Theme.DeviceDefault">
         <item name="android:textColor">#FFFFFF</item>
         <item name="android:background">#000000</item>
+        <item name="android:hapticFeedbackEnabled">true</item>
     </style>
     <!--
     <style name="AppTheme.NoTitleBar" parent="android:Theme.DeviceDefault.NoActionBar">

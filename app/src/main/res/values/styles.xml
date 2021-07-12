@@ -1,6 +1,9 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <style name="AppTheme" parent="AppTheme.Black"/>
-    <style name="AppTheme.Black" parent="android:Theme.Black"/>
+    <style name="AppTheme" parent="AppTheme.Black">
+    </style>
+    <style name="AppTheme.Black" parent="android:Theme.Black">
+        <item name="android:hapticFeedbackEnabled">true</item>
+    </style>
     <style name="AppTheme.Black.NoTitleBar" parent="@style/AppTheme.Black">
         <item name="android:windowNoTitle">true</item>
         <item name="android:windowFullscreen">true</item>

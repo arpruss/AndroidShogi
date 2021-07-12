@@ -3,6 +3,7 @@ package mobi.omegacentauri.shogi;
 import java.util.ArrayList;
 import java.util.TreeMap;
 
+import android.app.ActionBar;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -19,6 +20,7 @@ import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.TextView;
@@ -95,7 +97,9 @@ public class GameActivity extends Activity {
               WindowManager.LayoutParams.FLAG_FULLSCREEN);
     }
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
-      getActionBar().hide();
+      ActionBar a = getActionBar();
+      if (a != null)
+        a.hide();
     }
     setContentView(R.layout.game);
     initializeInstanceState(savedInstanceState);
@@ -113,6 +117,32 @@ public class GameActivity extends Activity {
     mBoardView.initialize(mViewListener, mHumanPlayers, mFlipScreen, mKeyboardControl);
     mBoardView.update(mGameState, null, mBoard, mNextPlayer, null, false);
     mBoardView.requestFocus();
+    TextView b = (TextView)findViewById(R.id.flip_text_button);
+    b.setOnTouchListener(new View.OnTouchListener() {
+      @Override
+      public boolean onTouch(View view, MotionEvent motionEvent) {
+        if (motionEvent.getAction() == MotionEvent.ACTION_UP) {
+          view.performClick();
+          view.clearFocus();
+          return true;
+        }
+        return true;
+      }
+    });
+    b.clearFocus();
+    b = (TextView)findViewById(R.id.undo_text_button);
+    b.setOnTouchListener(new View.OnTouchListener() {
+      @Override
+      public boolean onTouch(View view, MotionEvent motionEvent) {
+        if (motionEvent.getAction() == MotionEvent.ACTION_UP) {
+          view.performClick();
+          view.clearFocus();
+          return true;
+        }
+        return true;
+      }
+    });
+    b.clearFocus();
     findViewById(R.id.undo_text_button).clearFocus();
     findViewById(R.id.flip_text_button).clearFocus();
     mStatusView.update(mGameState,
@@ -549,6 +579,7 @@ public class GameActivity extends Activity {
 
     public void undoClick(View view) {
         undo();
+        mBoardView.requestFocus();
     }
 
     public void flipClick(View view) {
@@ -559,6 +590,7 @@ public class GameActivity extends Activity {
         SharedPreferences.Editor editor = mPrefs.edit();
         editor.putBoolean("flip_screen", mFlipScreen);
         editor.commit();
+        mBoardView.requestFocus();
     }
 
 //  private class BonanzaInitializeThread extends Thread {

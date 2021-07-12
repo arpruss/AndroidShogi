@@ -277,7 +277,6 @@ public class BonanzaController {
     //
 
     private final void sendInputMessage(int command, Bundle bundle) {
-        Log.v("shogilog", "input "+command);
         bundle.putInt("command", command);
         Message msg = mInputHandler.obtainMessage();
         msg.setData(bundle);
@@ -285,7 +284,6 @@ public class BonanzaController {
     }
 
     private final void sendOutputMessage(Result result) {
-        Log.v("shogilog", "output "+result);
         Message msg = mOutputHandler.obtainMessage();
         Bundle b = new Bundle();
         b.putSerializable("result", result);
