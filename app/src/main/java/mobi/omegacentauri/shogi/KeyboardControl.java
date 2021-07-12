@@ -3,6 +3,7 @@ package mobi.omegacentauri.shogi;
 // TODO: watch for leaks in case views change!
 
 import android.os.SystemClock;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
@@ -10,7 +11,9 @@ import android.view.View;
 import java.util.ArrayList;
 import java.util.List;
 
-public class KeyboardControl implements View.OnKeyListener {
+// TODO: ignore invisible views
+
+public class KeyboardControl {
     public long mTouchedAt = -1;
 
     CursorPosition mCurrent = null;
@@ -20,23 +23,29 @@ public class KeyboardControl implements View.OnKeyListener {
         mPositions = new ArrayList<CursorPosition>();
     }
 
-    public void press() {
-        if (mTouchedAt >= 0) {
-            if (mCurrent != null) {
-                if (mCurrent.mTouch != null) {
-                    MotionEvent m = MotionEvent.obtain(mTouchedAt, SystemClock.uptimeMillis(), MotionEvent.ACTION_UP, mCurrent.mX, mCurrent.mY, 0);
-                    mCurrent.mTouch.onTouch(mCurrent.mView, m);
-                }
-                mCurrent = null;
-            }
-            mTouchedAt = -1;
-        }
-        else {
+    public void clearTouch() {
+        if (mCurrent != null && mTouchedAt >= 0) {
             if (mCurrent.mTouch != null) {
-                mTouchedAt = SystemClock.uptimeMillis();
                 MotionEvent m = MotionEvent.obtain(mTouchedAt, SystemClock.uptimeMillis(), MotionEvent.ACTION_UP, mCurrent.mX, mCurrent.mY, 0);
                 mCurrent.mTouch.onTouch(mCurrent.mView, m);
             }
+            hide();
+        }
+        mTouchedAt = -1;
+    }
+
+    public void press() {
+        if (mTouchedAt >= 0) {
+            clearTouch();
+        }
+        else if (mCurrent != null) {
+            if (mCurrent.mTouch != null) {
+                mTouchedAt = SystemClock.uptimeMillis();
+                MotionEvent m = MotionEvent.obtain(mTouchedAt, SystemClock.uptimeMillis(), MotionEvent.ACTION_DOWN, mCurrent.mX, mCurrent.mY, 0);
+                mCurrent.mTouch.onTouch(mCurrent.mView, m);
+            }
+            else if (mCurrent.mView != null)
+                mCurrent.mView.performClick();
         }
     }
 
@@ -64,39 +73,82 @@ public class KeyboardControl implements View.OnKeyListener {
         mPositions.add(cp);
     }
 
-    public void left() {
-        if (mCurrent == null) {
-            center();
-            return;
-        }
-        int nx = mCurrent.getX();
-        int bestNX = Integer.MIN_VALUE;
-        for (CursorPosition cp : mPositions) {
-            int x = cp.getX();
-            if (x < nx)
-                bestNX = Math.max(bestNX, x);
-        }
-        if (bestNX == Integer.MIN_VALUE)
-            return;
-        closest(nx, mCurrent.getY(), 0);
-        hide();
-    }
-
     public void right() {
         if (mCurrent == null) {
             center();
             return;
         }
         int nx = mCurrent.getX();
+        int ny = mCurrent.getY();
         int bestNX = Integer.MAX_VALUE;
         for (CursorPosition cp : mPositions) {
-            int x = cp.getX();
-            if (x > nx)
-                bestNX = Math.min(bestNX, x);
+            if (cp.getY() == ny) {
+                int x = cp.getX();
+                if (x > nx)
+                    bestNX = Math.min(bestNX, x);
+            }
         }
         if (bestNX == Integer.MAX_VALUE)
+            for (CursorPosition cp : mPositions) {
+                int x = cp.getX();
+                if (x > nx)
+                    bestNX = Math.min(bestNX, x);
+            }
+        if (bestNX == Integer.MAX_VALUE)
             return;
-        closest(nx, mCurrent.getY(), 0);
+        closest(bestNX, mCurrent.getY(), 0);
+    }
+
+    public void left() {
+        if (mCurrent == null) {
+            center();
+            return;
+        }
+        int nx = mCurrent.getX();
+        int ny = mCurrent.getY();
+        int bestNX = Integer.MIN_VALUE;
+        for (CursorPosition cp : mPositions) {
+            if (cp.getY() == ny) {
+                int x = cp.getX();
+                if (x < nx)
+                    bestNX = Math.max(bestNX, x);
+            }
+        }
+        if (bestNX == Integer.MIN_VALUE)
+            for (CursorPosition cp : mPositions) {
+                int x = cp.getX();
+                if (x < nx)
+                    bestNX = Math.max(bestNX, x);
+            }
+        if (bestNX == Integer.MIN_VALUE)
+            return;
+        closest(bestNX, mCurrent.getY(), 0);
+    }
+
+    public void down() {
+        if (mCurrent == null) {
+            center();
+            return;
+        }
+        int nx = mCurrent.getX();
+        int ny = mCurrent.getY();
+        int bestNY = Integer.MAX_VALUE;
+        for (CursorPosition cp : mPositions) {
+            if (cp.getX() == nx) {
+                int y = cp.getY();
+                if (y > ny)
+                    bestNY = Math.min(bestNY, y);
+            }
+        }
+        if (bestNY == Integer.MAX_VALUE)
+            for (CursorPosition cp : mPositions) {
+                int y = cp.getY();
+                if (y > ny)
+                    bestNY = Math.min(bestNY, y);
+            }
+        if (bestNY == Integer.MAX_VALUE)
+            return;
+        closest(mCurrent.getX(), bestNY, 1);
     }
 
     public void up() {
@@ -105,32 +157,24 @@ public class KeyboardControl implements View.OnKeyListener {
             return;
         }
         int ny = mCurrent.getY();
+        int nx = mCurrent.getX();
         int bestNY = Integer.MIN_VALUE;
         for (CursorPosition cp : mPositions) {
-            int y = cp.getY();
-            if (y < ny)
-                bestNY = Math.max(bestNY, y);
+            if (nx == cp.getX()) {
+                int y = cp.getY();
+                if (y < ny)
+                    bestNY = Math.max(bestNY, y);
+            }
         }
         if (bestNY == Integer.MIN_VALUE)
+            for (CursorPosition cp : mPositions) {
+                int y = cp.getY();
+                if (y < ny)
+                    bestNY = Math.max(bestNY, y);
+            }
+        if (bestNY == Integer.MIN_VALUE)
             return;
-        closest(ny, mCurrent.getY(), 1);
-    }
-
-    public void down() {
-        if (mCurrent == null) {
-            center();
-            return;
-        }
-        int ny = mCurrent.getY();
-        int bestNY = Integer.MAX_VALUE;
-        for (CursorPosition cp : mPositions) {
-            int y = cp.getY();
-            if (y > ny)
-                bestNY = Math.min(bestNY, y);
-        }
-        if (bestNY == Integer.MAX_VALUE)
-            return;
-        closest(ny, mCurrent.getY(), 1);
+        closest(mCurrent.getX(), bestNY, 1);
     }
 
     private void closest(int x, int y, int coordinateToMove) {
@@ -155,6 +199,9 @@ public class KeyboardControl implements View.OnKeyListener {
                 }
             }
         }
+
+        Log.v("shogilog", "bestXY "+best.getX()+" "+best.getY());
+
         if (mCurrent != best && best != null && mCurrent != null && mTouchedAt >= 0) {
             MotionEvent m;
             if (mCurrent.mView == best.mView) {
@@ -168,6 +215,7 @@ public class KeyboardControl implements View.OnKeyListener {
         }
         if (best != null)
             mCurrent = best;
+
         show();
     }
 
@@ -201,47 +249,61 @@ public class KeyboardControl implements View.OnKeyListener {
     }
 
     private void show() {
-        if (mCurrent != null)
-            mCurrent.mShow.showCursor(mCurrent);
+        if (mCurrent != null) {
+            if (mCurrent.mShow != null)
+                mCurrent.mShow.showCursor(mCurrent);
+            if (mCurrent.mView != null) {
+                mCurrent.mView.requestFocus();
+            }
+        }
     }
 
     private void hide() {
-        if (mCurrent != null)
-            mCurrent.mShow.hideCursor();
+        if (mCurrent != null) {
+            if (mCurrent.mShow != null)
+                mCurrent.mShow.hideCursor();
+            if (mCurrent.mView != null)
+                mCurrent.mView.clearFocus();
+        }
     }
 
-    @Override
-    public boolean onKey(View view, int i, KeyEvent keyEvent) {
-        if (keyEvent.getAction() == KeyEvent.ACTION_DOWN) {
-            switch (keyEvent.getKeyCode()) {
-                case KeyEvent.KEYCODE_DPAD_LEFT:
-                    left();
-                    break;
-                case KeyEvent.KEYCODE_DPAD_RIGHT:
-                    right();
-                    break;
-                case KeyEvent.KEYCODE_DPAD_UP:
-                    up();
-                    break;
-                case KeyEvent.KEYCODE_DPAD_DOWN:
-                    down();
-                    break;
-                case KeyEvent.KEYCODE_DPAD_CENTER:
-                case KeyEvent.KEYCODE_ENTER:
-                    press();
-                    break;
-            }
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+
+        Log.v("shogilog", "key "+keyCode);
+        switch (keyCode) {
+            case KeyEvent.KEYCODE_DPAD_LEFT:
+                left();
+                return true;
+            case KeyEvent.KEYCODE_DPAD_RIGHT:
+                right();
+                return true;
+            case KeyEvent.KEYCODE_DPAD_UP:
+                up();
+                return true;
+            case KeyEvent.KEYCODE_DPAD_DOWN:
+                down();
+                return true;
+            case KeyEvent.KEYCODE_DPAD_CENTER:
+            case KeyEvent.KEYCODE_ENTER:
+                press();
+                return true;
         }
         return false;
+    }
+
+    public void reset() {
+        hide();
+        clearTouch();
+        mCurrent = null;
     }
 
     static public class CursorPosition {
         private final View mView;
         private final ShowCursor mShow;
         private final View.OnTouchListener mTouch;
-        private final int mX;
-        private final int mY;
-        private final Object mExtras;
+        public final int mX;
+        public final int mY;
+        public final Object mExtras;
 
         public CursorPosition(View view, ShowCursor show, View.OnTouchListener touch, int x, int y, Object extras) {
             mView = view;
@@ -261,7 +323,7 @@ public class KeyboardControl implements View.OnKeyListener {
         public int getY() {
             int[] pos = new int[2];
             mView.getLocationInWindow(pos);
-            return pos[0] + mY;
+            return pos[1] + mY;
         }
     }
 

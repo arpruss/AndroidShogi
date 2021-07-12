@@ -13,9 +13,6 @@ import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.util.Log;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.ImageButton;
@@ -88,7 +85,7 @@ public class ReplayGameActivity extends Activity {
         mBoardView = (BoardView) findViewById(R.id.boardview);
         mBoardView.initialize(mViewListener,
                 new ArrayList<Player>(),  // Disallow board manipulation by the user
-                mFlipScreen);
+                mFlipScreen, null);
         ImageButton b;
         b = (ImageButton) findViewById(R.id.replay_prev_button);
         b.setOnClickListener(new ImageButton.OnClickListener() {

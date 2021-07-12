@@ -17,12 +17,10 @@ import android.graphics.Rect;
 import android.graphics.Shader;
 import android.graphics.Typeface;
 import android.graphics.drawable.BitmapDrawable;
-import android.inputmethodservice.Keyboard;
 import android.preference.PreferenceManager;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.util.TypedValue;
-import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.FrameLayout;
@@ -37,6 +35,7 @@ public class BoardView extends FrameLayout implements View.OnTouchListener, Keyb
     private final Context mContext;
     private final SharedPreferences mPrefs;
     private boolean mExactPosition = true;
+    private XY mCursor = null;
     private int[] fingerColors = new int[] {
             0x00008000,
             0x00008000,
@@ -46,18 +45,20 @@ public class BoardView extends FrameLayout implements View.OnTouchListener, Keyb
     private float[] fingerStops = new float[] {
         0f, .6f, .8f, 1f
     };
+    private KeyboardControl mKeyboardControl;
 
     @Override
     public void showCursor(KeyboardControl.CursorPosition cp) {
-
+        mCursor = (XY)cp.mExtras;
+        Log.v("shogilog", "show xy "+mCursor.x+" "+mCursor.y);
+        invalidate();
     }
 
     @Override
     public void hideCursor() {
-
-    }
-
-    public void addKeyPositions(KeyboardControl keyboardControl) {
+        mCursor = null;
+        Log.v("shogilog", "hide");
+        invalidate();
     }
 
     /**
@@ -87,10 +88,12 @@ public class BoardView extends FrameLayout implements View.OnTouchListener, Keyb
     public final void initialize(
             EventListener listener,
             ArrayList<Player> humanPlayers,
-            boolean flipScreen) {
+            boolean flipScreen,
+            KeyboardControl keyboardControl) {
         mListener = listener;
         mHumanPlayers = new ArrayList<Player>(humanPlayers);
         mFlipped = flipScreen;
+        mKeyboardControl = keyboardControl;
     }
 
     /**
@@ -358,7 +361,44 @@ public class BoardView extends FrameLayout implements View.OnTouchListener, Keyb
         return true;
     }
 
-    private void prepareGraphics(Rect boardRect) {
+    private final class XY {
+        int x;
+        int y;
+        static final int BLACK_CAPTURED = -1;
+        static final int WHITE_CAPTURED = Board.DIM;
+
+        public XY(int x, int y) {
+            this.x = x;
+            this.y = y;
+        }
+
+        float getScreenX() {
+            if (this.y == BLACK_CAPTURED) {
+                return getScreenLayout().capturedScreenX(Player.BLACK, this.x) + getScreenLayout().getSquareDim() / 2f;
+            }
+            else if (this.y == WHITE_CAPTURED) {
+                return getScreenLayout().capturedScreenX(Player.WHITE, this.x) + getScreenLayout().getSquareDim() / 2f;
+            }
+            else {
+                return getScreenLayout().screenX(x) + getScreenLayout().getSquareDim() / 2f;
+            }
+        }
+
+        float getScreenY() {
+            if (this.y == BLACK_CAPTURED) {
+                return getScreenLayout().capturedScreenY(Player.BLACK, this.x) + getScreenLayout().getSquareDim() / 2f;
+            }
+            else if (this.y == WHITE_CAPTURED) {
+                return getScreenLayout().capturedScreenY(Player.WHITE, this.x) + getScreenLayout().getSquareDim() / 2f;
+            }
+            else {
+                return getScreenLayout().screenY(y) + getScreenLayout().getSquareDim() / 2f;
+            }
+        }
+    }
+
+    private void prepareGraphics(ScreenLayout layout) {
+        Rect boardRect = layout.getBoard();
         if ( boardRect.width() == mBoardWidth &&
                 boardRect.height() == mBoardHeight &&
                 mFlipped == mBoardFlipped) {
@@ -389,11 +429,44 @@ public class BoardView extends FrameLayout implements View.OnTouchListener, Keyb
             mBoardBitmap = Bitmap.createBitmap(base, 0, 0, base.getWidth(), base.getHeight(), matrix, true);
         }
 
+        if (mKeyboardControl != null) {
+            mKeyboardControl.clearForView(this);
+            for (int x=0; x<Board.DIM; x++)
+                for (int y=0; y<Board.DIM; y++) {
+                    XY xy = new XY(x,y);
+                    mKeyboardControl.add(new KeyboardControl.CursorPosition(this,
+                            this, this,
+                            (int)(xy.getScreenX()), (int)(xy.getScreenY()),
+                            xy));
+                }
+
+
+            for (int y=Math.min(XY.BLACK_CAPTURED,XY.WHITE_CAPTURED) ; y <= Math.max(XY.BLACK_CAPTURED,XY.WHITE_CAPTURED); y++) {
+                if (y == XY.BLACK_CAPTURED && !isHumanPlayer(Player.BLACK))
+                    continue;
+                if (y == XY.WHITE_CAPTURED && !isHumanPlayer(Player.WHITE))
+                    continue;
+                for (int x = 0; x < 7; x++) {
+                    XY xy = new XY(x, y);
+                    mKeyboardControl.add(new KeyboardControl.CursorPosition(this,
+                            this, this,
+                            (int) (xy.getScreenX()), (int) (xy.getScreenY()),
+                            xy));
+                }
+            }
+        }
     }
 
     private static final int ANIM_DRAW_LAST_BOARD = 1;
     private static final int ANIM_HIDE_PIECE_FROM = 2;
     private static final int ANIM_HIGHLIGHT_PIECE_TO = 8;
+
+    public void drawSelectionCircle(Canvas canvas, float cx, float cy, float scale, ScreenLayout layout) {
+        Paint cp = new Paint();
+        float radius = layout.getSquareDim() * scale;
+        cp.setShader(new RadialGradient(cx, cy, radius, fingerColors, fingerStops, Shader.TileMode.MIRROR));
+        canvas.drawCircle(cx, cy, radius, cp);
+    }
 
     //
     // Screen drawing
@@ -403,7 +476,7 @@ public class BoardView extends FrameLayout implements View.OnTouchListener, Keyb
         if (mBoard == null) return;
 
         ScreenLayout layout = getScreenLayout();
-        prepareGraphics(layout.getBoard());
+        prepareGraphics(layout);
 
         int squareDim = layout.getSquareDim();
 
@@ -497,16 +570,13 @@ public class BoardView extends FrameLayout implements View.OnTouchListener, Keyb
                 pieceToMove = ((CapturedPiece) mMoveFrom).piece;
                 if (mCurrentPlayer == Player.WHITE) pieceToMove = -pieceToMove;
             }
-            // TODO(saito) draw a big circle around mMoveTo so that people
+            // draw a big circle around mMoveTo so that people
             // with chubby finger can still see the destination.
-            Paint cp = new Paint();
-            float radius = squareDim * 1.1f;
             float cx = layout.screenX(mMoveTo.x) + squareDim / 2.0f;
             float cy = layout.screenY(mMoveTo.y) + squareDim / 2.0f;
-            //cp.setShader(new RadialGradient(cx, cy, radius, 0xffb8860b, 0x20b8860b, Shader.TileMode.MIRROR));
-            cp.setShader(new RadialGradient(cx,cy,radius,fingerColors,fingerStops,Shader.TileMode.MIRROR));
-
-            canvas.drawCircle(cx, cy, radius, cp);
+            if (mCursor == null) {
+                drawSelectionCircle(canvas, cx, cy, 1.1f, layout);
+            }
             drawPiece(canvas, layout, pieceToMove,
                     layout.screenX(mMoveTo.x),
                     layout.screenY(mMoveTo.y),
@@ -514,10 +584,16 @@ public class BoardView extends FrameLayout implements View.OnTouchListener, Keyb
 
         }
 
+        if (mCursor != null) {
+            if (isHumanPlayer(mCurrentPlayer))
+                drawSelectionCircle(canvas, mCursor.getScreenX(), mCursor.getScreenY(), 0.75f, layout);
+        }
+
         if (animation != 0) {
             postInvalidateDelayed(ANIMATION_INTERVAL);
         }
     }
+
 
     //
     // Implementation details

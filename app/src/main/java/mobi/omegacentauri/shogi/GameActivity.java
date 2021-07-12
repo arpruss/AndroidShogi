@@ -15,6 +15,7 @@ import android.os.Handler;
 import android.os.Message;
 import android.preference.PreferenceManager;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -79,6 +80,7 @@ public class GameActivity extends Activity {
   private ArrayList<Play> mPlays;
   private ArrayList<Integer> mMoveCookies;
   private SharedPreferences mPrefs;
+  private KeyboardControl mKeyboardControl;
 
   @Override
   public void onCreate(Bundle savedInstanceState) {
@@ -106,9 +108,13 @@ public class GameActivity extends Activity {
         playerName(mPlayerTypes.charAt(1), mComputerLevel),
             mFlipScreen);
 
+    mKeyboardControl = new KeyboardControl();
     mBoardView = (BoardView)findViewById(R.id.boardview);
-    mBoardView.initialize(mViewListener, mHumanPlayers, mFlipScreen);
+    mBoardView.initialize(mViewListener, mHumanPlayers, mFlipScreen, mKeyboardControl);
     mBoardView.update(mGameState, null, mBoard, mNextPlayer, null, false);
+    mBoardView.requestFocus();
+    findViewById(R.id.undo_text_button).clearFocus();
+    findViewById(R.id.flip_text_button).clearFocus();
     mStatusView.update(mGameState,
             mBoard, mBoard,
             mPlays, mNextPlayer, null);
@@ -116,6 +122,8 @@ public class GameActivity extends Activity {
     mController = new BonanzaController(mEventHandler, mComputerLevel, Math.min(Util.numberOfCores(),Integer.parseInt(mPrefs.getString("cores","4"))));
     if (mGameState == GameState.ACTIVE)
         mController.start(savedInstanceState, mBoard, mNextPlayer);
+    mKeyboardControl.add(new KeyboardControl.CursorPosition(findViewById(R.id.undo_text_button),null, null, 0,0, null));
+    mKeyboardControl.add(new KeyboardControl.CursorPosition(findViewById(R.id.flip_text_button),null, null, 0,0, null));
 
     schedulePeriodicTimer();
     // mController will call back via mControllerHandler when Bonanza is 
@@ -127,6 +135,14 @@ public class GameActivity extends Activity {
   public void onSaveInstanceState(Bundle bundle) {
     saveInstanceState(bundle);
     mController.saveInstanceState(bundle);
+  }
+
+  @Override
+  public boolean dispatchKeyEvent(KeyEvent event) {
+    Log.v("shogilog", "dispatch "+event);
+    if (event.getAction() == KeyEvent.ACTION_DOWN && mKeyboardControl.onKeyDown(event.getKeyCode(),event))
+      return true;
+    return super.dispatchKeyEvent(event);
   }
 
   private final String playerName(char type, int level) {
@@ -170,7 +186,7 @@ public class GameActivity extends Activity {
     }
   }
 
-  private final boolean isComputerPlayer(Player p) { 
+  private final boolean isComputerPlayer(Player p) {
     return p != Player.INVALID && !isHumanPlayer(p);
   }
 
@@ -536,6 +552,7 @@ public class GameActivity extends Activity {
     }
 
     public void flipClick(View view) {
+        mKeyboardControl.reset();
         mFlipScreen = !mFlipScreen;
         mBoardView.setFlipScreen(mFlipScreen);
         mStatusView.setFlipScreen(mFlipScreen);

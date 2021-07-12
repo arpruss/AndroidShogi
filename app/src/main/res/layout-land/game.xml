@@ -8,6 +8,9 @@
     <mobi.omegacentauri.shogi.BoardView
         android:id="@+id/boardview"
         android:layout_width="0dp"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:focusedByDefault="true"
         android:layout_height="fill_parent"
         android:layout_weight="1" />
 
@@ -22,17 +25,26 @@
         android:layout_height="wrap_content"
         android:layout_marginRight="10sp"
         android:clickable="true"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
         android:gravity="center"
         android:onClick="undoClick"
         android:text="⎌"
         android:visibility="invisible"
+        android:focusedByDefault="false"
+        android:textColor="@color/selectable_text"
         android:textSize="25sp"
         android:textStyle="bold" />
 
     <TextView
+        android:id="@+id/flip_text_button"
         android:layout_width="40sp"
         android:layout_height="wrap_content"
         android:clickable="true"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:focusedByDefault="false"
+        android:textColor="@color/selectable_text"
         android:gravity="center"
         android:onClick="flipClick"
         android:text="↕"

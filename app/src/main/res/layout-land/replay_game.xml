@@ -8,6 +8,9 @@
     <mobi.omegacentauri.shogi.BoardView
         android:id="@+id/boardview"
         android:layout_width="wrap_content"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:focusedByDefault="true"
         android:layout_height="fill_parent"
          />
 
