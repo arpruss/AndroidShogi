@@ -2,13 +2,15 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="mobi.omegacentauri.shogi"
     android:label="AndroidShogi"
-    android:versionCode="355"
+    android:versionCode="356"
 
-    android:versionName="3.55">
+    android:versionName="3.56">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-feature android:name="android.hardware.touchscreen"
+        android:required="false" />
 
     <application
         android:icon="@drawable/kanji_light_threedim_hi"

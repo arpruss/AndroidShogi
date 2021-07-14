@@ -10,6 +10,7 @@ import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.graphics.ColorFilter;
 import android.graphics.LightingColorFilter;
 import android.graphics.Matrix;
 import android.graphics.Paint;
@@ -66,11 +67,11 @@ public class BoardView extends FrameLayout implements View.OnTouchListener, Keyb
         XY xy = (XY)cp.mExtras;
         if (xy.y == XY.BLACK_CAPTURED) {
             return mCurrentPlayer.equals(Player.BLACK) && isHumanPlayer(Player.BLACK) &&
-                xy.x < listCapturedPieces(getScreenLayout(), Player.BLACK).size();
+                xy.x < listCapturedPieces(mBoard, getScreenLayout(), Player.BLACK).size();
         }
         else if (xy.y == XY.WHITE_CAPTURED) {
             return mCurrentPlayer.equals(Player.WHITE) && isHumanPlayer(Player.WHITE) &&
-                    xy.x < listCapturedPieces(getScreenLayout(), Player.WHITE).size();
+                    xy.x < listCapturedPieces(mBoard, getScreenLayout(), Player.WHITE).size();
         }
         return true;
     }
@@ -137,7 +138,7 @@ public class BoardView extends FrameLayout implements View.OnTouchListener, Keyb
             Play lastMove,
             boolean animateMove) {
 
-        animateMove = false; //TODO: fix
+        //animateMove = false; //TODO: fix
 
         mCurrentPlayer = currentPlayer;
         mLastBoard = null;
@@ -303,7 +304,7 @@ public class BoardView extends FrameLayout implements View.OnTouchListener, Keyb
             NearestSquareFinder finder = new NearestSquareFinder(layout, event.getX(), event.getY(), mExactPosition);
             finder.findNearestPlayersPieceOnBoard(mBoard, mCurrentPlayer);
 
-            ArrayList<CapturedPiece> captured = listCapturedPieces(layout, mCurrentPlayer);
+            ArrayList<CapturedPiece> captured = listCapturedPieces(mBoard, layout, mCurrentPlayer);
             for (int i = 0; i < captured.size(); ++i) {
                 CapturedPiece cp = captured.get(i);
                 finder.tryScreenPosition(cp.sx, cp.sy, i, -1, S_CAPTURED);
@@ -525,6 +526,10 @@ public class BoardView extends FrameLayout implements View.OnTouchListener, Keyb
                     animation |= ANIM_HIDE_PIECE_FROM | ANIM_DRAW_LAST_BOARD | ANIM_HIGHLIGHT_PIECE_TO;
                     break; */
             }
+            if (animationStage < 0)
+                animationStage = 0;
+            if (animationStage > 1)
+                animationStage = 1;
 //            ++seq;
         }
 
@@ -535,25 +540,51 @@ public class BoardView extends FrameLayout implements View.OnTouchListener, Keyb
         // Draw pieces
         final Board board = ((animation & ANIM_DRAW_LAST_BOARD) != 0 ? mLastBoard : mBoard);
 
+        float fromScreenX = Integer.MIN_VALUE;
+        float fromScreenY = Integer.MIN_VALUE;
+        int movePiece = 0;
+        Player movePlayer = Player.INVALID;
+
+        if (animation != 0 && mLastMove != null) {
+            movePiece = mLastMove.piece();
+            movePlayer = movePiece < 0 ? Player.WHITE : Player.BLACK;
+            Log.v("shogilog", "black "+(movePlayer==Player.BLACK));
+
+            if (mLastMove.isDroppingPiece()) {
+                Log.v("shogilog", "from cap!");
+                ArrayList<CapturedPiece> pieces = listCapturedPieces(board, layout, movePlayer);
+                int index = -1;
+                for (int i = 0; i < pieces.size() ; i++)
+                    if (movePiece == pieces.get(i).piece) {
+                        index = i;
+                        break;
+                    }
+                Log.v("shogilog", "index "+index);
+                if (pieces.size()>0)
+                    Log.v("shogilog", "first "+pieces.get(0).toString());
+                if (index >= 0) {
+                    fromScreenX = layout.capturedScreenX(movePlayer, index);
+                    fromScreenY = layout.capturedScreenY(movePlayer, index);
+                    Log.v("shogilog", "from cap "+fromScreenX+" "+fromScreenY);
+                }
+            }
+            else {
+                fromScreenX = layout.screenX(mLastMove.fromX());
+                fromScreenY = layout.screenX(mLastMove.fromY());
+                Log.v("shogilog", "from pos "+fromScreenX+" "+fromScreenY);
+            }
+        }
+
         for (int y = 0; y < Board.DIM; ++y) {
             for (int x = 0; x < Board.DIM; ++x) {
                 int piece = board.getPiece(x, y);
                 if (piece == 0) continue;
+                if ((animation & ANIM_HIDE_PIECE_FROM) != 0 && x == mLastMove.fromX() && y == mLastMove.fromY())
+                    continue;
                 int alpha = 255;
 
                 float screenX = layout.screenX(x);
                 float screenY = layout.screenY(y);
-
-                if ((animation & ANIM_HIDE_PIECE_FROM) != 0 &&
-                        x == mLastMove.fromX() &&
-                        y == mLastMove.fromY()) {
-                    if (animationStage < 0)
-                        animationStage = 0;
-                    if (animationStage > 1)
-                        animationStage = 1;
-                    screenX = (float) (layout.screenX(mLastMove.toX()) * animationStage + screenX * (1-animationStage));
-                    screenY = (float) (layout.screenY(mLastMove.toY()) * animationStage + screenY * (1-animationStage));
-                }
 
                 // A piece that the user is trying to move will be draw with a bit of
                 // transparency.
@@ -565,6 +596,12 @@ public class BoardView extends FrameLayout implements View.OnTouchListener, Keyb
             }
         }
 
+        if ((animation & ANIM_HIDE_PIECE_FROM) != 0 && animationStage > 0 && Integer.MIN_VALUE != fromScreenX) {
+            float screenX = (float) (layout.screenX(mLastMove.toX()) * animationStage + fromScreenX * (1-animationStage));
+            float screenY = (float) (layout.screenY(mLastMove.toY()) * animationStage + fromScreenY * (1-animationStage));
+            drawPiece(canvas, layout, movePiece, screenX, screenY, 255);
+        }
+
         if ((animation & ANIM_HIGHLIGHT_PIECE_TO) != 0) {
             Paint cp = new Paint();
             float cx = layout.screenX(mLastMove.toX()) + squareDim / 2.0f;
@@ -574,8 +611,10 @@ public class BoardView extends FrameLayout implements View.OnTouchListener, Keyb
             canvas.drawCircle(cx, cy, radius, cp);
         }
 
-        drawCapturedPieces(canvas, layout, Player.BLACK);
-        drawCapturedPieces(canvas, layout, Player.WHITE);
+        drawCapturedPieces(canvas, layout, Player.BLACK,
+                ((movePlayer == Player.BLACK) && ((animation & ANIM_HIDE_PIECE_FROM) != 0)) ? movePiece : 0);
+        drawCapturedPieces(canvas, layout, Player.WHITE,
+                ((movePlayer == Player.WHITE) && ((animation & ANIM_HIDE_PIECE_FROM) != 0)) ? movePiece : 0);
 
         if (mMoveFrom != null) {
             if (mMoveFrom instanceof PositionOnBoard) {
@@ -914,11 +953,11 @@ public class BoardView extends FrameLayout implements View.OnTouchListener, Keyb
      * List pieces captured by player.
      */
     private final ArrayList<CapturedPiece> listCapturedPieces(
-            ScreenLayout layout,
+            Board board, ScreenLayout layout,
             Player player) {
         int seq = 0;
         ArrayList<CapturedPiece> pieces = new ArrayList<CapturedPiece>();
-        for (Board.CapturedPiece p : mBoard.getCapturedPieces(player)) {
+        for (Board.CapturedPiece p : board.getCapturedPieces(player)) {
             pieces.add(new CapturedPiece(
                     seq, p.piece, p.n,
                     layout.capturedScreenX(player, seq),
@@ -932,14 +971,21 @@ public class BoardView extends FrameLayout implements View.OnTouchListener, Keyb
     private final void drawCapturedPieces(
             Canvas canvas,
             ScreenLayout layout,
-            Player player) {
-        ArrayList<CapturedPiece> pieces = listCapturedPieces(layout, player);
+            Player player,
+            int exceptPiece) {
+        ArrayList<CapturedPiece> pieces = listCapturedPieces(mBoard, layout, player);
         for (int i = 0; i < pieces.size(); ++i) {
             CapturedPiece p = pieces.get(i);
             int alpha = 255;
             if (p.equals(mMoveFrom)) alpha = 64;
             // int piece = (player == Player.BLACK ? p.piece : -p.piece);
-            drawCapturedPiece(canvas, layout, p.piece, p.n, p.sx, p.sy, alpha);
+            if (p.piece == exceptPiece) {
+                if (p.n > 1)
+                    drawCapturedPiece(canvas, layout, p.piece, p.n-1, p.sx, p.sy, alpha);
+
+            }
+            else
+                drawCapturedPiece(canvas, layout, p.piece, p.n, p.sx, p.sy, alpha);
         }
     }
 
@@ -982,7 +1028,7 @@ public class BoardView extends FrameLayout implements View.OnTouchListener, Keyb
     // Load bitmaps for pieces. Called once when this view is created.
     private final void initializePieceBitmaps(Context context) {
         final String prefix = mPrefs.getString("piece_style", "kanji_light_threedim");
-        boolean darkenBlack = mPrefs.getBoolean("darken_black", false);
+        int darkening = Integer.parseInt(mPrefs.getString("darkening", "0"));
         final Resources r = getResources();
         mBitmaps = new BitmapDrawable[2][2][Piece.NUM_TYPES+1];
         String koma_names[] = {
@@ -1013,11 +1059,11 @@ public class BoardView extends FrameLayout implements View.OnTouchListener, Keyb
             Bitmap flipped = Bitmap.createBitmap(base, 0, 0, base.getWidth(), base.getHeight(),
                     flip, false);
             mBitmaps[1][1][i] = new BitmapDrawable(getResources(), flipped);
-            if (darkenBlack) {
+            if (darkening != 0) {
                 Bitmap baseBlack = Bitmap.createBitmap(base.getWidth(), base.getHeight(), Bitmap.Config.ARGB_8888);
                 Canvas c = new Canvas(baseBlack);
                 Paint p = new Paint();
-                p.setColorFilter(new LightingColorFilter(0xFFC0C0C0, 0));
+                p.setColorFilter(getDarkeningFilter(darkening));
                 c.drawBitmap(base, 0,0, p);
                 mBitmaps[0][0][i] = new BitmapDrawable(getResources(), baseBlack);
                 Bitmap flippedBlack = Bitmap.createBitmap(base.getWidth(), base.getHeight(), Bitmap.Config.ARGB_8888);
@@ -1030,6 +1076,12 @@ public class BoardView extends FrameLayout implements View.OnTouchListener, Keyb
                 mBitmaps[1][0][i] = mBitmaps[1][1][i];
             }
         }
+    }
+
+    private ColorFilter getDarkeningFilter(float darken) {
+        int intensity = (int)(255*(1-darken/100f));
+        return new LightingColorFilter(
+                0xFF000000 | intensity | (intensity<<8) | (intensity << 16), 0);
     }
 
     private final ScreenLayout getScreenLayout() {

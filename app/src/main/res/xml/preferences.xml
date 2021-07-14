@@ -27,10 +27,12 @@
      android:defaultValue="/sdcard/ShogiLog"
      android:title="@string/game_log_dir"
      />
-  <CheckBoxPreference
-    android:key="darken_black"
-    android:defaultValue="false"
+  <ListPreference
+    android:key="darkening"
+    android:defaultValue="0"
     android:title="@string/darken_black"
+    android:entries="@array/darkening"
+    android:entryValues="@array/darkening_values"
     />
   <CheckBoxPreference
       android:key="fuzzy"

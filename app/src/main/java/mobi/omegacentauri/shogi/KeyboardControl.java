@@ -350,6 +350,22 @@ public class KeyboardControl {
     public boolean onKeyDown(int keyCode, KeyEvent event) {
 
         switch (keyCode) {
+            case KeyEvent.KEYCODE_DPAD_DOWN_LEFT:
+                down();
+                left();
+                return true;
+            case KeyEvent.KEYCODE_DPAD_DOWN_RIGHT:
+                down();
+                right();
+                return true;
+            case KeyEvent.KEYCODE_DPAD_UP_LEFT:
+                up();
+                left();
+                return true;
+            case KeyEvent.KEYCODE_DPAD_UP_RIGHT:
+                up();
+                right();
+                return true;
             case KeyEvent.KEYCODE_DPAD_LEFT:
                 left();
                 return true;
