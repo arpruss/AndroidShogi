@@ -548,10 +548,8 @@ public class BoardView extends FrameLayout implements View.OnTouchListener, Keyb
         if (animation != 0 && mLastMove != null) {
             movePiece = mLastMove.piece();
             movePlayer = movePiece < 0 ? Player.WHITE : Player.BLACK;
-            Log.v("shogilog", "black "+(movePlayer==Player.BLACK));
 
             if (mLastMove.isDroppingPiece()) {
-                Log.v("shogilog", "from cap!");
                 ArrayList<CapturedPiece> pieces = listCapturedPieces(board, layout, movePlayer);
                 int index = -1;
                 for (int i = 0; i < pieces.size() ; i++)
@@ -559,19 +557,14 @@ public class BoardView extends FrameLayout implements View.OnTouchListener, Keyb
                         index = i;
                         break;
                     }
-                Log.v("shogilog", "index "+index);
-                if (pieces.size()>0)
-                    Log.v("shogilog", "first "+pieces.get(0).toString());
                 if (index >= 0) {
                     fromScreenX = layout.capturedScreenX(movePlayer, index);
                     fromScreenY = layout.capturedScreenY(movePlayer, index);
-                    Log.v("shogilog", "from cap "+fromScreenX+" "+fromScreenY);
                 }
             }
             else {
                 fromScreenX = layout.screenX(mLastMove.fromX());
                 fromScreenY = layout.screenX(mLastMove.fromY());
-                Log.v("shogilog", "from pos "+fromScreenX+" "+fromScreenY);
             }
         }
 
