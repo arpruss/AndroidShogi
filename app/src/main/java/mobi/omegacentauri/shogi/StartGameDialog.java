@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.widget.ArrayAdapter;
 import android.widget.CheckBox;
@@ -26,12 +27,20 @@ public class StartGameDialog {
       Context context, 
       String title,
       DialogInterface.OnClickListener onClick) {
+    Log.v("shogilog", "dialog creator");
+
     mContext = context;
     mPrefs = PreferenceManager.getDefaultSharedPreferences(mContext);
     mOnClickStartButton = onClick;
-    
-    AlertDialog.Builder builder = new AlertDialog.Builder(context);
-    LayoutInflater inflater = (LayoutInflater)mContext.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+
+      AlertDialog.Builder builder = null;
+      if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.HONEYCOMB) {
+          builder = new AlertDialog.Builder(context, AlertDialog.THEME_DEVICE_DEFAULT_DARK);
+      }
+      else {
+          builder = new AlertDialog.Builder(context);
+      }
+      LayoutInflater inflater = (LayoutInflater)mContext.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
     LinearLayout layout = (LinearLayout)inflater.inflate(R.layout.start_game_dialog, null);
     mPlayerTypes = (Spinner)layout.findViewById(R.id.start_game_player_types);
     ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(mContext, R.array.player_types,
@@ -51,10 +60,8 @@ public class StartGameDialog {
     adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
     mHandicap.setAdapter(adapter);
     
-    mFlipScreen = (CheckBox)layout.findViewById(R.id.start_game_flip_screen);
-    
     loadPreferences();
-    
+
     builder.setMessage(title)
       .setCancelable(true)
       .setPositiveButton(R.string.start_game, new DialogInterface.OnClickListener() {
@@ -68,6 +75,12 @@ public class StartGameDialog {
     
     builder.setView(layout);
     mDialog = builder.create();
+    mDialog.setOnShowListener(new DialogInterface.OnShowListener() {
+      @Override
+      public void onShow(DialogInterface dialogInterface) {
+        loadPreferences();
+      }
+    });
     loadPreferences();
   }
 
@@ -75,7 +88,6 @@ public class StartGameDialog {
     mPlayerTypes.setSelection(PlayerTypesToInt(mPrefs.getString("player_types", "0")));
     mComputerDifficulty.setSelection(Integer.parseInt(mPrefs.getString("computer_difficulty", "1")));
     mHandicap.setSelection(Integer.parseInt(mPrefs.getString("handicap", "0")));
-    mFlipScreen.setChecked(mPrefs.getBoolean("flip_screen", false));
   }
 
   public AlertDialog getDialog() { return mDialog; }
@@ -96,12 +108,6 @@ public class StartGameDialog {
   
     if (maybeSaveIntPreference(mHandicap.getSelectedItemPosition(), editor, "handicap", "0")) {
       changed = true;
-    }
-    
-    boolean flipScreen = mFlipScreen.isChecked();
-    if (mPrefs.getBoolean("flip_screen", false) != flipScreen) {
-      changed = true;
-      editor.putBoolean("flip_screen", flipScreen);
     }
     
     if (changed) {

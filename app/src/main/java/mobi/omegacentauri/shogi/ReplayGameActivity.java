@@ -126,7 +126,6 @@ public class ReplayGameActivity extends Activity {
             undo.setVisibility(View.GONE);
 
         mSeekBar = (SeekBar) findViewById(R.id.replay_seek_bar);
-        Log.v("shogilog", "num "+mLog.numPlays());
         mSeekBar.setMax(mLog.numPlays());
         mSeekBar.setProgress(0);
         mSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -188,7 +187,7 @@ public class ReplayGameActivity extends Activity {
         intent.putExtra("initial_board", mBoard);
         intent.putExtra("moves", mPlays);
         intent.putExtra("next_player", mNextPlayer);
-        intent.putExtra("replaying_saved_game", true);
+        //intent.putExtra("replaying_saved_game", true);
         intent.putExtra("skip_dialog", skipDialog);
 
         Handicap h = mLog.handicap();
@@ -229,16 +228,14 @@ public class ReplayGameActivity extends Activity {
     private final void initializeInstanceState(Bundle b) {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(
                 getBaseContext());
-        mFlipScreen = prefs.getBoolean("flip_screen", false);
+
+        mFlipScreen = false;
     }
 
     private void flipScreen() {
         mFlipScreen = !mFlipScreen;
         mBoardView.setFlipScreen(mFlipScreen);
         mStatusView.setFlipScreen(mFlipScreen);
-        SharedPreferences.Editor editor = mPrefs.edit();
-        editor.putBoolean("flip_screen", mFlipScreen);
-        editor.commit();
     }
 
     private final BoardView.EventListener mViewListener = new BoardView.EventListener() {

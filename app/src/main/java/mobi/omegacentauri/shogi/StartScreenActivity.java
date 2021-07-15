@@ -152,6 +152,7 @@ public class StartScreenActivity extends Activity {
     protected Dialog onCreateDialog(int id) {
         switch (id) {
             case DIALOG_NEW_GAME: {
+                Log.v("shogilog", "creating dialog");
                 StartGameDialog d = new StartGameDialog(
                         this,
                         getResources().getString(R.string.new_game),

@@ -32,10 +32,5 @@
            android:drawSelectorOnTop="true"
            android:prompt = "@string/handicap"/>
 
-  <CheckBox android:checked="false"
-            android:layout_height="wrap_content"
-            android:layout_width="wrap_content"
-	    android:id="@+id/start_game_flip_screen"
-	    android:text="@string/flip_screen"/>
 
 </LinearLayout>

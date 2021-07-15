@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string-array name="player_types">
-        <item>◆Human ◇Computer</item>
-        <item>◆Computer ◇Human</item>
-        <item>◆Human ◇Human</item>
-        <item>◆Computer ◇Computer</item>
+        <item>◇Human ◆Computer</item>
+        <item>◇Computer ◆Human</item>
+        <item>◇Human ◆Human</item>
+        <item>◇Computer ◆Computer</item>
     </string-array>
 
     <string-array name="player_type_values">

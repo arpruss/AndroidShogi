@@ -75,8 +75,8 @@ public class GameActivity extends Activity {
   private long mWhiteThinkTimeMs;  // Cumulative # of think time (millisec)
   private long mWhiteThinkStartMs; // -1, or ms since epoch
   private boolean mDestroyed;      // onDestroy called?
-  private boolean mReplayingSavedGame;
-  
+  private boolean mDidHumanMove;
+
   // History of plays made in the game. Even (resp. odd) entries are 
   // moves by the black (resp. white) player.
   private ArrayList<Play> mPlays;
@@ -106,6 +106,7 @@ public class GameActivity extends Activity {
     if (savedInstanceState == null) {
       Log.v("shogi", "null savedInstanceState");
     }
+    mDidHumanMove = false;
     mStatusView = (GameStatusView)findViewById(R.id.gamestatusview);
     mStatusView.initialize(
         playerName(mPlayerTypes.charAt(0), mComputerLevel),
@@ -169,7 +170,6 @@ public class GameActivity extends Activity {
 
   @Override
   public boolean dispatchKeyEvent(KeyEvent event) {
-    Log.v("shogilog", "dispatch "+event);
     if (event.getAction() == KeyEvent.ACTION_DOWN && mKeyboardControl.onKeyDown(event.getKeyCode(),event))
       return true;
     return super.dispatchKeyEvent(event);
@@ -263,7 +263,6 @@ public class GameActivity extends Activity {
     if (mGameState == null)
       mGameState = GameState.ACTIVE;
 
-    mFlipScreen = mPrefs.getBoolean("flip_screen", false);
     mPlayerTypes = mPrefs.getString("player_types", "HC");
     mHumanPlayers = new ArrayList<Player>();
     if (mPlayerTypes.charAt(0) == 'H') {
@@ -272,6 +271,7 @@ public class GameActivity extends Activity {
     if (mPlayerTypes.charAt(1) == 'H') {
       mHumanPlayers.add(Player.WHITE);      
     }
+    mFlipScreen = mPlayerTypes.charAt(1) == 'H' && mPlayerTypes.charAt(0) != 'H';
     mComputerLevel = Integer.parseInt(mPrefs.getString("computer_difficulty", "1"));
 
     mHandicap = (Handicap)getIntent().getSerializableExtra("handicap");
@@ -301,8 +301,6 @@ public class GameActivity extends Activity {
         for (int i = 0; i < mPlays.size(); ++i) mMoveCookies.add(null);
       }
     }
-    mReplayingSavedGame = getIntent().getBooleanExtra("replaying_saved_game", false);
-    
     // If we aren't replaying a saved game, and we aren't resuming via saveInstanceState (e.g., screen rotation),
     // then set the default board state.
     if (mNextPlayer == null) {
@@ -470,13 +468,12 @@ public class GameActivity extends Activity {
       } else {
         mController.humanPlay(player, play);
       }
+      mDidHumanMove = true;
     }
   };
 
   private void maybeSaveGame() {
-    if ((!mReplayingSavedGame &&
-            mPlays.size() >= 0 &&
-            !mPlayerTypes.equals("CC"))) {
+    if (mDidHumanMove && mPlays.size() > 0) {
       TreeMap<String, String> attrs = new TreeMap<String, String>();
       attrs.put(GameLog.ATTR_BLACK_PLAYER, blackPlayerName());
       attrs.put(GameLog.ATTR_WHITE_PLAYER, whitePlayerName());
@@ -587,9 +584,6 @@ public class GameActivity extends Activity {
         mFlipScreen = !mFlipScreen;
         mBoardView.setFlipScreen(mFlipScreen);
         mStatusView.setFlipScreen(mFlipScreen);
-        SharedPreferences.Editor editor = mPrefs.edit();
-        editor.putBoolean("flip_screen", mFlipScreen);
-        editor.commit();
         mBoardView.requestFocus();
     }
 
