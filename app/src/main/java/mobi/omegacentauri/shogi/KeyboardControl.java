@@ -46,7 +46,6 @@ public class KeyboardControl {
     public void clearTouch() {
         if (mCurrent != null && mTouchedAt >= 0) {
             if (mCurrent.mTouch != null) {
-                Log.v("shogilog", "Clearing touch");
                 MotionEvent m = MotionEvent.obtain(mTouchedAt, SystemClock.uptimeMillis(), MotionEvent.ACTION_CANCEL, mCurrent.mX, mCurrent.mY, 0);
                 mCurrent.mTouch.onTouch(mCurrent.mView, m);
             }
@@ -69,7 +68,6 @@ public class KeyboardControl {
         }
         else if (mCurrent != null) {
             if (mCurrent.mTouch != null) {
-                Log.v("shogilog", "pressing");
                 mTouchedAt = SystemClock.uptimeMillis();
                 MotionEvent m = MotionEvent.obtain(mTouchedAt, SystemClock.uptimeMillis(), MotionEvent.ACTION_DOWN, mCurrent.mX, mCurrent.mY, 0);
                 mCurrent.mTouch.onTouch(mCurrent.mView, m);

@@ -91,7 +91,6 @@ public class BoardView extends FrameLayout implements View.OnTouchListener, Keyb
         mPrefs = PreferenceManager.getDefaultSharedPreferences(context);
         mCurrentPlayer = Player.INVALID;
         mBoard = new Board();
-        initializePieceBitmaps(context);
         setOnTouchListener(this);
         mBoardName = mPrefs.getString("board", "board_rich_brown");
         mExactPosition = !mPrefs.getBoolean("fuzzy", false);
@@ -138,7 +137,7 @@ public class BoardView extends FrameLayout implements View.OnTouchListener, Keyb
             Play lastMove,
             boolean animateMove) {
 
-        //animateMove = false; //TODO: fix
+        animateMove = animateMove && mPrefs.getBoolean("animate", true);
 
         mCurrentPlayer = currentPlayer;
         mLastBoard = null;
@@ -429,6 +428,8 @@ public class BoardView extends FrameLayout implements View.OnTouchListener, Keyb
             return;
         }
 
+        initializePieceBitmaps(mContext);
+
         mBoardWidth = boardRect.width();
         mBoardHeight = boardRect.height();
         mBoardFlipped = mFlipped;
@@ -671,8 +672,8 @@ public class BoardView extends FrameLayout implements View.OnTouchListener, Keyb
     //
 
     // Bitmap for all the pieces.
-    //   First index is orientation (0=upward, 1=downward), second is color (0=black, 1=white)
-    private BitmapDrawable mBitmaps[][][];
+    //   First index is color (0=black, 1=white)
+    private Bitmap mBitmaps[][];
     private BitmapDrawable board = null;
 
     private boolean mFlipped;        // if true, flip the board upside down.
@@ -989,12 +990,11 @@ public class BoardView extends FrameLayout implements View.OnTouchListener, Keyb
         boolean isBlack = (Board.player(piece) == Player.BLACK);
         if (isBlack && piece == Piece.OU)
             piece = CHALLENGING_KING;
-        BitmapDrawable[] bitmaps = mBitmaps[isBlack != mFlipped ? 0 : 1][isBlack ? 0 : 1];
-        BitmapDrawable b = bitmaps[Board.type(piece)];
-        b.setBounds((int) sx, (int) sy,
-                (int) (sx + layout.getSquareDim()), (int) (sy + layout.getSquareDim()));
-        b.setAlpha(alpha);
-        b.draw(canvas);
+        Bitmap[] bitmaps = mBitmaps[isBlack ? 0 : 1];
+        Bitmap b = bitmaps[Board.type(piece)];
+        Paint p = new Paint();
+        p.setAlpha(alpha);
+        canvas.drawBitmap(b, sx, sy, p);
     }
 
     private final void drawCapturedPiece(Canvas canvas,
@@ -1018,12 +1018,24 @@ public class BoardView extends FrameLayout implements View.OnTouchListener, Keyb
         return mHumanPlayers.contains(p);
     }
 
-    // Load bitmaps for pieces. Called once when this view is created.
+    // Load bitmaps for pieces. Called whenever view is resized
     private final void initializePieceBitmaps(Context context) {
         final String prefix = mPrefs.getString("piece_style", "kanji_light_threedim");
         int darkening = Integer.parseInt(mPrefs.getString("darkening", "0"));
         final Resources r = getResources();
-        mBitmaps = new BitmapDrawable[2][2][Piece.NUM_TYPES+1];
+        ScreenLayout layout = getScreenLayout();
+        int squareDim = layout.getSquareDim();
+        if (mBitmaps != null) {
+            for (int i=0; i<2; i++)
+                for (int k=0; k<Piece.NUM_TYPES+1; k++) {
+                    try {
+                        mBitmaps[i][k].recycle();
+                    }
+                    catch(Exception e) {
+                    }
+                }
+        }
+        mBitmaps = new Bitmap[2][Piece.NUM_TYPES+1];
         String koma_names[] = {
                 null,
                 "fu", "kyo", "kei", "gin", "kin", "kaku", "hi", "ou",
@@ -1047,26 +1059,33 @@ public class BoardView extends FrameLayout implements View.OnTouchListener, Keyb
             }
             if (id == 0)
                 id = r.getIdentifier(String.format("@mobi.omegacentauri.shogi:drawable/%s_%s", prefix, name), null, null);
-            Bitmap base = BitmapFactory.decodeResource(r, id);
-            mBitmaps[0][1][i] = new BitmapDrawable(getResources(), base);
-            Bitmap flipped = Bitmap.createBitmap(base, 0, 0, base.getWidth(), base.getHeight(),
-                    flip, false);
-            mBitmaps[1][1][i] = new BitmapDrawable(getResources(), flipped);
+            Bitmap base = Bitmap.createScaledBitmap(BitmapFactory.decodeResource(r, id), squareDim, squareDim, true);
+            Bitmap darkenedBase = null;
             if (darkening != 0) {
-                Bitmap baseBlack = Bitmap.createBitmap(base.getWidth(), base.getHeight(), Bitmap.Config.ARGB_8888);
-                Canvas c = new Canvas(baseBlack);
+                darkenedBase = Bitmap.createBitmap(squareDim, squareDim, Bitmap.Config.ARGB_8888);
+                Canvas c = new Canvas(darkenedBase);
                 Paint p = new Paint();
                 p.setColorFilter(getDarkeningFilter(darkening));
                 c.drawBitmap(base, 0,0, p);
-                mBitmaps[0][0][i] = new BitmapDrawable(getResources(), baseBlack);
-                Bitmap flippedBlack = Bitmap.createBitmap(base.getWidth(), base.getHeight(), Bitmap.Config.ARGB_8888);
-                c = new Canvas(flippedBlack);
-                c.drawBitmap(flipped, 0, 0, p);
-                mBitmaps[1][0][i] = new BitmapDrawable(getResources(), flippedBlack);
+            }
+            if (! mFlipped) {
+                Bitmap flipped = Bitmap.createBitmap(base, 0, 0, squareDim, squareDim, flip, false);
+                mBitmaps[1][i] = flipped;
+                if (darkenedBase == null) {
+                    mBitmaps[0][i] = base;
+                }
+                else {
+                    mBitmaps[0][i] = darkenedBase;
+                    base.recycle();
+                }
             }
             else {
-                mBitmaps[0][0][i] = mBitmaps[0][1][i];
-                mBitmaps[1][0][i] = mBitmaps[1][1][i];
+                mBitmaps[1][i] = base;
+                Bitmap flipped = Bitmap.createBitmap(darkenedBase == null ? base : darkenedBase, 0, 0,
+                        squareDim, squareDim, flip, false);
+                mBitmaps[0][i] = flipped;
+                if (darkenedBase != null)
+                    darkenedBase.recycle();
             }
         }
     }

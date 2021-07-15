@@ -82,4 +82,5 @@
     <string name="fatal_error">Error</string>
     <string name="board_style">Board Style</string>
     <string name="fuzzy">Fuzzy touch recognition</string>
+    <string name="animate">Animate computer moves</string>
 </resources>

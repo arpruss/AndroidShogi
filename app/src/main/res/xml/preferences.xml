@@ -40,6 +40,11 @@
       android:title="@string/fuzzy"
       />
   <PreferenceCategory android:title="Advanced settings"/>
+  <CheckBoxPreference
+      android:key="animate"
+      android:defaultValue="true"
+      android:title="@string/animate"
+      />
   <ListPreference
       android:title="@string/cores"
       android:key="cores"

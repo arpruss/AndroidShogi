@@ -152,7 +152,6 @@ public class StartScreenActivity extends Activity {
     protected Dialog onCreateDialog(int id) {
         switch (id) {
             case DIALOG_NEW_GAME: {
-                Log.v("shogilog", "creating dialog");
                 StartGameDialog d = new StartGameDialog(
                         this,
                         getResources().getString(R.string.new_game),
@@ -327,7 +326,6 @@ public class StartScreenActivity extends Activity {
 
             Log.v("shogilog", "opening " + dataFile.url);
             InputStream stream = new URL(dataFile.url).openStream();
-            Log.v("shogilog", "opened");
             XZInputStream xs = new XZInputStream(stream);
 
             File tempFile = new File(mDir + "/" + dataFile.filename + ".download");
