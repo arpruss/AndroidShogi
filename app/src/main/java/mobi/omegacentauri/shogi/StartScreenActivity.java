@@ -123,9 +123,9 @@ public class StartScreenActivity extends Activity {
         zd.execute();
     }
 
-    void checkIfReady() {
+    Boolean checkIfReady() {
         if (bonanzaInitializeThread != null)
-            return;
+            return true;
         if (hasRequiredFiles(mExternalDir)) {
             downloadButton.setVisibility(View.GONE);
             pickLogButton.setVisibility(View.VISIBLE);
@@ -133,11 +133,13 @@ public class StartScreenActivity extends Activity {
             bonanzaInitializeThread = new BonanzaInitializeThread();
             bonanzaInitializeThread.start();
             findViewById(R.id.download_message).setVisibility(View.GONE);
+            return true;
         } else {
             downloadButton.setVisibility(View.VISIBLE);
             pickLogButton.setVisibility(View.GONE);
             newGameButton.setVisibility(View.GONE);
             findViewById(R.id.download_message).setVisibility(View.VISIBLE);
+            return false;
         }
     }
 
@@ -145,7 +147,12 @@ public class StartScreenActivity extends Activity {
     protected void onResume() {
         super.onResume();
         ((SplashView)findViewById(R.id.splashview)).invalidate();
-        checkIfReady();
+        if (checkIfReady() && null != GameActivity.getSaveActiveGame(this)) {
+            newGame2();
+        }
+        else {
+            GameActivity.deleteSaveActiveGame(this);
+        }
     }
 
     @Override

@@ -1,5 +1,7 @@
 package mobi.omegacentauri.shogi;
 
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.TreeMap;
 
@@ -7,6 +9,7 @@ import android.app.ActionBar;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
@@ -14,19 +17,15 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.os.Parcel;
 import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.KeyEvent;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.TextView;
 import android.widget.Toast;
-
-import mobi.omegacentauri.shogi.BonanzaController;
 
 /**
  * The main activity that controls game play
@@ -34,6 +33,8 @@ import mobi.omegacentauri.shogi.BonanzaController;
 public class GameActivity extends Activity {
   private static final String TAG = "Shogi";
 
+  private static final String SAVE_BUNDLE = "save.bundle";
+  private static final int SAVE_BUNDLE_VERSION = 0x12340001;
   private static final int DIALOG_PROMOTE = 1235;
   private static final int DIALOG_CONFIRM_QUIT = 1236;
 
@@ -103,9 +104,6 @@ public class GameActivity extends Activity {
     }
     setContentView(R.layout.game);
     initializeInstanceState(savedInstanceState);
-    if (savedInstanceState == null) {
-      Log.v("shogi", "null savedInstanceState");
-    }
     mDidHumanMove = false;
     mStatusView = (GameStatusView)findViewById(R.id.gamestatusview);
     mStatusView.initialize(
@@ -160,6 +158,38 @@ public class GameActivity extends Activity {
     // mController will call back via mControllerHandler when Bonanza is 
     // initialized. mControllerHandler will cause mBoardView to start accepting
     // user inputs.
+  }
+
+  static void deleteSaveActiveGame(Context c) {
+    try {
+      c.deleteFile(SAVE_BUNDLE);
+      Log.v("shogilog", "deleted saved bundle");
+    }
+    catch(Exception e) {
+    }
+  }
+
+  void saveActiveGame() {
+    final Bundle b = new Bundle();
+
+    saveInstanceState(b);
+    b.putInt("save_version", SAVE_BUNDLE_VERSION);
+
+    Runnable background = new Runnable() {
+      @Override
+      public void run() {
+        try {
+          FileOutputStream out = openFileOutput(SAVE_BUNDLE, MODE_PRIVATE);
+          Parcel p = Parcel.obtain();
+          b.writeToParcel(p, 0);
+          out.write(p.marshall());
+          out.close();
+          Log.v("shogilog", "saved active game");
+        } catch (Exception e) {
+        }
+      }
+    };
+    new Thread(background).start();
   }
 
   @Override
@@ -238,11 +268,42 @@ public class GameActivity extends Activity {
     b.putSerializable("saved_board", mBoard);
     b.putSerializable("game_state", mGameState);
   }
-  
+
+  public static Bundle getSaveActiveGame(Context c) {
+    Bundle b;
+    try {
+      FileInputStream in = c.openFileInput(SAVE_BUNDLE);
+      byte[] data = new byte[(int)in.getChannel().size()];
+      in.read(data);
+      in.close();
+      Parcel p = Parcel.obtain();
+      p.unmarshall(data, 0, data.length);
+      p.setDataPosition(0);
+      b = p.readBundle();
+      if (b.getInt("save_version") == SAVE_BUNDLE_VERSION) {
+        Log.v("shogilog", "restored save");
+        return b;
+      }
+      else {
+        Log.v("shogilog", "bad bundle");
+        deleteSaveActiveGame(c);
+        return null;
+      }
+    }
+    catch(Exception e) {
+      Log.e("shogilog", "Restoring error: "+e);
+      return null;
+    }
+
+  }
+
   @SuppressWarnings(value="`unchecked")
   private final void initializeInstanceState(Bundle b) {
     mPrefs = PreferenceManager.getDefaultSharedPreferences(
         getBaseContext());
+    if (b == null) {
+      b = getSaveActiveGame(this);
+    }
     mUndosRemaining = (int)initializeLong(b, "shogi_undos_remaining", mPrefs, "max_undos", 0);
     mBlackThinkTimeMs = initializeLong(b, "shogi_black_think_time_ms", null, null, 0);
     mWhiteThinkTimeMs = initializeLong(b, "shogi_white_think_time_ms", null, null, 0);	  
@@ -419,6 +480,12 @@ public class GameActivity extends Activity {
     @Override public void handleMessage(Message msg) {
       BonanzaController.Result r = (BonanzaController.Result)(
           msg.getData().get("result"));
+
+      if (r.gameState != GameState.ACTIVE) {
+        Log.v("shogilog", "deleting save game");
+        deleteSaveActiveGame(GameActivity.this);
+      }
+
       if (r.lastMove != null) {
         mPlays.add(r.lastMove);
         mMoveCookies.add(r.lastMoveCookie);
@@ -460,7 +527,7 @@ public class GameActivity extends Activity {
 
   private final BoardView.EventListener mViewListener = new BoardView.EventListener() {
     public void onHumanPlay(Player player, Play play) {
-      setCurrentPlayer(Player.INVALID);  
+      setCurrentPlayer(Player.INVALID);
       if (PlayAllowsForPromotion(player, play)) {
         mSavedPlayerForPromotion = player;
         mSavedPlayForPromotion = play;
@@ -469,6 +536,7 @@ public class GameActivity extends Activity {
         mController.humanPlay(player, play);
       }
       mDidHumanMove = true;
+      saveActiveGame();
     }
   };
 
@@ -563,6 +631,7 @@ public class GameActivity extends Activity {
     builder.setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
       public void onClick(DialogInterface d, int id) {
         maybeSaveGame();
+        deleteSaveActiveGame(GameActivity.this);
         finish();
       }
     });

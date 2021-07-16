@@ -1,7 +1,5 @@
 package mobi.omegacentauri.shogi;
 
-// TODO: animate from capture
-
 import java.util.ArrayList;
 
 import android.content.Context;
@@ -662,7 +660,7 @@ public class BoardView extends FrameLayout implements View.OnTouchListener, Keyb
         }
 
         if (animation != 0) {
-            postInvalidateDelayed(50);
+            postInvalidateDelayed(33);
         }
     }
 
