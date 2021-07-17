@@ -131,7 +131,7 @@ public class ReplayGameActivity extends Activity {
         mSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromTouch) {
                 if (fromTouch) {
-                    replayUpTo(progress < mLog.numPlays() ? progress : mLog.numPlays());
+                    replayUpTo(progress);
                 }
             }
 
@@ -173,7 +173,7 @@ public class ReplayGameActivity extends Activity {
         mNextPlay = numPlays;
         mStatusView.update(mGameState, lastBoard, mBoard, mPlays, mNextPlayer, null);
         mBoardView.update(mGameState, lastBoard, mBoard,
-                Player.INVALID,  // Disallow board manipluation by the user
+                Player.INVALID,  // Disallow board manipulation by the user
                 play, false);
         mSeekBar.setProgress(mNextPlay);
     }

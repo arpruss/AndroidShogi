@@ -148,10 +148,10 @@
         <item>Kanji, light</item>
         <item>Kanji, 3D</item>
         <item>Kanji, red wood</item>
-        <item>Kinki</item>
-        <item>Kinki (simple)</item>
-        <item>Chess</item>
-        <item>Western (Duniho/Marroquin)</item>
+        <item>Kinki (low res)</item>
+        <item>Kinki (simple, low res)</item>
+        <item>Chess (low res)</item>
+        <item>Western (Duniho/Marroquin, low res)</item>
     </string-array>
 
     <string-array name="piece_style_values">

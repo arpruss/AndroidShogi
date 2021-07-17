@@ -1,5 +1,7 @@
 package mobi.omegacentauri.shogi;
 
+// TODO: don't use engine for undo
+
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.util.ArrayList;
