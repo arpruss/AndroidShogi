@@ -184,7 +184,6 @@ public class GameActivity extends Activity {
           b.writeToParcel(p, 0);
           out.write(p.marshall());
           out.close();
-          Log.v("shogilog", "saved active game");
         } catch (Exception e) {
         }
       }
@@ -299,10 +298,15 @@ public class GameActivity extends Activity {
 
   @SuppressWarnings(value="`unchecked")
   private final void initializeInstanceState(Bundle b) {
+    boolean resetTime = false;
     mPrefs = PreferenceManager.getDefaultSharedPreferences(
         getBaseContext());
     if (b == null) {
       b = getSaveActiveGame(this);
+      if ( b != null ) {
+        mDidHumanMove = true;
+        resetTime = true;
+      }
     }
     mUndosRemaining = (int)initializeLong(b, "shogi_undos_remaining", mPrefs, "max_undos", 0);
     mBlackThinkTimeMs = initializeLong(b, "shogi_black_think_time_ms", null, null, 0);
@@ -372,7 +376,17 @@ public class GameActivity extends Activity {
       mMoveCookies = new ArrayList<Integer>();
     }
 
+    if (resetTime)
+      resetTime();
+
     BonanzaJNI.abort();
+  }
+
+  private void resetTime() {
+      final long now = System.currentTimeMillis();
+      mBlackThinkStartMs = mWhiteThinkStartMs = 0;
+      if (mNextPlayer == Player.BLACK) mBlackThinkStartMs = now;
+      else if (mNextPlayer == Player.WHITE) mWhiteThinkStartMs = now;
   }
 
   private final long initializeLong(Bundle b, String bundle_key, SharedPreferences prefs, String pref_key, long dflt) {
@@ -423,9 +437,7 @@ public class GameActivity extends Activity {
 
     // Switch the player, and start its timer.
     mNextPlayer = p;
-    mBlackThinkStartMs = mWhiteThinkStartMs = 0;
-    if (mNextPlayer == Player.BLACK) mBlackThinkStartMs = now;
-    else if (mNextPlayer == Player.WHITE) mWhiteThinkStartMs = now;
+    resetTime();
   }
 
   private final void schedulePeriodicTimer() {
@@ -444,7 +456,7 @@ public class GameActivity extends Activity {
     Integer u1 = mMoveCookies.get(mMoveCookies.size() - 1);
     Integer u2 = mMoveCookies.get(mMoveCookies.size() - 2);
     if (u1 == null || u2 == null) return;  // happens when resuming a saved game
-    
+
     int lastMove = u1;
     int penultimateMove = u2;
     mController.undo2(mNextPlayer, lastMove, penultimateMove);
@@ -482,7 +494,6 @@ public class GameActivity extends Activity {
           msg.getData().get("result"));
 
       if (r.gameState != GameState.ACTIVE) {
-        Log.v("shogilog", "deleting save game");
         deleteSaveActiveGame(GameActivity.this);
       }
 
@@ -513,6 +524,11 @@ public class GameActivity extends Activity {
       if (mGameState != GameState.ACTIVE) {
         maybeSaveGame();
       }
+      if (isHumanPlayer(r.lastPlayer)) {
+        mDidHumanMove = true;
+        if (mGameState == GameState.ACTIVE)
+          saveActiveGame();
+      }
       updateUndoMenu();  // if no move is in mMoveCookies, disable the undo menu
     }
   };
@@ -535,8 +551,6 @@ public class GameActivity extends Activity {
       } else {
         mController.humanPlay(player, play);
       }
-      mDidHumanMove = true;
-      saveActiveGame();
     }
   };
 

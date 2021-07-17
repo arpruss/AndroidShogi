@@ -200,6 +200,7 @@ public class BonanzaController {
         public int lastMoveCookie;  // cookie for lastMove. for future undos.
         public int undoMoves;       // number of moves to be rolled back
 
+        public Player lastPlayer;
         // The player that should play the next turn. May be Player.INVALID when the
         // the gameState != ACTIVE.
         public Player nextPlayer;
@@ -210,7 +211,7 @@ public class BonanzaController {
         @Override
         public String toString() {
             String s = "state=" + gameState.toString() +
-                    " next: " + nextPlayer.toString();
+                    " next: " + nextPlayer.toString() + " last: " + lastPlayer.toString();
             if (errorMessage != null) s += " error: " + errorMessage;
             return s;
         }
@@ -221,6 +222,7 @@ public class BonanzaController {
             Result r = new Result();
             r.board = jr.board;
             r.lastMove = (jr.move != null) ? Play.fromCsaString(jr.move, curPlayer) : null;
+            r.lastPlayer = curPlayer;
             r.lastMoveCookie = jr.moveCookie;
             r.errorMessage = jr.error;
 

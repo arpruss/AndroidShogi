@@ -131,7 +131,7 @@ public class ReplayGameActivity extends Activity {
         mSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromTouch) {
                 if (fromTouch) {
-                    replayUpTo(progress < mLog.numPlays() ? progress : mLog.numPlays()-1);
+                    replayUpTo(progress < mLog.numPlays() ? progress : mLog.numPlays());
                 }
             }
 
