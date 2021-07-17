@@ -65,6 +65,7 @@ typedef union {
 
 #else /* NO SSE2 */
 
+#ifndef __SIZEOF_INT128__
 #define BBTest(b)           ( (b).p[0] | (b).p[1] | (b).p[2] )
 #define BBIni(b)            (b).p[0] = (b).p[1] = (b).p[2] = 0
 #define BBNot(b,b1)         (b).p[0] = ~(b1).p[0],                      \
@@ -118,9 +119,46 @@ typedef union {
     (b).p[1] ^= ((abb_mask_rl45[sq1].p[1])|(abb_mask_rl45[sq2].p[1])), \
     (b).p[2] ^= ((abb_mask_rl45[sq1].p[2])|(abb_mask_rl45[sq2].p[2]))
 
+typedef struct {
+  unsigned int p[3];
+} bitboard_t;
+#else // __SIZEOF_INT128__
+    
+
+#define BBTest(b)           ( (__uint128_t)0 != (b).m )
+#define BBIni(b)            (b).m = 0
+#define BBNot(b,b1)         (b).m = ~(b1).m
+#define BBAnd(b,b1,b2)      (b).m = (b1).m & (b2).m
+#define BBOr(b,b1,b2)       (b).m = (b1).m | (b2).m
+#define BBXor(b,b1,b2)      (b).m = (b1).m ^ (b2).m
+#define BBAndOr(b,b1,b2)    (b).m |= (b1).m & (b2).m
+#define BBNotAnd(b,b1,b2)   (b).m = (b1).m & ~(b2).m
+#define BBContract(b1,b2)   ( (__uint128_t)0 != ( (b1).m & (b2).m ) )
+#define Xor(sq,b)           (b).m ^= abb_mask[sq].m
+#define XorFile(sq,b)       (b).m ^= abb_mask_rl90[sq].m
+#define XorDiag1(sq,b)      (b).m ^= abb_mask_rr45[sq].m
+#define XorDiag2(sq,b)      (b).m ^= abb_mask_rl45[sq].m
+#define SetClear(b)         (b).m ^= (bb_set_clear.m)
+#define SetClearFile(sq1,sq2,b)                                         \
+    (b).m ^= ( abb_mask_rl90[sq1].m | abb_mask_rl90[sq2].m )
+#undef BBCmp
+#define BBCmp(b1,b2)        ( (b1).m != (b2).m )
+
+#define SetClearDiag1(sq1,sq2,b) \
+    (b).m ^= ((abb_mask_rr45[sq1].m)|(abb_mask_rr45[sq2].m))
+
+#define SetClearDiag2(sq1,sq2,b) \
+    (b).m ^= ((abb_mask_rl45[sq1].m)|(abb_mask_rl45[sq2].m))
 
 
-typedef struct { unsigned int p[3]; } bitboard_t;
+
+typedef union {
+  unsigned int p[4];
+  __uint128_t m;
+} bitboard_t;
+
+
+#endif // __SIZEOF_INT128__
 
 #endif /* HAVE_SSE2 */
 
