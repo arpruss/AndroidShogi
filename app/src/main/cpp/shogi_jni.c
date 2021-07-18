@@ -488,6 +488,17 @@ void Java_mobi_omegacentauri_shogi_BonanzaJNI_undo(
     pthread_mutex_unlock(&g_lock);
 }
 
+void Java_mobi_omegacentauri_shogi_BonanzaJNI_resetTime(
+        JNIEnv *env,
+        jclass unused_bonanza_class,
+        jint btime,
+        jint wtime) {
+    pthread_mutex_lock(&g_lock);
+    reset_time((int)btime, (int)wtime);
+    pthread_mutex_unlock(&g_lock);
+    LOG_DEBUG("Reset time: %d %d", (int)btime, (int)wtime);
+}
+
 void Java_mobi_omegacentauri_shogi_BonanzaJNI_computerMove(
         JNIEnv *env,
         jclass unused_bonanza_class,

@@ -35,6 +35,8 @@ import android.widget.Toast;
 public class GameActivity extends Activity {
   private static final String TAG = "Shogi";
 
+  private static final boolean NEW_SAVES = false;
+
   private static final String SAVE_BUNDLE = "save.bundle";
   private static final int SAVE_BUNDLE_VERSION = 0x12340001;
   private static final int DIALOG_PROMOTE = 1235;
@@ -86,6 +88,7 @@ public class GameActivity extends Activity {
   private ArrayList<Integer> mMoveCookies;
   private SharedPreferences mPrefs;
   private KeyboardControl mKeyboardControl;
+  private Board mInitialBoard;
 
   @Override
   public void onCreate(Bundle savedInstanceState) {
@@ -150,9 +153,15 @@ public class GameActivity extends Activity {
             mBoard, mBoard,
             mPlays, mNextPlayer, null);
     mStatusView.updateThinkTimes(mBlackThinkTimeMs, mWhiteThinkTimeMs);
-    mController = new BonanzaController(mEventHandler, mComputerLevel, Math.min(Util.numberOfCores(),Integer.parseInt(mPrefs.getString("cores","4"))));
-    if (mGameState == GameState.ACTIVE)
-        mController.start(savedInstanceState, mBoard, mNextPlayer);
+    int numCores = Math.min(Util.numberOfCores(),Integer.parseInt(mPrefs.getString("cores","4")));
+    mController = new BonanzaController(mEventHandler, mComputerLevel, numCores);
+    if (mGameState == GameState.ACTIVE) {
+      if (! NEW_SAVES || savedInstanceState != null)
+        mController.start(savedInstanceState, mBoard, mNextPlayer, null, 0, 0, 0);
+      else
+        mController.start(savedInstanceState, mInitialBoard, Player.BLACK, mPlays, mPlays.size(), mBlackThinkTimeMs, mWhiteThinkTimeMs);
+    }
+
     mKeyboardControl.add(new KeyboardControl.CursorPosition(findViewById(R.id.undo_text_button),null, null, 0,0, null));
     mKeyboardControl.add(new KeyboardControl.CursorPosition(findViewById(R.id.flip_text_button),null, null, 0,0, null));
 
@@ -271,6 +280,8 @@ public class GameActivity extends Activity {
   }
 
   public static Bundle getSaveActiveGame(Context c) {
+    if (! NEW_SAVES)
+      return null;
     Bundle b;
     try {
       FileInputStream in = c.openFileInput(SAVE_BUNDLE);
@@ -355,7 +366,10 @@ public class GameActivity extends Activity {
     if (b != null)
       mBoard = (Board)b.getSerializable("saved_board");
     if (mBoard == null)
-      mBoard = (Board)getIntent().getSerializableExtra("initial_board");
+      mBoard = (Board)getIntent().getSerializableExtra("saved_board");
+    mInitialBoard = (Board)getIntent().getSerializableExtra("initial_board");
+    if (mBoard == null)
+      mBoard = mInitialBoard;
     
     // Resuming a saved game will set "moves" and "next_player" intent extras.
     if (mNextPlayer == null) {
@@ -378,10 +392,10 @@ public class GameActivity extends Activity {
       mMoveCookies = new ArrayList<Integer>();
     }
 
+    BonanzaJNI.abort();
+
     if (resetTime)
       resetTime();
-
-    BonanzaJNI.abort();
   }
 
   private void resetTime() {

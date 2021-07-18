@@ -1,6 +1,7 @@
 package mobi.omegacentauri.shogi;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 
 import android.os.Bundle;
 import android.os.Handler;
@@ -65,7 +66,12 @@ public class BonanzaController {
                     case C_START:
                         doStart(msg.getData().getInt("resume_instance_id"),
                                 (Board) msg.getData().get("initial_board"),
-                                (Player) msg.getData().get("next_player"));
+                                (Player) msg.getData().get("next_player"),
+                                (ArrayList<Play>) msg.getData().get("moves"),
+                                (int) msg.getData().getInt("preplay", 0),
+                                (int) msg.getData().getInt("black_time", 0),
+                                (int) msg.getData().getInt("white_time", 0)
+                                );
                         break;
                     case C_HUMAN_PLAY:
                         doHumanPlay(
@@ -97,7 +103,7 @@ public class BonanzaController {
         }
     }
 
-    public final void start(Bundle bundle, Board board, Player nextPlayer) {
+    public final void start(Bundle bundle, Board board, Player nextPlayer, ArrayList<Play> plays, int preplayCount, long blackThinkTimeMs, long whiteThinkTimeMs) {
         Bundle b = new Bundle();
 
         if (bundle != null) {
@@ -106,6 +112,10 @@ public class BonanzaController {
         }
         b.putSerializable("initial_board", board);
         b.putSerializable("next_player", nextPlayer);
+        b.putSerializable("moves", plays);
+        b.putInt("preplay", preplayCount);
+        b.putInt("black_time", (int) (blackThinkTimeMs/1000));
+        b.putInt("white_time", (int) (whiteThinkTimeMs/1000));
         sendInputMessage(C_START, b);
     }
 
@@ -219,6 +229,7 @@ public class BonanzaController {
         static public Result fromJNI(
                 BonanzaJNI.Result jr,
                 Player curPlayer) {
+            Log.v("shogilog", "cur player " +curPlayer);
             Result r = new Result();
             r.board = jr.board;
             r.lastMove = (jr.move != null) ? Play.fromCsaString(jr.move, curPlayer) : null;
@@ -229,6 +240,7 @@ public class BonanzaController {
             if (jr.status >= 0) {
                 r.nextPlayer = curPlayer.opponent();
                 r.gameState = GameState.ACTIVE;
+                Log.v("shogilog", "next player "+r.nextPlayer);
             } else {
                 switch (jr.status) {
                     case BonanzaJNI.R_FATAL_ERROR:
@@ -293,7 +305,7 @@ public class BonanzaController {
         mOutputHandler.sendMessage(msg);
     }
 
-    private final void doStart(int resumeInstanceId, Board board, Player nextPlayer) {
+    private final void doStart(int resumeInstanceId, Board board, Player nextPlayer, ArrayList<Play> moves, int preplayCount, int blackTime, int whiteTime) {
         BonanzaJNI.Result jr = new BonanzaJNI.Result();
         if (board == null) {
             throw new AssertionError("BOARD==null");
@@ -308,7 +320,32 @@ public class BonanzaController {
         r.board = jr.board;
         r.nextPlayer = nextPlayer;
         r.gameState = GameState.ACTIVE;
+
         sendOutputMessage(r);
+
+        if (preplayCount == 0)
+            return;
+
+        for (int i=0; i < preplayCount ; i++) {
+            Log.v("shogilog", "preplaying " + moves.get(i).toCsaString());
+            BonanzaJNI.humanMove(mInstanceId, moves.get(i).toCsaString(), jr);
+            if (jr.status == BonanzaJNI.R_INSTANCE_DELETED) {
+                Log.v("shogilog", "instance deleted");
+                mThread.quit();
+                return;
+            }
+            if (jr.status == BonanzaJNI.R_ILLEGAL_MOVE)
+                jr.status = BonanzaJNI.R_FATAL_ERROR;
+            r = Result.fromJNI(jr, i % 2 == 0 ? Player.BLACK : Player.WHITE);
+            if (jr.status == BonanzaJNI.R_FATAL_ERROR) {
+                break;
+            }
+        }
+
+        r.lastMove = null; // do not record move
+        sendOutputMessage(r);
+        Log.v("shogilog", "times "+blackTime+" "+whiteTime);
+        BonanzaJNI.resetTime(blackTime, whiteTime);
         Log.v("shogilog", "Started");
     }
 

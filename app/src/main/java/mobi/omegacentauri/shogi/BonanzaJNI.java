@@ -89,7 +89,11 @@ public class BonanzaJNI {
       int total_think_time_secs,    
       int per_turn_think_time_secs,
       Result result);
-  
+
+  static public native int resetTime(
+      int blackTime,
+      int whiteTime);
+
   /**
    *  Inform Bonanza that the human player made a move.
    *   

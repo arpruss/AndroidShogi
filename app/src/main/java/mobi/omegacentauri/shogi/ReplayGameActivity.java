@@ -184,7 +184,10 @@ public class ReplayGameActivity extends Activity {
 
     void resumeGame(boolean skipDialog) {
         Intent intent = new Intent(this, GameActivity.class);
-        intent.putExtra("initial_board", mBoard);
+        Board initialBoard = new Board();
+        initialBoard.initialize(mLog.handicap());
+        intent.putExtra("initial_board", initialBoard);
+        intent.putExtra("saved_board", mBoard);
         intent.putExtra("moves", mPlays);
         intent.putExtra("next_player", mNextPlayer);
         //intent.putExtra("replaying_saved_game", true);
