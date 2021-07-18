@@ -279,6 +279,7 @@ public class GameActivity extends Activity {
     b.putSerializable("shogi_move_cookies", mMoveCookies);
     b.putSerializable("saved_board", mBoard);
     b.putSerializable("game_state", mGameState);
+    b.putBoolean("flipped", mFlipScreen);
   }
 
   public static Bundle getSaveActiveGame(Context c) {
@@ -352,6 +353,8 @@ public class GameActivity extends Activity {
       mHumanPlayers.add(Player.WHITE);      
     }
     mFlipScreen = mPlayerTypes.charAt(1) == 'H' && mPlayerTypes.charAt(0) != 'H';
+    if (b != null)
+      mFlipScreen = b.getBoolean("flipped", mFlipScreen);
     mComputerLevel = Integer.parseInt(mPrefs.getString("computer_difficulty", "1"));
 
     mHandicap = (Handicap)getIntent().getSerializableExtra("handicap");

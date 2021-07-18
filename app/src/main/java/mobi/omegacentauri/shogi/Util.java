@@ -151,6 +151,10 @@ public class Util {
     }
   }
 
+  static public boolean nameIsHuman(Context c, String name) {
+    return null == computerLevelFromName(c, name);
+  }
+
   static public String computerLevelFromName(Context c, String level) {
     String levels[] = c.getResources().getStringArray(R.array.computer_level_names);
 

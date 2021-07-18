@@ -70,10 +70,10 @@ public class ReplayGameActivity extends Activity {
                 a.hide();
         }
         setContentView(R.layout.replay_game);
-        initializeInstanceState(savedInstanceState);
-
         mLog = (GameLog) getIntent().getSerializableExtra("gameLog");
         Assert.isTrue(mLog.numPlays() > 0);
+
+        initializeInstanceState(savedInstanceState);
 
         mGameState = GameState.ACTIVE;
         mNextPlay = 0;
@@ -86,6 +86,7 @@ public class ReplayGameActivity extends Activity {
         mStatusView.initialize(
                 mLog.attr(GameLog.ATTR_BLACK_PLAYER),
                 mLog.attr(GameLog.ATTR_WHITE_PLAYER), mFlipScreen);
+        setFlipScreen(mFlipScreen);
 
         mBoardView = (BoardView) findViewById(R.id.boardview);
         mBoardView.initialize(mViewListener,
@@ -228,17 +229,32 @@ public class ReplayGameActivity extends Activity {
         }
     }
 
+    @Override
+    public void onSaveInstanceState(Bundle bundle) {
+        bundle.putBoolean("flipped",mFlipScreen);
+    }
+
     private final void initializeInstanceState(Bundle b) {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(
                 getBaseContext());
 
-        mFlipScreen = false;
+        if (b != null)
+            mFlipScreen = b.getBoolean("flipped", mFlipScreen);
+        else {
+            boolean blackIsHuman = Util.nameIsHuman(this, mLog.attr(GameLog.ATTR_BLACK_PLAYER));
+            boolean whiteIsHuman = Util.nameIsHuman(this, mLog.attr(GameLog.ATTR_WHITE_PLAYER));
+            mFlipScreen = whiteIsHuman && !blackIsHuman;
+        }
+    }
+
+    private void setFlipScreen(boolean value) {
+        mFlipScreen = value;
+        mBoardView.setFlipScreen(mFlipScreen);
+        mStatusView.setFlipScreen(mFlipScreen);
     }
 
     private void flipScreen() {
-        mFlipScreen = !mFlipScreen;
-        mBoardView.setFlipScreen(mFlipScreen);
-        mStatusView.setFlipScreen(mFlipScreen);
+        setFlipScreen(!mFlipScreen);
     }
 
     private final BoardView.EventListener mViewListener = new BoardView.EventListener() {
@@ -289,7 +305,6 @@ public class ReplayGameActivity extends Activity {
                 }
         );
         mStartGameDialog.getDialog().show();
-//        showDialog(DIALOG_RESUME_GAME);
     }
 
     public void toSD(View view) {
