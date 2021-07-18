@@ -268,16 +268,16 @@ public class ReplayGameActivity extends Activity {
         }
 
         if (blackLevel == null && whiteLevel == null) {
-            ed.putString("player_types", "" + StartGameDialog.PlayerTypesToInt("HH"));
+            ed.putString("player_types", "" + Util.PlayerTypesToInt("HH"));
         }
         else if (blackLevel != null && whiteLevel == null) {
-            ed.putString("player_types", "" + StartGameDialog.PlayerTypesToInt("CH"));
+            ed.putString("player_types", "" + Util.PlayerTypesToInt("CH"));
         }
         else if (blackLevel == null && whiteLevel != null) {
-            ed.putString("player_types", "" + StartGameDialog.PlayerTypesToInt("HC"));
+            ed.putString("player_types", "" + Util.PlayerTypesToInt("HC"));
         }
         else {
-            ed.putString("player_types", "" + StartGameDialog.PlayerTypesToInt("CC"));
+            ed.putString("player_types", "" + Util.PlayerTypesToInt("CC"));
         }
         ed.commit();
         mStartGameDialog = new StartGameDialog(

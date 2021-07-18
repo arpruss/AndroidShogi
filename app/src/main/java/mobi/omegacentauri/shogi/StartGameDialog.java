@@ -86,7 +86,7 @@ public class StartGameDialog {
     }
 
     private void loadPreferences() {
-        mPlayerTypes.setSelection(PlayerTypesToInt(mPrefs.getString("player_types", "0")));
+        mPlayerTypes.setSelection(Util.PlayerTypesToInt(mPrefs.getString("player_types", "0")));
         mComputerDifficulty.setSelection(Integer.parseInt(mPrefs.getString("computer_difficulty", "1")));
         mHandicap.setSelection(Integer.parseInt(mPrefs.getString("handicap", "0")));
     }
@@ -99,7 +99,7 @@ public class StartGameDialog {
         boolean changed = false;
         SharedPreferences.Editor editor = mPrefs.edit();
 
-        String playerTypes = IntToPlayerTypes(mPlayerTypes.getSelectedItemPosition());
+        String playerTypes = Util.IntToPlayerTypes(mPlayerTypes.getSelectedItemPosition());
         if (!mPrefs.getString("player_types", "0").equals(playerTypes)) {
             editor.putString("player_types", playerTypes);
             changed = true;
@@ -124,27 +124,6 @@ public class StartGameDialog {
             return true;
         } else {
             return false;
-        }
-    }
-
-    public static int PlayerTypesToInt(String s) {
-        if (s.equals("HC")) return 0;
-        if (s.equals("CH")) return 1;
-        if (s.equals("HH")) return 2;
-        if (s.equals("CC")) return 3;
-        return 0;
-    }
-
-    private static String IntToPlayerTypes(int v) {
-        switch (v) {
-            case 1:
-                return "CH";
-            case 2:
-                return "HH";
-            case 3:
-                return "CC";
-            default:
-                return "HC";
         }
     }
 }

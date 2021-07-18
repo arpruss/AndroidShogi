@@ -174,4 +174,25 @@ public class Util {
     }
     return name;
   }
+
+  public static int PlayerTypesToInt(String s) {
+    if (s.equals("HC")) return 0;
+    if (s.equals("CH")) return 1;
+    if (s.equals("HH")) return 2;
+    if (s.equals("CC")) return 3;
+    return 0;
+  }
+
+  public static String IntToPlayerTypes(int v) {
+    switch (v) {
+      case 1:
+        return "CH";
+      case 2:
+        return "HH";
+      case 3:
+        return "CC";
+      default:
+        return "HC";
+    }
+  }
 }
