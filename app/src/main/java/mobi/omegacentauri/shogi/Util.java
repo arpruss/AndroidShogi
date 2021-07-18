@@ -151,4 +151,27 @@ public class Util {
     }
   }
 
+  static public String computerLevelFromName(Context c, String level) {
+    String levels[] = c.getResources().getStringArray(R.array.computer_level_names);
+
+    for (int i = 0 ; i < levels.length ; i++)
+      if (levels[i].equals(level)) {
+        return c.getResources().getStringArray(R.array.computer_level_values)[i];
+      }
+
+    return null;
+  }
+
+  // if human name looks like a computer level number, add " (H)"
+  static public String humanSafeName(String name) {
+    if (name.startsWith("Lv ")) {
+      try {
+        Integer.parseInt(name.substring(3));
+        return name + " (H)";
+      }
+      catch(Exception e) {
+      }
+    }
+    return name;
+  }
 }

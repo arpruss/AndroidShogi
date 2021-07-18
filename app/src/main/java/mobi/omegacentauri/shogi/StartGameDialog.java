@@ -7,6 +7,7 @@ import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.CheckBox;
 import android.widget.LinearLayout;
@@ -26,6 +27,7 @@ public class StartGameDialog {
     public StartGameDialog(
             Context context,
             String title,
+            Boolean editHandicap,
             DialogInterface.OnClickListener onClick) {
 
         mContext = context;
@@ -57,6 +59,7 @@ public class StartGameDialog {
                 android.R.layout.simple_spinner_item);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         mHandicap.setAdapter(adapter);
+        mHandicap.setEnabled(editHandicap);
 
         loadPreferences();
 
@@ -124,7 +127,7 @@ public class StartGameDialog {
         }
     }
 
-    private static int PlayerTypesToInt(String s) {
+    public static int PlayerTypesToInt(String s) {
         if (s.equals("HC")) return 0;
         if (s.equals("CH")) return 1;
         if (s.equals("HH")) return 2;

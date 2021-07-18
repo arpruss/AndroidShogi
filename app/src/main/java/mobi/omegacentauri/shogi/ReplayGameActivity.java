@@ -201,7 +201,7 @@ public class ReplayGameActivity extends Activity {
     @Override
     protected Dialog onCreateDialog(int id) {
         switch (id) {
-            case DIALOG_RESUME_GAME: {
+/*            case DIALOG_RESUME_GAME: {
                 mStartGameDialog = new StartGameDialog(
                         this, "Resume Game",
                         new DialogInterface.OnClickListener() {
@@ -211,7 +211,7 @@ public class ReplayGameActivity extends Activity {
                         }
                 );
                 return mStartGameDialog.getDialog();
-            }
+            } */
             case DIALOG_LOG_PROPERTIES:
                 final GameLogPropertiesView view = new GameLogPropertiesView(this);
                 view.initialize(mLog);
@@ -257,7 +257,39 @@ public class ReplayGameActivity extends Activity {
     }
 
     public void play(View view) {
-        showDialog(DIALOG_RESUME_GAME);
+        String blackLevel = Util.computerLevelFromName(this, mLog.attr(GameLog.ATTR_BLACK_PLAYER));
+        String whiteLevel = Util.computerLevelFromName(this, mLog.attr(GameLog.ATTR_WHITE_PLAYER));
+        SharedPreferences.Editor ed = mPrefs.edit();
+        if (blackLevel != null) {
+            ed.putString("computer_difficulty", blackLevel);
+        }
+        else if (whiteLevel != null) {
+            ed.putString("computer_difficulty", whiteLevel);
+        }
+
+        if (blackLevel == null && whiteLevel == null) {
+            ed.putString("player_types", "" + StartGameDialog.PlayerTypesToInt("HH"));
+        }
+        else if (blackLevel != null && whiteLevel == null) {
+            ed.putString("player_types", "" + StartGameDialog.PlayerTypesToInt("CH"));
+        }
+        else if (blackLevel == null && whiteLevel != null) {
+            ed.putString("player_types", "" + StartGameDialog.PlayerTypesToInt("HC"));
+        }
+        else {
+            ed.putString("player_types", "" + StartGameDialog.PlayerTypesToInt("CC"));
+        }
+        ed.commit();
+        mStartGameDialog = new StartGameDialog(
+                this, "Resume Game", false,
+                new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        resumeGame(false);
+                    }
+                }
+        );
+        mStartGameDialog.getDialog().show();
+//        showDialog(DIALOG_RESUME_GAME);
     }
 
     public void toSD(View view) {

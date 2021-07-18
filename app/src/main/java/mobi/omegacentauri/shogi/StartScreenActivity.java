@@ -161,6 +161,7 @@ public class StartScreenActivity extends Activity {
                 StartGameDialog d = new StartGameDialog(
                         this,
                         getResources().getString(R.string.new_game),
+                        true,
                         new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int id) {
                                 newGame2();

@@ -220,8 +220,8 @@ public class GameActivity extends Activity {
   private final String playerName(char type, int level) {
     if (type == 'H') {
       SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-      return prefs.getString("human_player_name", 
-          (String) getResources().getText(R.string.default_human_player_name));
+      return Util.humanSafeName(prefs.getString("human_player_name",
+          (String) getResources().getText(R.string.default_human_player_name)));
     } else {
       return getResources().getStringArray(R.array.computer_level_names)[level];
     }
