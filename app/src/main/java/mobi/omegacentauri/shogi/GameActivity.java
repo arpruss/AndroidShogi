@@ -35,7 +35,7 @@ import android.widget.Toast;
 public class GameActivity extends Activity {
   private static final String TAG = "Shogi";
 
-  private static final boolean NEW_SAVES = false;
+  private static final boolean NEW_SAVES = false; // not yet production ready
 
   private static final String SAVE_BUNDLE = "save.bundle";
   private static final int SAVE_BUNDLE_VERSION = 0x12340001;
@@ -172,6 +172,8 @@ public class GameActivity extends Activity {
   }
 
   static void deleteSaveActiveGame(Context c) {
+    if (! NEW_SAVES)
+      return;
     try {
       c.deleteFile(SAVE_BUNDLE);
       Log.v("shogilog", "deleted saved bundle");
