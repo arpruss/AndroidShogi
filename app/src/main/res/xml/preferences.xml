@@ -52,6 +52,11 @@
       android:entries="@array/cores"
       android:entryValues="@array/cores"/>
   />
+  <CheckBoxPreference
+      android:key="log_end"
+      android:defaultValue="true"
+      android:title="@string/log_end"
+      />
   <ListPreference
     android:title="@string/log_save_format"
     android:key="log_save_format"

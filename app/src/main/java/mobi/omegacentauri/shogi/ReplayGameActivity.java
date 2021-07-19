@@ -128,7 +128,6 @@ public class ReplayGameActivity extends Activity {
 
         mSeekBar = (SeekBar) findViewById(R.id.replay_seek_bar);
         mSeekBar.setMax(mLog.numPlays());
-        mSeekBar.setProgress(0);
         mSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromTouch) {
                 if (fromTouch) {
@@ -149,12 +148,11 @@ public class ReplayGameActivity extends Activity {
                 mGameState, mBoard, mBoard,
                 Player.INVALID, // Disallow board manipulation by the user
                 null, false);
+
+        replayUpTo(mLog.numPlays());
+        mSeekBar.setProgress(mLog.numPlays());
     }
 
-    /**
-     * Play the game up to "numMoves" moves. numMoves==0 will initialize the board, and
-     * numMoves==mLog.numMoves-1 will recreate the final game state.
-     */
     private final void replayUpTo(int numPlays) {
         mBoard.initialize(mLog.handicap());
         mNextPlayer = Player.BLACK;

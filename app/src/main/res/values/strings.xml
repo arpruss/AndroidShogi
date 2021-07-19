@@ -89,4 +89,5 @@
     <string name="remove_check">Confirmation</string>
     <string name="remove_check_message">Remove all in-memory logs?</string>
     <string name="yes_no_save">OK and don\'t save</string>
+    <string name="log_end">View logged game starting at end</string>
 </resources>
