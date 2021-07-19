@@ -39,7 +39,7 @@
     <string name="sort_by_tournament">Sort by tournaments</string>
     <string name="game_log_properties">Log information</string>        
     <string name="date">Date</string>
-    <string name="save_in_sdcard">Save in SD card</string>
+    <string name="save_in_sdcard">Save in storage</string>
     <string name="game_log_dir">Game log save directory</string>
     <string name="saved_game_log_in_memory">Saved game log in memory</string>
     <string name="file">File</string>
@@ -83,4 +83,5 @@
     <string name="board_style">Board Style</string>
     <string name="fuzzy">Fuzzy touch recognition</string>
     <string name="animate">Animate computer moves</string>
+    <string name="delete_all">Delete all in-memory</string>
 </resources>

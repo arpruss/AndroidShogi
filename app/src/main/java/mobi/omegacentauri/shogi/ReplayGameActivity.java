@@ -70,6 +70,7 @@ public class ReplayGameActivity extends Activity {
                 a.hide();
         }
         setContentView(R.layout.replay_game);
+
         mLog = (GameLog) getIntent().getSerializableExtra("gameLog");
         Assert.isTrue(mLog.numPlays() > 0);
 
@@ -86,7 +87,6 @@ public class ReplayGameActivity extends Activity {
         mStatusView.initialize(
                 mLog.attr(GameLog.ATTR_BLACK_PLAYER),
                 mLog.attr(GameLog.ATTR_WHITE_PLAYER), mFlipScreen);
-        setFlipScreen(mFlipScreen);
 
         mBoardView = (BoardView) findViewById(R.id.boardview);
         mBoardView.initialize(mViewListener,
@@ -142,6 +142,8 @@ public class ReplayGameActivity extends Activity {
             public void onStopTrackingTouch(SeekBar seekBar) {
             }
         });
+
+        setFlipScreen(mFlipScreen);
 
         mBoardView.update(
                 mGameState, mBoard, mBoard,
@@ -235,11 +237,12 @@ public class ReplayGameActivity extends Activity {
     }
 
     private final void initializeInstanceState(Bundle b) {
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(
-                getBaseContext());
+        //SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(
+        //        getBaseContext());
 
-        if (b != null)
+        if (b != null) {
             mFlipScreen = b.getBoolean("flipped", mFlipScreen);
+        }
         else {
             boolean blackIsHuman = Util.nameIsHuman(this, mLog.attr(GameLog.ATTR_BLACK_PLAYER));
             boolean whiteIsHuman = Util.nameIsHuman(this, mLog.attr(GameLog.ATTR_WHITE_PLAYER));

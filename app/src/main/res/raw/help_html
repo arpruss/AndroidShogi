@@ -46,7 +46,7 @@ the log to be saved in file
 <tt>/sdcard/ShogiLog/<em>nonsense</em>.kif</tt>,
 where <em>nonsense</em> is some illegible string (it's the SHA-1 hash 
 of the log, if you are a nerd). The logs saved in the sdcard will have 
-marker <strong>[sd]</strong> in the game log list, and they will 
+marker <strong>[ext]</strong> in the game log list, and they will
 survive even if the Android Shogi is uninstalled.
 
 

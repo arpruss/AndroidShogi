@@ -6,6 +6,7 @@ import java.util.Calendar;
 import java.util.Collection;
 import java.util.GregorianCalendar;
 
+import android.app.ActionBar;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -23,6 +24,7 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.AdapterView.AdapterContextMenuInfo;
 import android.widget.ListView;
+import android.widget.Toolbar;
 
 /**
  * Activity that lists available game logs.
@@ -38,7 +40,14 @@ public class GameLogListActivity extends GenericListActivity<GameLog> {
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     mGameLogList = GameLogListManager.getInstance();
-    
+
+/*    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.HONEYCOMB) {
+      ActionBar actionBar = getActionBar();
+      if (actionBar != null) {
+        //
+      }
+    } */
+
     initialize(
           null, /* no cache */
           0,    /* no cache */
@@ -60,7 +69,13 @@ public class GameLogListActivity extends GenericListActivity<GameLog> {
 
     
   private final GregorianCalendar mTmpCalendar = new GregorianCalendar();
-    
+
+  @Override
+  public boolean onCreateOptionsMenu(Menu menu) {
+    MenuInflater inflater = getMenuInflater();
+    inflater.inflate(R.menu.game_log_list_menu, menu);
+    return true;
+  }
   @Override
   public String getListLabel(GameLog log) {
     StringBuilder b = new StringBuilder();
@@ -73,7 +88,7 @@ public class GameLogListActivity extends GenericListActivity<GameLog> {
           mTmpCalendar.get(Calendar.DAY_OF_MONTH)));
     }
     if (log.path() != null) {
-      b.append("[sd] ");
+      b.append("[ext] ");
     } 
     String v = log.attr(GameLog.ATTR_BLACK_PLAYER);
     if (v != null) b.append(v);
@@ -179,6 +194,19 @@ public class GameLogListActivity extends GenericListActivity<GameLog> {
     }
   }
 
+  private class RemoveAllInMemoryTask extends AsyncTask<Void, String, String> {
+    @Override
+    protected String doInBackground(Void... list) {
+      mGameLogList.removeLogsInMemory(GameLogListActivity.this);
+      return null;
+    }
+
+    @Override
+    protected void onPostExecute(String unused) {
+      startListing(GameLogListManager.Mode.READ_SDCARD_SUMMARY);
+    }
+  }
+
   private class UndoTask extends AsyncTask<GameLogListManager.UndoToken, String, String> {
     private final Activity mActivity;
     UndoTask(Activity a) { mActivity = a; }
@@ -230,5 +258,28 @@ public class GameLogListActivity extends GenericListActivity<GameLog> {
       return super.onContextItemSelected(item);
     }
   }
-  
+
+  @Override public boolean onOptionsItemSelected(MenuItem item) {
+    switch (item.getItemId()) {
+      case R.id.delete_all:
+        removeInMemory();
+        return true;
+      case R.id.menu_sort_by_date:
+        setSorter(GameLog.SORT_BY_DATE);
+        return true;
+      case R.id.menu_sort_by_black_player:
+        setSorter(GameLog.SORT_BY_BLACK_PLAYER);
+        return true;
+      case R.id.menu_sort_by_white_player:
+        setSorter(GameLog.SORT_BY_WHITE_PLAYER);
+        return true;
+      default:
+        return super.onOptionsItemSelected(item);
+    }
+  }
+
+  // delete all in-memory entries
+  private void removeInMemory() {
+    new RemoveAllInMemoryTask().execute();
+  }
 }

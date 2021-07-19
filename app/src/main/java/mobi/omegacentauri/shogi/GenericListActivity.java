@@ -64,6 +64,9 @@ public abstract class GenericListActivity<T> extends ListActivity {
   public T getObjectAtPosition(int position) {
     return mAdapter.getObject(position);
   }
+  public int getCount() {
+    return mAdapter.getCount();
+  }
 
   private class MyAdapter extends BaseAdapter {
     private final LayoutInflater mInflater;

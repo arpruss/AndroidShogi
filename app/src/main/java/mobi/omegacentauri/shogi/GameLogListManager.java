@@ -100,6 +100,21 @@ public class GameLogListManager {
     }
   }
 
+  public void removeLogsInMemory(Context context) {
+    LogList summary = readSummary(context);
+    summary.lastScanTimeMs = -1;
+    ArrayList<String> to_remove = new ArrayList<String>();
+    for (Map.Entry<String, GameLog> e : summary.logs.entrySet()) {
+      if (e.getValue().path() == null) {
+        to_remove.add(e.getKey());
+      }
+    }
+    for (String key : to_remove) {
+      summary.logs.remove(key);
+    }
+    writeSummary(context, summary);
+  }
+
   private void scanDirectory(File downloadDir, LogList summary) {
     String[] files = downloadDir.list(new FilenameFilter(){
       @Override
