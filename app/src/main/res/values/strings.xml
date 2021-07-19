@@ -88,5 +88,5 @@
     <string name="delete_old">Delete two-week-old in-memory"</string>
     <string name="remove_check">Confirmation</string>
     <string name="remove_check_message">Remove all in-memory logs?</string>
-    <string name="OK">OK</string>
+    <string name="yes_no_save">OK and don\'t save</string>
 </resources>

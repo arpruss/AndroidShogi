@@ -670,11 +670,13 @@ public class GameActivity extends Activity {
         finish();
       }
     });
-    builder.setNegativeButton(android.R.string.no,  new DialogInterface.OnClickListener() {
-      public void onClick(DialogInterface d, int id) {
-        // nothing to do
-      }
-    });
+    if (mDidHumanMove)
+      builder.setNeutralButton(R.string.yes_no_save, new DialogInterface.OnClickListener() {
+        public void onClick(DialogInterface d, int id) {
+          deleteSaveActiveGame(GameActivity.this);
+          finish();
+        }
+      });
     return builder.create();
   }
 

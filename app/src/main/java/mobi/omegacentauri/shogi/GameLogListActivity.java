@@ -306,7 +306,7 @@ public class GameLogListActivity extends GenericListActivity<GameLog> {
     AlertDialog.Builder b = new AlertDialog.Builder(this);
     b.setTitle(R.string.remove_check);
     b.setMessage(R.string.remove_check_message);
-    b.setPositiveButton(R.string.OK, new DialogInterface.OnClickListener() {
+    b.setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
       @Override
       public void onClick(DialogInterface dialogInterface, int i) {
         new RemoveAllInMemoryTask().execute(0);
