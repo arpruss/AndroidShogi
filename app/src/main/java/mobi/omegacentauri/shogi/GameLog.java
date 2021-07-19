@@ -41,8 +41,8 @@ public class GameLog implements Serializable {
   public static final String ATTR_TOURNAMENT = "棋戦";
   public static final String ATTR_BLACK_PLAYER = "先手";
   public static final String ATTR_WHITE_PLAYER = "後手";
-  public static final String ATTR_HANDICAP = "手合割";    
-  
+  public static final String ATTR_HANDICAP = "手合割";
+
   /**
    * List of attributes names (ATTR_TITLE, etc) and their values. This object
    * must be an ordered map so that digest() can compute a deterministic value.
@@ -149,17 +149,34 @@ public class GameLog implements Serializable {
    * A Comparator to sort GameLog by date (oldest first)
    */
   public static final Comparator<GameLog> SORT_BY_DATE = new Comparator<GameLog>() {
-    public int compare(GameLog g1, GameLog g2) { 
+    public int compare(GameLog g1, GameLog g2) {
       if (g1.getDate() < g2.getDate()) return -1;
-      if (g1.getDate() > g2.getDate()) return 1;      
+      if (g1.getDate() > g2.getDate()) return 1;
 
       // Use player name, then digest as a tiebreaker.
-      
+
       // int x = BY_PLAYERS.compare(g1, g2);
       // if (x != 0) return x;
       return g1.digest().compareTo(g2.digest());
     }
-    @Override 
+
+    @Override
+    public boolean equals(Object o) { return o == this; }
+  };
+
+    public static final Comparator<GameLog> SORT_BY_DATE_REVERSED = new Comparator<GameLog>() {
+      public int compare(GameLog g1, GameLog g2) {
+        if (g1.getDate() < g2.getDate()) return 1;
+        if (g1.getDate() > g2.getDate()) return -1;
+
+        // Use player name, then digest as a tiebreaker.
+
+        // int x = BY_PLAYERS.compare(g1, g2);
+        // if (x != 0) return x;
+        return -g1.digest().compareTo(g2.digest());
+      }
+
+    @Override
     public boolean equals(Object o) { return o == this; }
   };
   
@@ -457,4 +474,12 @@ public class GameLog implements Serializable {
     c.set(year, month, day, hour, minute, sec);
     return c.getTimeInMillis();
   }
+
+  public static final Comparator<GameLog>[] COMPARATORS =
+           new Comparator[] {
+                   SORT_BY_DATE,
+                   SORT_BY_DATE_REVERSED,
+                   SORT_BY_BLACK_PLAYER,
+                   SORT_BY_WHITE_PLAYER
+           };
 }

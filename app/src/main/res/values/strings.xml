@@ -31,7 +31,8 @@
     <string name="replay_game">Replay game</string>
     <string name="log_properties">Properties</string>
     <string name="sort_by_date">Sort by date</string>
-    <string name="sort_by_black_player">Sort by black player</string>    
+    <string name="sort_by_date_reversed">Sort by date revered</string>
+    <string name="sort_by_black_player">Sort by black player</string>
     <string name="sort_by_white_player">Sort by white player</string>        
     <string name="sort_by_player">Sort by player names</string>        
     <string name="sort_by_number_of_games">Sort by number of games</string>

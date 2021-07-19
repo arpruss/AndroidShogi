@@ -4,6 +4,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.GregorianCalendar;
 
 import android.app.ActionBar;
@@ -12,8 +13,10 @@ import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.ContextMenu;
 import android.view.ContextMenu.ContextMenuInfo;
@@ -35,7 +38,8 @@ public class GameLogListActivity extends GenericListActivity<GameLog> {
   private GameLogListManager mGameLogList;
 
   private GameLogListManager.Mode mMode;
-  
+  private SharedPreferences mPrefs;
+
   @Override
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
@@ -53,13 +57,26 @@ public class GameLogListActivity extends GenericListActivity<GameLog> {
           0,    /* no cache */
           getResources().getString(R.string.game_logs),
           new GameLog[0]);
-    setSorter(GameLog.SORT_BY_DATE);
-    
+
+    mPrefs = PreferenceManager.getDefaultSharedPreferences(this);
+    setSorter(GameLog.COMPARATORS[mPrefs.getInt("log_sorter", 0)]);
+
     ListView listView = (ListView)findViewById(android.R.id.list);
     listView.setStackFromBottom(true);
     registerForContextMenu(listView);
 
     startListing(GameLogListManager.Mode.READ_SDCARD_SUMMARY);
+  }
+
+  @Override
+  public void setSorter(Comparator<GameLog> c) {
+    super.setSorter(c);
+    for (int i=0; i<GameLog.COMPARATORS.length; i++) {
+      if (GameLog.COMPARATORS[i] == c) {
+        mPrefs.edit().putInt("log_sorter", i).commit();
+        return;
+      }
+    }
   }
   
   private void startListing(GameLogListManager.Mode mode) {
@@ -266,6 +283,9 @@ public class GameLogListActivity extends GenericListActivity<GameLog> {
         return true;
       case R.id.menu_sort_by_date:
         setSorter(GameLog.SORT_BY_DATE);
+        return true;
+      case R.id.menu_sort_by_date_reversed:
+        setSorter(GameLog.SORT_BY_DATE_REVERSED);
         return true;
       case R.id.menu_sort_by_black_player:
         setSorter(GameLog.SORT_BY_BLACK_PLAYER);
