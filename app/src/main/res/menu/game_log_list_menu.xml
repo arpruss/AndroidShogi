@@ -7,6 +7,8 @@
         android:title="@string/sort_by_black_player" />
     <item android:id="@+id/menu_sort_by_white_player"
         android:title="@string/sort_by_white_player" />
+    <item android:id="@+id/delete_old"
+        android:title="@string/delete_old"/>
     <item android:id="@+id/delete_all"
         android:title="@string/delete_all"/>
 

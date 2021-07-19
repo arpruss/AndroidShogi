@@ -31,12 +31,6 @@ import java.util.Map;
  *
  */
 public class GameLogListManager {
-  /**
-   * Maximum number of logs that are not saved in the sdcard, but only in the summary file.
-   * Exceeding this limit, oldest logs will be deleted.
-   */
-  private static final int MAX_IN_MEMORY_LOGS = 30;
-  
   public static class UndoToken {
     public enum Op {  // the operation to undo 
       DELETED  // the log was deleted (the undo will restore the log)
@@ -100,12 +94,14 @@ public class GameLogListManager {
     }
   }
 
-  public void removeLogsInMemory(Context context) {
+  public void removeLogsInMemory(Context context, Integer age) {
     LogList summary = readSummary(context);
+    long deleteTime = age == 0 ? Long.MAX_VALUE : System.currentTimeMillis() - age * 86400l * 1000l - 1;
     summary.lastScanTimeMs = -1;
     ArrayList<String> to_remove = new ArrayList<String>();
     for (Map.Entry<String, GameLog> e : summary.logs.entrySet()) {
-      if (e.getValue().path() == null) {
+      GameLog log = e.getValue();
+      if (log.path() == null && log.getDate() <= age ) {
         to_remove.add(e.getKey());
       }
     }
@@ -264,12 +260,6 @@ public class GameLogListManager {
     ArrayList<GameLog> inmemory_logs = new ArrayList<GameLog>();
     for (GameLog log : summary.logs.values()) {
       if (log.path() == null) inmemory_logs.add(log);
-    }
-    if (inmemory_logs.size() > MAX_IN_MEMORY_LOGS) {
-      Collections.sort(inmemory_logs, GameLog.SORT_BY_DATE);
-      for (int i = 0; i < inmemory_logs.size() - MAX_IN_MEMORY_LOGS; ++i) {
-        summary.logs.remove(inmemory_logs.get(i).digest());
-      }
     }
   }
 

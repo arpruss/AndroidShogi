@@ -211,10 +211,10 @@ public class GameLogListActivity extends GenericListActivity<GameLog> {
     }
   }
 
-  private class RemoveAllInMemoryTask extends AsyncTask<Void, String, String> {
+  private class RemoveAllInMemoryTask extends AsyncTask<Integer, String, String> {
     @Override
-    protected String doInBackground(Void... list) {
-      mGameLogList.removeLogsInMemory(GameLogListActivity.this);
+    protected String doInBackground(Integer... age) {
+      mGameLogList.removeLogsInMemory(GameLogListActivity.this, age[0]);
       return null;
     }
 
@@ -278,8 +278,11 @@ public class GameLogListActivity extends GenericListActivity<GameLog> {
 
   @Override public boolean onOptionsItemSelected(MenuItem item) {
     switch (item.getItemId()) {
-      case R.id.delete_all:
-        removeInMemory();
+        case R.id.delete_old:
+            new RemoveAllInMemoryTask().execute(14);
+            return true;
+        case R.id.delete_all:
+          removeInMemory();
         return true;
       case R.id.menu_sort_by_date:
         setSorter(GameLog.SORT_BY_DATE);
@@ -300,6 +303,15 @@ public class GameLogListActivity extends GenericListActivity<GameLog> {
 
   // delete all in-memory entries
   private void removeInMemory() {
-    new RemoveAllInMemoryTask().execute();
+    AlertDialog.Builder b = new AlertDialog.Builder(this);
+    b.setTitle(R.string.remove_check);
+    b.setMessage(R.string.remove_check_message);
+    b.setPositiveButton(R.string.OK, new DialogInterface.OnClickListener() {
+      @Override
+      public void onClick(DialogInterface dialogInterface, int i) {
+        new RemoveAllInMemoryTask().execute(0);
+      }
+    });
+    b.show();
   }
 }

@@ -85,4 +85,8 @@
     <string name="fuzzy">Fuzzy touch recognition</string>
     <string name="animate">Animate computer moves</string>
     <string name="delete_all">Delete all in-memory</string>
+    <string name="delete_old">Delete two-week-old in-memory"</string>
+    <string name="remove_check">Confirmation</string>
+    <string name="remove_check_message">Remove all in-memory logs?</string>
+    <string name="OK">OK</string>
 </resources>
