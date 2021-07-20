@@ -14,6 +14,9 @@ import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.util.Log;
+import android.view.ContextMenu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
@@ -107,24 +110,7 @@ public class ReplayGameActivity extends Activity {
                 }
             }
         });
-        TextView tb = (TextView)findViewById(R.id.flip_text_button);
-        tb.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View view, MotionEvent motionEvent) {
-                if (motionEvent.getAction() == MotionEvent.ACTION_UP) {
-                    view.performClick();
-                    view.clearFocus();
-                    return true;
-                }
-                return true;
-            }
-        });
-        tb.clearFocus();
         mBoardView.requestFocus();
-
-        View undo = findViewById(R.id.undo_text_button);
-        if (undo != null)
-            undo.setVisibility(View.GONE);
 
         mSeekBar = (SeekBar) findViewById(R.id.replay_seek_bar);
         mSeekBar.setMax(mLog.numPlays());
@@ -151,6 +137,8 @@ public class ReplayGameActivity extends Activity {
 
         replayUpTo(mLog.numPlays());
         mSeekBar.setProgress(mLog.numPlays());
+
+        registerForContextMenu(findViewById(R.id.menu_button));
     }
 
     private final void replayUpTo(int numPlays) {
@@ -269,11 +257,11 @@ public class ReplayGameActivity extends Activity {
         mBoardView.requestFocus();
     }
 
-    public void infoClick(View view) {
+    public void info() {
         showDialog(DIALOG_LOG_PROPERTIES);
     }
 
-    public void play(View view) {
+    public void play() {
         String blackLevel = Util.computerLevelFromName(this, mLog.attr(GameLog.ATTR_BLACK_PLAYER));
         String whiteLevel = Util.computerLevelFromName(this, mLog.attr(GameLog.ATTR_WHITE_PLAYER));
         SharedPreferences.Editor ed = mPrefs.edit();
@@ -308,7 +296,7 @@ public class ReplayGameActivity extends Activity {
         mStartGameDialog.getDialog().show();
     }
 
-    public void toSD(View view) {
+    public void toSD() {
         new AsyncTask<GameLog, String, String>() {
             @Override
             protected String doInBackground(GameLog... logs) {
@@ -316,5 +304,42 @@ public class ReplayGameActivity extends Activity {
                 return null;
             }
         }.execute(mLog);
+    }
+
+
+    @Override
+    public void onCreateContextMenu(
+            ContextMenu menu,
+            View v,
+            ContextMenu.ContextMenuInfo menuInfo) {
+        Log.v("shogilog", "create context");
+        super.onCreateContextMenu(menu, v, menuInfo);
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.replay_game_context_menu, menu);
+    }
+
+    @Override
+    public boolean onContextItemSelected(MenuItem item) {
+        // Handle item selection
+        switch (item.getItemId()) {
+            case R.id.menu_resume:
+                play();
+                return true;
+            case R.id.game_flip:
+                flipScreen();
+                return true;
+            case R.id.menu_save_in_sdcard:
+                toSD();
+                return true;
+            case R.id.menu_log_properties:
+                info();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
+    public void menuButtonClick(View view) {
+        openContextMenu(view);
     }
 }

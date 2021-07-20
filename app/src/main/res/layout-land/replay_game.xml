@@ -21,7 +21,6 @@
             android:layout_height="fill_parent">
         <include layout="@layout/status"/>
 
-    <include layout="@layout/replay_buttons"/>
     <TableLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

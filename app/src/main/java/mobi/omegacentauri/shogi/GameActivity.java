@@ -22,10 +22,14 @@ import android.os.Message;
 import android.os.Parcel;
 import android.preference.PreferenceManager;
 import android.util.Log;
+import android.view.ContextMenu;
 import android.view.KeyEvent;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.AdapterView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -121,34 +125,6 @@ public class GameActivity extends Activity {
     mBoardView.initialize(mViewListener, mHumanPlayers, mFlipScreen, mKeyboardControl);
     mBoardView.update(mGameState, null, mBoard, mNextPlayer, null, false);
     mBoardView.requestFocus();
-    TextView b = (TextView)findViewById(R.id.flip_text_button);
-    b.setOnTouchListener(new View.OnTouchListener() {
-      @Override
-      public boolean onTouch(View view, MotionEvent motionEvent) {
-        if (motionEvent.getAction() == MotionEvent.ACTION_UP) {
-          view.performClick();
-          view.clearFocus();
-          return true;
-        }
-        return true;
-      }
-    });
-    b.clearFocus();
-    b = (TextView)findViewById(R.id.undo_text_button);
-    b.setOnTouchListener(new View.OnTouchListener() {
-      @Override
-      public boolean onTouch(View view, MotionEvent motionEvent) {
-        if (motionEvent.getAction() == MotionEvent.ACTION_UP) {
-          view.performClick();
-          view.clearFocus();
-          return true;
-        }
-        return true;
-      }
-    });
-    b.clearFocus();
-    findViewById(R.id.undo_text_button).clearFocus();
-    findViewById(R.id.flip_text_button).clearFocus();
     mStatusView.update(mGameState,
             mBoard, mBoard,
             mPlays, mNextPlayer, null);
@@ -162,8 +138,9 @@ public class GameActivity extends Activity {
         mController.start(savedInstanceState, mInitialBoard, Player.BLACK, mPlays, mPlays.size(), mBlackThinkTimeMs, mWhiteThinkTimeMs);
     }
 
-    mKeyboardControl.add(new KeyboardControl.CursorPosition(findViewById(R.id.undo_text_button),null, null, 0,0, null));
-    mKeyboardControl.add(new KeyboardControl.CursorPosition(findViewById(R.id.flip_text_button),null, null, 0,0, null));
+    registerForContextMenu(findViewById(R.id.menu_button));
+
+    mKeyboardControl.add(new KeyboardControl.CursorPosition(findViewById(R.id.menu_button),null, null, 0,0, null));
 
     schedulePeriodicTimer();
     // mController will call back via mControllerHandler when Bonanza is 
@@ -483,28 +460,7 @@ public class GameActivity extends Activity {
     mController.undo2(mNextPlayer, lastMove, penultimateMove);
     setCurrentPlayer(Player.INVALID);
     --mUndosRemaining;
-    updateUndoMenu();
   }
-
-  private final void updateUndoMenu() {
-      ((TextView)findViewById(R.id.undo_text_button)).setVisibility(mUndosRemaining > 0 ? View.VISIBLE : View.INVISIBLE);
-/*
-    if (mMenu == null) return;
-    
-    boolean enabled = (mUndosRemaining > 0) && !mMoveCookies.isEmpty();
-    mMenu.findItem(R.id.menu_undo).setEnabled(enabled);
-    MenuItem item = mMenu.getItem(0);
-    if (mUndosRemaining <= 0) {
-      item.setTitle(R.string.undo_disallowed);
-    } else if (mUndosRemaining >= 100) {
-      item.setTitle(getResources().getText(R.string.undo));
-    } else {
-      item.setTitle(String.format(
-          getResources().getString(R.string.undos_remaining),
-          new Integer(mUndosRemaining)));
-    }
-    */
-  }  
 
   //
   // Handling results from the Bonanza controller thread
@@ -550,7 +506,6 @@ public class GameActivity extends Activity {
         if (mGameState == GameState.ACTIVE)
           saveActiveGame();
       }
-      updateUndoMenu();  // if no move is in mMoveCookies, disable the undo menu
     }
   };
 
@@ -656,7 +611,7 @@ public class GameActivity extends Activity {
     return true;
   }
 
-  // 
+  //
   // Confirm quitting the game ("BACK" button interceptor)
   //
   private final AlertDialog createConfirmQuitDialog() {
@@ -680,18 +635,38 @@ public class GameActivity extends Activity {
     return builder.create();
   }
 
-    public void undoClick(View view) {
-        undo();
-        mBoardView.requestFocus();
-    }
+  @Override
+  public void onCreateContextMenu(
+          ContextMenu menu,
+          View v,
+          ContextMenu.ContextMenuInfo menuInfo) {
+    Log.v("shogilog", "create context");
+    super.onCreateContextMenu(menu, v, menuInfo);
+    MenuInflater inflater = getMenuInflater();
+    inflater.inflate(R.menu.game_context_menu, menu);
+    menu.findItem(R.id.game_undo).setEnabled(mUndosRemaining > 0);
+  }
 
-    public void flipClick(View view) {
-        mKeyboardControl.reset();
+  @Override
+  public boolean onContextItemSelected(MenuItem item) {
+    // Handle item selection
+    switch (item.getItemId()) {
+      case R.id.game_flip:
         mFlipScreen = !mFlipScreen;
         mBoardView.setFlipScreen(mFlipScreen);
         mStatusView.setFlipScreen(mFlipScreen);
-        mBoardView.requestFocus();
+        return true;
+      case R.id.game_undo:
+        undo();
+        return true;
+      default:
+        return super.onOptionsItemSelected(item);
     }
+  }
+
+  public void menuButtonClick(View view) {
+    openContextMenu(view);
+  }
 
 //  private class BonanzaInitializeThread extends Thread {
 //    @Override public void run() {
