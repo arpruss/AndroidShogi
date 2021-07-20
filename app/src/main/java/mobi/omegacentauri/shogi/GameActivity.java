@@ -39,7 +39,7 @@ import android.widget.Toast;
 public class GameActivity extends Activity {
   private static final String TAG = "Shogi";
 
-  private static final boolean NEW_SAVES = true; // not yet production ready
+  private static final boolean NEW_SAVES = false; // not yet production ready
 
   private static final String SAVE_BUNDLE = "save.bundle";
   private static final int SAVE_BUNDLE_VERSION = 0x12340001;
