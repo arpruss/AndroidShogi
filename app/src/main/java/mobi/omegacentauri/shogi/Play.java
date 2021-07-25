@@ -28,13 +28,18 @@ public class Play implements Serializable {
   // The source and destination coordinates. When moving a piece on the board, each value is in range
   // [0, Board.DIM). When dropping a captured piece on the board, fromX = fromY = -1.
   private final int mFromX, mFromY, mToX, mToY;
-  
+
+  private long mStartTimeInMs; // player's start time
+  private long mEndTimeInMs;  // player's end time
+
   public Play(int p, int fx, int fy, int tx, int ty) {
     mPiece = p;
     mFromX = fx;
     mFromY = fy;
     mToX = tx;
     mToY = ty;
+    mStartTimeInMs = -1;
+    mEndTimeInMs = -1;
   }
 
   public final boolean isDroppingPiece() { return mFromX < 0; }
@@ -42,8 +47,16 @@ public class Play implements Serializable {
   public final int fromX() { return mFromX; }
   public final int fromY() { return mFromY; }  
   public final int toX() { return mToX; }
-  public final int toY() { return mToY; }  
-  
+  public final int toY() { return mToY; }
+  public final long startTime() { return mStartTimeInMs; }
+  public final long endTime() { return mEndTimeInMs; }
+  public final long playTime() { return mEndTimeInMs-mStartTimeInMs; }
+
+  public final void setTime(long startTimeInMs, long endTimeInMs) {
+    mStartTimeInMs = startTimeInMs;
+    mEndTimeInMs = endTimeInMs;
+  }
+
   @Override public boolean equals(Object o) {
     if (o instanceof Play) {
       Play m = (Play)o;
@@ -61,7 +74,21 @@ public class Play implements Serializable {
   }
   
   @Override public String toString() {
-    return String.format("%d%d%d%d:%d", mFromX, mFromY, mToX, mToY, mPiece);
+    if (mStartTimeInMs >= 0) {
+      int start = (int)((mStartTimeInMs + 500l) / 1000l);
+      int startSec = start % 60;
+      int startMin = start / 60;
+      int play = (int)((playTime() + 500l) / 1000l);
+      int playSec = play % 60;
+      play /= 60;
+      int playMin = play % 60;
+      play /= 60;
+      int playHr = play;
+      return String.format("%d%d%d%d:%d (%2d:%02d/%2d:%02d:%02d)", mFromX, mFromY, mToX, mToY, mPiece, startMin, startSec, playHr, playMin, playSec);
+    }
+    else {
+      return String.format("%d%d%d%d:%d", mFromX, mFromY, mToX, mToY, mPiece);
+    }
   }
   
   // Return the CSA-format string for this move. 
@@ -112,31 +139,53 @@ public class Play implements Serializable {
   private static final Pattern KIF_MOVE_PATTERN = Pattern.compile("([1-9１-９])(.)(.+)\\((.)(.)\\)\\s*");
   private static final Pattern KIF_MOVE2_PATTERN = Pattern.compile("同[　\\s]*(.+)\\((.)(.)\\)\\s*");
   private static final Pattern KIF_DROP_PATTERN = Pattern.compile("([1-9１-９])([一二三四五六七八九])(.*)");
+  private static final Pattern KIF_TIME_PATTERN = Pattern.compile("\\s+\\(\\s*([0-9]+):([0-9]+)\\/\\s*([0-9]+):([0-9]+):([0-9]+)\\)");
   
   // Parse a KIF-format string. It looks like
   // "８四歩(83)" (move FU at 83 to 84). Returns null if the play is a noop.
   public static final Play fromKifString(Play prevMove, Player player, String kifMove) throws ParseException {
     Matcher m = KIF_MOVE_PATTERN.matcher(kifMove);
     try {
+      m = KIF_TIME_PATTERN.matcher(kifMove);
       if (m.matches()) {
-        return new Play(japaneseToPiece(player, m.group(3)),
+        try {
+
+        }
+        catch(NumberFormatException e) {
+        }
+      }
+      Play p = null;
+      if (m.matches()) {
+        p = new Play(japaneseToPiece(player, m.group(3)),
             arabicToXCoord(m.group(4)), arabicToYCoord(m.group(5)),
             arabicToXCoord(m.group(1)), japaneseToYCoord(m.group(2)));
       }
-      if (prevMove != null) {
+      else if (prevMove != null) {
         m = KIF_MOVE2_PATTERN.matcher(kifMove);
         if (m.matches()) {
-          return new Play(japaneseToPiece(player, m.group(1)), 
+          p = new Play(japaneseToPiece(player, m.group(1)),
               arabicToXCoord(m.group(2)), arabicToYCoord(m.group(3)),
               prevMove.mToX, prevMove.mToY);
         }
       }
-      m = KIF_DROP_PATTERN.matcher(kifMove);
-      if (m.matches()) {
-        Play mm = new Play(japaneseToPiece(player, m.group(3)), 
-            -1, -1, arabicToXCoord(m.group(1)), japaneseToYCoord(m.group(2)));
-        return mm;
+      if (p == null) {
+        m = KIF_DROP_PATTERN.matcher(kifMove);
+        if (m.matches()) {
+          p = new Play(japaneseToPiece(player, m.group(3)),
+                  -1, -1, arabicToXCoord(m.group(1)), japaneseToYCoord(m.group(2)));
+        }
       }
+
+      if (p != null) {
+        m = KIF_TIME_PATTERN.matcher(kifMove);
+        if (m.matches()) {
+          long delta = (Long.parseLong(m.group(1)) * 60 + Long.parseLong(m.group(2))) * 1000l;
+          long start = ((Long.parseLong(m.group(3)) * 60 + Long.parseLong(m.group(4))) * 60 + Long.parseLong(m.group(5))) * 1000l;
+          p.setTime(start, start+delta);
+        }
+        return p;
+      }
+
       if (kifMove.startsWith("千日手")) {
         // Ignore
         // TODO(saito) Display the game outcome

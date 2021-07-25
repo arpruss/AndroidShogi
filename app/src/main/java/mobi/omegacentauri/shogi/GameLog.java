@@ -338,6 +338,19 @@ public class GameLog implements Serializable {
       } else {
         b.append("打");
       }
+      long startMs = thisPlay.startTime();
+      if (startMs >= 0) {
+        int start = (int)((startMs + 500l) / 1000l);
+        int startSec = start % 60;
+        int startMin = start / 60;
+        int play = (int)((thisPlay.playTime() + 500l) / 1000l);
+        int playSec = play % 60;
+        play /= 60;
+        int playMin = play % 60;
+        play /= 60;
+        int playHr = play;
+        b.append(String.format(" (%2d:%02d/%2d:%02d:%02d)", startMin, startSec, playHr, playMin, playSec));
+      }
       b.append(EOL);
       board.applyPly(player, thisPlay);
       player = player.opponent();

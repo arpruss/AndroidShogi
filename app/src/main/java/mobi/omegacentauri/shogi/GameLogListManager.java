@@ -256,15 +256,16 @@ public class GameLogListManager {
     return summary;
   }
 
+  /*
   private void removeOldInMemoryLogs(LogList summary) {
     ArrayList<GameLog> inmemory_logs = new ArrayList<GameLog>();
     for (GameLog log : summary.logs.values()) {
       if (log.path() == null) inmemory_logs.add(log);
     }
-  }
+  } */
 
   private void writeSummary(Context context, LogList summary) {
-    removeOldInMemoryLogs(summary);
+    //removeOldInMemoryLogs(summary);
     writeSummary(context, summary, SUMMARY_PATH);
   }
   

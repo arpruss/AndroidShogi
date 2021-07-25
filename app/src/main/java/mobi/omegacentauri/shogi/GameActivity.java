@@ -42,7 +42,7 @@ public class GameActivity extends Activity {
   private static final boolean NEW_SAVES = false; // not yet production ready
 
   private static final String SAVE_BUNDLE = "save.bundle";
-  private static final int SAVE_BUNDLE_VERSION = 0x12340001;
+  private static final int SAVE_BUNDLE_VERSION = 0x12340002;
   private static final int DIALOG_PROMOTE = 1235;
   private static final int DIALOG_CONFIRM_QUIT = 1236;
 
@@ -129,10 +129,10 @@ public class GameActivity extends Activity {
             mBoard, mBoard,
             mPlays, mNextPlayer, null);
     mStatusView.updateThinkTimes(mBlackThinkTimeMs, mWhiteThinkTimeMs);
-    int numCores = Math.min(Util.numberOfCores(),Integer.parseInt(mPrefs.getString("cores","4")));
+    int numCores = Math.min(Util.numberOfCores(), Integer.parseInt(mPrefs.getString("cores","4")));
     mController = new BonanzaController(mEventHandler, mComputerLevel, numCores);
     if (mGameState == GameState.ACTIVE) {
-      if (! NEW_SAVES || savedInstanceState != null)
+      if (/*! NEW_SAVES ||*/ savedInstanceState != null)
         mController.start(savedInstanceState, mBoard, mNextPlayer, null, 0, 0, 0);
       else
         mController.start(savedInstanceState, mInitialBoard, Player.BLACK, mPlays, mPlays.size(), mBlackThinkTimeMs, mWhiteThinkTimeMs);
@@ -376,8 +376,9 @@ public class GameActivity extends Activity {
 
     BonanzaJNI.abort();
 
-    if (resetTime)
-      resetTime();
+    // TODO: check
+    if (resetTime || (mBlackThinkStartMs <= 0 && mWhiteThinkStartMs <=0))
+      setTimesFromPlays();
   }
 
   private void resetTime() {
@@ -385,6 +386,7 @@ public class GameActivity extends Activity {
       mBlackThinkStartMs = mWhiteThinkStartMs = 0;
       if (mNextPlayer == Player.BLACK) mBlackThinkStartMs = now;
       else if (mNextPlayer == Player.WHITE) mWhiteThinkStartMs = now;
+      Log.v("shogilog", "start "+mBlackThinkStartMs+" "+mWhiteThinkStartMs);
   }
 
   private final long initializeLong(Bundle b, String bundle_key, SharedPreferences prefs, String pref_key, long dflt) {
@@ -422,16 +424,51 @@ public class GameActivity extends Activity {
       if (!mDestroyed) schedulePeriodicTimer();
     }
   };
+
+  private final void setTimesFromPlays() {
+    mBlackThinkTimeMs = 0;
+    mWhiteThinkTimeMs = 0;
+
+    if (mPlays.size() == 0) {
+      mBlackThinkTimeMs = 0;
+      mWhiteThinkTimeMs = 0;
+    }
+    else if (mPlays.size() == 1) {
+      mBlackThinkTimeMs = mPlays.get(0).endTime();
+      mWhiteThinkTimeMs = 0;
+    }
+    else {
+      mBlackThinkTimeMs = mPlays.get((mPlays.size()-1) / 2 * 2).endTime();
+      mWhiteThinkTimeMs = mPlays.get(mPlays.size() / 2 * 2 - 1).endTime();
+    }
+
+    resetTime();
+  }
   
-  private final void setCurrentPlayer(Player p) {
+  private final void setCurrentPlayer(Player p, Play lastMove) {
     // Register the time spent during the last move.
     final long now = System.currentTimeMillis();
-    if (mNextPlayer == Player.BLACK && mBlackThinkStartMs > 0) {
-      mBlackThinkTimeMs += (now - mBlackThinkStartMs);
+    long delta;
+
+    Log.v("shogilog", "next " + mNextPlayer + " blckst "+ mBlackThinkStartMs + " whstr" + mWhiteThinkStartMs+ " " + lastMove);
+    if (p == Player.WHITE && mBlackThinkStartMs > 0) {
+      delta = now - mBlackThinkStartMs;
+      if (lastMove != null) {
+        Log.v("shogilog", "setting black time "+mBlackThinkStartMs+" "+delta);
+        lastMove.setTime(mBlackThinkTimeMs, mBlackThinkTimeMs+delta);
+      }
+      mBlackThinkTimeMs += delta;
     }
-    if (mNextPlayer == Player.WHITE && mWhiteThinkStartMs > 0) {
-      mWhiteThinkTimeMs += (now - mWhiteThinkStartMs);
+
+    if (p == Player.BLACK && mWhiteThinkStartMs > 0) {
+      delta = now - mWhiteThinkStartMs;
+      if (lastMove != null) {
+        Log.v("shogilog", "setting white time "+mWhiteThinkStartMs+" "+delta);
+        lastMove.setTime(mWhiteThinkTimeMs, mWhiteThinkTimeMs+delta);
+      }
+      mWhiteThinkTimeMs += delta;
     }
+      Log.v("shogilog", "think times "+mBlackThinkTimeMs+" "+mWhiteThinkTimeMs);
 
     // Switch the player, and start its timer.
     mNextPlayer = p;
@@ -458,7 +495,7 @@ public class GameActivity extends Activity {
     int lastMove = u1;
     int penultimateMove = u2;
     mController.undo2(mNextPlayer, lastMove, penultimateMove);
-    setCurrentPlayer(Player.INVALID);
+    setCurrentPlayer(Player.INVALID, null);
     --mUndosRemaining;
   }
 
@@ -478,11 +515,15 @@ public class GameActivity extends Activity {
         mPlays.add(r.lastMove);
         mMoveCookies.add(r.lastMoveCookie);
       }
-      setCurrentPlayer(r.nextPlayer);
+      Log.v("shogilog", "changing player to "+r.nextPlayer);
+      setCurrentPlayer(r.nextPlayer, r.lastMove);
+      if (mPlays.size() > 0)
+        Log.v("shogilog", "last play time "+mPlays.get(mPlays.size()-1).playTime());
       for (int i = 0; i < r.undoMoves; ++i) {
         Assert.isTrue(r.lastMove == null);
         mPlays.remove(mPlays.size() - 1);
         mMoveCookies.remove(mMoveCookies.size() - 1);
+        setTimesFromPlays();
       }
 
       mBoardView.update(
@@ -519,7 +560,8 @@ public class GameActivity extends Activity {
 
   private final BoardView.EventListener mViewListener = new BoardView.EventListener() {
     public void onHumanPlay(Player player, Play play) {
-      setCurrentPlayer(Player.INVALID);
+      //setCurrentPlayer(Player.INVALID, play);
+      mNextPlayer = Player.INVALID;
       if (PlayAllowsForPromotion(player, play)) {
         mSavedPlayerForPromotion = player;
         mSavedPlayForPromotion = play;
@@ -532,6 +574,9 @@ public class GameActivity extends Activity {
 
   private void maybeSaveGame() {
     if (mDidHumanMove && mPlays.size() > 0) {
+      for (int i=0; i < mPlays.size() ; i++) {
+        Log.v("shogilog", "put " + mPlays.get(i).startTime() + " " + mPlays.get(i).endTime());
+      }
       TreeMap<String, String> attrs = new TreeMap<String, String>();
       attrs.put(GameLog.ATTR_BLACK_PLAYER, blackPlayerName());
       attrs.put(GameLog.ATTR_WHITE_PLAYER, whitePlayerName());
@@ -567,7 +612,6 @@ public class GameActivity extends Activity {
             if (mSavedPlayForPromotion == null) {
               // Event delivered twice?
             } else {
-              setCurrentPlayer(mSavedPlayerForPromotion);
               mBoardView.update(mGameState, null, mBoard, mNextPlayer, null, false);
               mSavedPlayForPromotion = null;
               mSavedPlayerForPromotion = null;

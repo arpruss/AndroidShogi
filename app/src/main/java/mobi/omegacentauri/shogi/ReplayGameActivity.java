@@ -178,6 +178,8 @@ public class ReplayGameActivity extends Activity {
         intent.putExtra("initial_board", initialBoard);
         intent.putExtra("saved_board", mBoard);
         intent.putExtra("moves", mPlays);
+        Log.v("shogilog", "resuming");
+        for (Play p : mPlays) Log.v("shogilog", p.toString());
         intent.putExtra("next_player", mNextPlayer);
         //intent.putExtra("replaying_saved_game", true);
         intent.putExtra("skip_dialog", skipDialog);
