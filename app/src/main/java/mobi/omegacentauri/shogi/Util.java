@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.util.ArrayList;
 import java.util.regex.Pattern;
 
 /**
@@ -199,4 +200,25 @@ public class Util {
         return "HC";
     }
   }
+
+    public static void getTimesFromPlays(ArrayList<Play> plays, int size, long[] thinkTimeMs) {
+      thinkTimeMs[0] = 0;
+      thinkTimeMs[1] = 0;
+
+      if (size == 0) {
+        return;
+      }
+
+      if (size == 1) {
+        thinkTimeMs[Player.BLACK.toIndex()] = plays.get(0).endTime();
+      }
+      else {
+        thinkTimeMs[(size - 1) % 2] = plays.get(size - 1).endTime();
+        thinkTimeMs[(size - 2) % 2] = plays.get(size - 2).endTime();
+      }
+
+      for (int i=0;i<2;i++)
+        if (thinkTimeMs[i]<0)
+          thinkTimeMs[i] = 0;
+    }
 }

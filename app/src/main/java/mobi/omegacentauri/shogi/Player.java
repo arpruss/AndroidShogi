@@ -16,4 +16,14 @@ public enum Player {
     if (this == WHITE) return BLACK;
     throw new AssertionError("Invalid player: " + toString());
   }
+
+  static public Player fromMove(int i) {
+    return (i%2 == 0) ? BLACK : WHITE;
+  }
+
+  public int toIndex() {
+    if (this == BLACK) return 0;
+    else if (this == WHITE) return 1;
+    throw new AssertionError("Invalid player: " + toString());
+  }
 }

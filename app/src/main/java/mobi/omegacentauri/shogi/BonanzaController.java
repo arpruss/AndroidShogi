@@ -103,7 +103,7 @@ public class BonanzaController {
         }
     }
 
-    public final void start(Bundle bundle, Board board, Player nextPlayer, ArrayList<Play> plays, int preplayCount, long blackThinkTimeMs, long whiteThinkTimeMs) {
+    public final void start(Bundle bundle, Board board, Player nextPlayer, ArrayList<Play> plays, int preplayCount, long[] thinkTimeMs) {
         Bundle b = new Bundle();
 
         if (bundle != null) {
@@ -114,8 +114,10 @@ public class BonanzaController {
         b.putSerializable("next_player", nextPlayer);
         b.putSerializable("moves", plays);
         b.putInt("preplay", preplayCount);
-        b.putInt("black_time", (int) (blackThinkTimeMs/1000));
-        b.putInt("white_time", (int) (whiteThinkTimeMs/1000));
+        if (thinkTimeMs != null) {
+            b.putInt("black_time", (int) (thinkTimeMs[Player.BLACK.toIndex()] / 1000));
+            b.putInt("white_time", (int) (thinkTimeMs[Player.WHITE.toIndex()] / 1000));
+        }
         sendInputMessage(C_START, b);
     }
 
@@ -336,10 +338,17 @@ public class BonanzaController {
             }
             if (jr.status == BonanzaJNI.R_ILLEGAL_MOVE)
                 jr.status = BonanzaJNI.R_FATAL_ERROR;
-            r = Result.fromJNI(jr, i % 2 == 0 ? Player.BLACK : Player.WHITE);
+            r = Result.fromJNI(jr, Player.fromMove(i));
             if (jr.status == BonanzaJNI.R_FATAL_ERROR) {
                 break;
             }
+        }
+
+        if (preplayCount > 0) {
+            long[] thinkTimeMs = new long[2];
+            Util.getTimesFromPlays(moves, preplayCount, thinkTimeMs);
+            blackTime = (int) ((thinkTimeMs[Player.BLACK.toIndex()]+500L)/1000L);
+            whiteTime = (int) ((thinkTimeMs[Player.WHITE.toIndex()]+500L)/1000L);
         }
 
         r.lastMove = null; // do not record move

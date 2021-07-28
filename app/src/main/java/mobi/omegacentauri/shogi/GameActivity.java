@@ -39,7 +39,7 @@ import android.widget.Toast;
 public class GameActivity extends Activity {
   private static final String TAG = "Shogi";
 
-  private static final boolean NEW_SAVES = false; // not yet production ready
+  private static final boolean NEW_SAVES = true; // not yet production ready
 
   private static final String SAVE_BUNDLE = "save.bundle";
   private static final int SAVE_BUNDLE_VERSION = 0x12340002;
@@ -79,10 +79,9 @@ public class GameActivity extends Activity {
   private Board mBoard;            // current state of the board
   private Player mNextPlayer;   // the next player to make a move 
   private GameState mGameState;    // is the game is active or finished?
-  private long mBlackThinkTimeMs;  // Cumulative # of think time (millisec)
-  private long mBlackThinkStartMs; // -1, or ms since epoch =
-  private long mWhiteThinkTimeMs;  // Cumulative # of think time (millisec)
-  private long mWhiteThinkStartMs; // -1, or ms since epoch
+
+  private long[] mThinkTimeMs = {-1L,-1L}; // cumulative think time for each player
+  private long[] mThinkStartMs = {-1L,-1L}; // start of current thinking
   private boolean mDestroyed;      // onDestroy called?
   private boolean mDidHumanMove;
 
@@ -128,14 +127,14 @@ public class GameActivity extends Activity {
     mStatusView.update(mGameState,
             mBoard, mBoard,
             mPlays, mNextPlayer, null);
-    mStatusView.updateThinkTimes(mBlackThinkTimeMs, mWhiteThinkTimeMs);
+    mStatusView.updateThinkTimes(mThinkTimeMs);
     int numCores = Math.min(Util.numberOfCores(), Integer.parseInt(mPrefs.getString("cores","4")));
     mController = new BonanzaController(mEventHandler, mComputerLevel, numCores);
     if (mGameState == GameState.ACTIVE) {
       if (/*! NEW_SAVES ||*/ savedInstanceState != null)
-        mController.start(savedInstanceState, mBoard, mNextPlayer, null, 0, 0, 0);
+        mController.start(savedInstanceState, mBoard, mNextPlayer, null, 0, null);
       else
-        mController.start(savedInstanceState, mInitialBoard, Player.BLACK, mPlays, mPlays.size(), mBlackThinkTimeMs, mWhiteThinkTimeMs);
+        mController.start(savedInstanceState, mInitialBoard, Player.BLACK, mPlays, mPlays.size(), mThinkTimeMs);
     }
 
     registerForContextMenu(findViewById(R.id.menu_button));
@@ -146,6 +145,7 @@ public class GameActivity extends Activity {
     // mController will call back via mControllerHandler when Bonanza is 
     // initialized. mControllerHandler will cause mBoardView to start accepting
     // user inputs.
+    //resetTime();
   }
 
   static void deleteSaveActiveGame(Context c) {
@@ -245,10 +245,10 @@ public class GameActivity extends Activity {
 
   private final void saveInstanceState(Bundle b) {
     b.putLong("shogi_undos_remaining", mUndosRemaining);
-    b.putLong("shogi_black_think_time_ms", mBlackThinkTimeMs);
-    b.putLong("shogi_white_think_time_ms", mWhiteThinkTimeMs);	  
-    b.putLong("shogi_black_think_start_ms", mBlackThinkStartMs);	  	  
-    b.putLong("shogi_white_think_start_ms", mWhiteThinkStartMs);
+    b.putLong("shogi_black_think_time_ms", mThinkTimeMs[Player.BLACK.toIndex()]);
+    b.putLong("shogi_white_think_time_ms", mThinkTimeMs[Player.WHITE.toIndex()]);
+    b.putLong("shogi_black_think_start_ms", mThinkStartMs[Player.BLACK.toIndex()]);
+    b.putLong("shogi_white_think_start_ms", mThinkStartMs[Player.WHITE.toIndex()]);
     b.putLong("shogi_start_time_ms", mStartTimeMs);
       Log.v("shogi", "save next player "+mNextPlayer);
     b.putLong("shogi_next_player", (mNextPlayer == Player.BLACK) ? 0 : 1);
@@ -291,21 +291,21 @@ public class GameActivity extends Activity {
 
   @SuppressWarnings(value="`unchecked")
   private final void initializeInstanceState(Bundle b) {
-    boolean resetTime = false;
+    boolean setTimeFromPlays = false;
     mPrefs = PreferenceManager.getDefaultSharedPreferences(
         getBaseContext());
     if (b == null) {
       b = getSaveActiveGame(this);
       if ( b != null ) {
         mDidHumanMove = true;
-        resetTime = true;
+        setTimeFromPlays = true;
       }
     }
     mUndosRemaining = (int)initializeLong(b, "shogi_undos_remaining", mPrefs, "max_undos", 0);
-    mBlackThinkTimeMs = initializeLong(b, "shogi_black_think_time_ms", null, null, 0);
-    mWhiteThinkTimeMs = initializeLong(b, "shogi_white_think_time_ms", null, null, 0);	  
-    mBlackThinkStartMs = initializeLong(b, "shogi_black_think_start_ms", null, null, 0);
-    mWhiteThinkStartMs = initializeLong(b, "shogi_white_think_start_ms", null, null, 0);
+    mThinkTimeMs[Player.BLACK.toIndex()] = initializeLong(b, "shogi_black_think_time_ms", null, null, 0);
+    mThinkTimeMs[Player.WHITE.toIndex()] = initializeLong(b, "shogi_white_think_time_ms", null, null, 0);
+    mThinkStartMs[Player.BLACK.toIndex()] = initializeLong(b, "shogi_black_think_start_ms", null, null, 0);
+    mThinkStartMs[Player.WHITE.toIndex()] = initializeLong(b, "shogi_white_think_start_ms", null, null, 0);
     mStartTimeMs = initializeLong(b, "shogi_start_time_ms", null, null, System.currentTimeMillis());
     long nextPlayer = initializeLong(b, "shogi_next_player", null, null, -1);
     if (nextPlayer >= 0) {
@@ -336,6 +336,7 @@ public class GameActivity extends Activity {
 
     mHandicap = (Handicap)getIntent().getSerializableExtra("handicap");
     if (mHandicap == null) mHandicap = Handicap.NONE;
+    boolean resetTime = getIntent().getBooleanExtra("reset_time",false);
     
     // The "initial_board" intent extra is always set (the handicap setting is reported here).
     //
@@ -377,16 +378,29 @@ public class GameActivity extends Activity {
     BonanzaJNI.abort();
 
     // TODO: check
-    if (resetTime || (mBlackThinkStartMs <= 0 && mWhiteThinkStartMs <=0))
+    if (resetTime) {
+      mThinkStartMs[0] = mThinkStartMs[1] = -1;
+      mThinkTimeMs[0] = mThinkTimeMs[1] = -1;
+      for (Play p : mPlays)
+        p.setTime(-1,-1);
+    }
+    else if (setTimeFromPlays || (mThinkStartMs[0] <= 0 && mThinkStartMs[1] <=0))
       setTimesFromPlays();
+  }
+
+  @Override
+  protected void onResume() {
+    super.onResume();
+    if (mThinkStartMs[0] <= 0 && mThinkStartMs[1] <= 0)
+      resetTime();
   }
 
   private void resetTime() {
       final long now = System.currentTimeMillis();
-      mBlackThinkStartMs = mWhiteThinkStartMs = 0;
-      if (mNextPlayer == Player.BLACK) mBlackThinkStartMs = now;
-      else if (mNextPlayer == Player.WHITE) mWhiteThinkStartMs = now;
-      Log.v("shogilog", "start "+mBlackThinkStartMs+" "+mWhiteThinkStartMs);
+      mThinkStartMs[0]  = mThinkStartMs[1] = 0;
+      if (mNextPlayer != Player.INVALID) {
+        mThinkStartMs[mNextPlayer.toIndex()] = now;
+      }
   }
 
   private final long initializeLong(Bundle b, String bundle_key, SharedPreferences prefs, String pref_key, long dflt) {
@@ -407,41 +421,22 @@ public class GameActivity extends Activity {
   //
   private final Runnable mTimerHandler = new Runnable() {
     public void run() {
-      if (mGameState == GameState.ACTIVE) {
+      if (mNextPlayer != Player.INVALID) {
         long now = System.currentTimeMillis();
-        long totalBlack = mBlackThinkTimeMs;
-        long totalWhite = mWhiteThinkTimeMs;
-        if (mNextPlayer == Player.BLACK) {
-          totalBlack += (now - mBlackThinkStartMs);
-        } else if (mNextPlayer == Player.WHITE) {
-          totalWhite += (now - mWhiteThinkStartMs);
-        }
-        mStatusView.updateThinkTimes(totalBlack, totalWhite);
+        long[] totals = { mThinkTimeMs[0], mThinkTimeMs[1] };
+        totals[mNextPlayer.toIndex()] += (now - mThinkStartMs[mNextPlayer.toIndex()]);
+        mStatusView.updateThinkTimes(totals);
+        Log.v("shogilog", "curretn times "+totals[0]+" "+totals[1]);
       }
       else {
-        mStatusView.updateThinkTimes(mBlackThinkTimeMs, mWhiteThinkTimeMs);
+        mStatusView.updateThinkTimes(mThinkTimeMs);
       }
       if (!mDestroyed) schedulePeriodicTimer();
     }
   };
 
   private final void setTimesFromPlays() {
-    mBlackThinkTimeMs = 0;
-    mWhiteThinkTimeMs = 0;
-
-    if (mPlays.size() == 0) {
-      mBlackThinkTimeMs = 0;
-      mWhiteThinkTimeMs = 0;
-    }
-    else if (mPlays.size() == 1) {
-      mBlackThinkTimeMs = mPlays.get(0).endTime();
-      mWhiteThinkTimeMs = 0;
-    }
-    else {
-      mBlackThinkTimeMs = mPlays.get((mPlays.size()-1) / 2 * 2).endTime();
-      mWhiteThinkTimeMs = mPlays.get(mPlays.size() / 2 * 2 - 1).endTime();
-    }
-
+    Util.getTimesFromPlays(mPlays, mPlays.size(), mThinkTimeMs);
     resetTime();
   }
   
@@ -450,27 +445,19 @@ public class GameActivity extends Activity {
     final long now = System.currentTimeMillis();
     long delta;
 
-    Log.v("shogilog", "next " + mNextPlayer + " blckst "+ mBlackThinkStartMs + " whstr" + mWhiteThinkStartMs+ " " + lastMove);
-    if (p == Player.WHITE && mBlackThinkStartMs > 0) {
-      delta = now - mBlackThinkStartMs;
-      if (lastMove != null) {
-        Log.v("shogilog", "setting black time "+mBlackThinkStartMs+" "+delta);
-        lastMove.setTime(mBlackThinkTimeMs, mBlackThinkTimeMs+delta);
+    if (p != Player.INVALID) {
+      int current = p.opponent().toIndex();
+      if (mThinkStartMs[current] > 0) {
+        delta = now - mThinkStartMs[current];
+        if (lastMove != null) {
+          lastMove.setTime(mThinkTimeMs[current], mThinkTimeMs[current]+delta);
+        }
+        mThinkTimeMs[current] += delta;
       }
-      mBlackThinkTimeMs += delta;
     }
-
-    if (p == Player.BLACK && mWhiteThinkStartMs > 0) {
-      delta = now - mWhiteThinkStartMs;
-      if (lastMove != null) {
-        Log.v("shogilog", "setting white time "+mWhiteThinkStartMs+" "+delta);
-        lastMove.setTime(mWhiteThinkTimeMs, mWhiteThinkTimeMs+delta);
-      }
-      mWhiteThinkTimeMs += delta;
-    }
-      Log.v("shogilog", "think times "+mBlackThinkTimeMs+" "+mWhiteThinkTimeMs);
 
     // Switch the player, and start its timer.
+    Log.v("shogilog", "set player to "+mNextPlayer+" and reset time");
     mNextPlayer = p;
     resetTime();
   }
@@ -488,9 +475,9 @@ public class GameActivity extends Activity {
       return;
     } 
     if (mMoveCookies.size() < 2) return;
-    Integer u1 = mMoveCookies.get(mMoveCookies.size() - 1);
-    Integer u2 = mMoveCookies.get(mMoveCookies.size() - 2);
-    if (u1 == null || u2 == null) return;  // happens when resuming a saved game
+    Integer u1 = 0;//mMoveCookies.get(mMoveCookies.size() - 1);
+    Integer u2 = 0;//mMoveCookies.get(mMoveCookies.size() - 2);
+    //if (u1 == null || u2 == null) return;  // happens when resuming a saved game
 
     int lastMove = u1;
     int penultimateMove = u2;
@@ -524,6 +511,7 @@ public class GameActivity extends Activity {
         mPlays.remove(mPlays.size() - 1);
         mMoveCookies.remove(mMoveCookies.size() - 1);
         setTimesFromPlays();
+        resetTime();
       }
 
       mBoardView.update(

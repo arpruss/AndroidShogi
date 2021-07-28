@@ -20,6 +20,7 @@ import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.CheckBox;
 import android.widget.ImageButton;
 import android.widget.SeekBar;
 import android.widget.TextView;
@@ -161,6 +162,11 @@ public class ReplayGameActivity extends Activity {
         }
         mNextPlay = numPlays;
         mStatusView.update(mGameState, lastBoard, mBoard, mPlays, mNextPlayer, null);
+
+        long[] times = new long[2];
+        Util.getTimesFromPlays(mPlays, numPlays, times);
+        mStatusView.updateThinkTimes(times);
+
         mBoardView.update(mGameState, lastBoard, mBoard,
                 Player.INVALID,  // Disallow board manipulation by the user
                 play, false);
@@ -171,7 +177,7 @@ public class ReplayGameActivity extends Activity {
     private static final int DIALOG_LOG_PROPERTIES = 2;
     private StartGameDialog mStartGameDialog;
 
-    void resumeGame(boolean skipDialog) {
+    void resumeGame(boolean skipDialog, boolean resetTime) {
         Intent intent = new Intent(this, GameActivity.class);
         Board initialBoard = new Board();
         initialBoard.initialize(mLog.handicap());
@@ -183,6 +189,7 @@ public class ReplayGameActivity extends Activity {
         intent.putExtra("next_player", mNextPlayer);
         //intent.putExtra("replaying_saved_game", true);
         intent.putExtra("skip_dialog", skipDialog);
+        intent.putExtra("reset_time", resetTime);
 
         Handicap h = mLog.handicap();
         if (h != Handicap.NONE) intent.putExtra("handicap", h);
@@ -288,10 +295,11 @@ public class ReplayGameActivity extends Activity {
         }
         ed.commit();
         mStartGameDialog = new StartGameDialog(
-                this, "Resume Game", false,
+                this, "Resume Game", false, true,
                 new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int id) {
-                        resumeGame(false);
+                        boolean resetTime = ((CheckBox)((AlertDialog) dialog).findViewById(R.id.reset_time)).isChecked();
+                        resumeGame(false, resetTime);
                     }
                 }
         );

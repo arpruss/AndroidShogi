@@ -4,7 +4,6 @@ import android.content.Context;
 import android.text.SpannableString;
 import android.text.style.UnderlineSpan;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -24,6 +23,10 @@ public class GameStatusView extends LinearLayout {
   class Timer {
     public Timer(TextView v) { mView = v; mLastThinkTimeSeconds = -1; }
     public void update(long thinkTimeMs) {
+      if (thinkTimeMs < 0 && mLastThinkTimeSeconds != -2) {
+        mView.setText("");
+        mLastThinkTimeSeconds = -2;
+      }
       long t = thinkTimeMs / 1000;  // convent millisecs -> seconds
       if (mLastThinkTimeSeconds != t) {
         mLastThinkTimeSeconds = t;
@@ -176,9 +179,9 @@ public class GameStatusView extends LinearLayout {
     }
   }
 
-  public final void updateThinkTimes(long black, long white) {
-    mBlackTime.update(black);
-    mWhiteTime.update(white);
+  public final void updateThinkTimes(long[] thinkTimes) {
+    mBlackTime.update(thinkTimes[Player.BLACK.toIndex()]); //Player.BLACK.toIndex()]);
+    mWhiteTime.update(thinkTimes[Player.WHITE.toIndex()]); //Player.WHITE.toIndex()]);
   }
   
   private final String traditionalPlayNotation(Board board, Play thisMove, Play prevMove) {

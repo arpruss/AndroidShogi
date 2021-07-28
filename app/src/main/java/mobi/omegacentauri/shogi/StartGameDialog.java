@@ -27,7 +27,8 @@ public class StartGameDialog {
     public StartGameDialog(
             Context context,
             String title,
-            Boolean editHandicap,
+            boolean editHandicap,
+            boolean editReset,
             DialogInterface.OnClickListener onClick) {
 
         mContext = context;
@@ -60,6 +61,8 @@ public class StartGameDialog {
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         mHandicap.setAdapter(adapter);
         mHandicap.setEnabled(editHandicap);
+
+        layout.findViewById(R.id.reset_time).setVisibility(editReset ? View.VISIBLE : View.GONE);
 
         loadPreferences();
 
