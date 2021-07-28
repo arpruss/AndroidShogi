@@ -153,7 +153,6 @@ public class GameActivity extends Activity {
       return;
     try {
       c.deleteFile(SAVE_BUNDLE);
-      Log.v("shogilog", "deleted saved bundle");
     }
     catch(Exception e) {
     }
@@ -273,17 +272,15 @@ public class GameActivity extends Activity {
       p.setDataPosition(0);
       b = p.readBundle();
       if (b.getInt("save_version") == SAVE_BUNDLE_VERSION) {
-        Log.v("shogilog", "restored save");
         return b;
       }
       else {
-        Log.v("shogilog", "bad bundle");
         deleteSaveActiveGame(c);
         return null;
       }
     }
     catch(Exception e) {
-      Log.e("shogilog", "Restoring error: "+e);
+      Log.v("shogilog", "Restoring error: "+e);
       return null;
     }
 
@@ -426,7 +423,6 @@ public class GameActivity extends Activity {
         long[] totals = { mThinkTimeMs[0], mThinkTimeMs[1] };
         totals[mNextPlayer.toIndex()] += (now - mThinkStartMs[mNextPlayer.toIndex()]);
         mStatusView.updateThinkTimes(totals);
-        Log.v("shogilog", "curretn times "+totals[0]+" "+totals[1]);
       }
       else {
         mStatusView.updateThinkTimes(mThinkTimeMs);
@@ -437,7 +433,7 @@ public class GameActivity extends Activity {
 
   private final void setTimesFromPlays() {
     Util.getTimesFromPlays(mPlays, mPlays.size(), mThinkTimeMs);
-    resetTime();
+//    resetTime();
   }
   
   private final void setCurrentPlayer(Player p, Play lastMove) {
@@ -457,7 +453,6 @@ public class GameActivity extends Activity {
     }
 
     // Switch the player, and start its timer.
-    Log.v("shogilog", "set player to "+mNextPlayer+" and reset time");
     mNextPlayer = p;
     resetTime();
   }
@@ -502,16 +497,17 @@ public class GameActivity extends Activity {
         mPlays.add(r.lastMove);
         mMoveCookies.add(r.lastMoveCookie);
       }
-      Log.v("shogilog", "changing player to "+r.nextPlayer);
       setCurrentPlayer(r.nextPlayer, r.lastMove);
-      if (mPlays.size() > 0)
-        Log.v("shogilog", "last play time "+mPlays.get(mPlays.size()-1).playTime());
       for (int i = 0; i < r.undoMoves; ++i) {
         Assert.isTrue(r.lastMove == null);
         mPlays.remove(mPlays.size() - 1);
         mMoveCookies.remove(mMoveCookies.size() - 1);
+      }
+
+      if (r.undoMoves>0) {
         setTimesFromPlays();
         resetTime();
+        BonanzaJNI.resetTime((int) ((mThinkTimeMs[Player.BLACK.toIndex()] + 500) / 1000), (int) ((mThinkTimeMs[Player.WHITE.toIndex()] + 500) / 1000));
       }
 
       mBoardView.update(
@@ -562,9 +558,6 @@ public class GameActivity extends Activity {
 
   private void maybeSaveGame() {
     if (mDidHumanMove && mPlays.size() > 0) {
-      for (int i=0; i < mPlays.size() ; i++) {
-        Log.v("shogilog", "put " + mPlays.get(i).startTime() + " " + mPlays.get(i).endTime());
-      }
       TreeMap<String, String> attrs = new TreeMap<String, String>();
       attrs.put(GameLog.ATTR_BLACK_PLAYER, blackPlayerName());
       attrs.put(GameLog.ATTR_WHITE_PLAYER, whitePlayerName());
@@ -672,7 +665,6 @@ public class GameActivity extends Activity {
           ContextMenu menu,
           View v,
           ContextMenu.ContextMenuInfo menuInfo) {
-    Log.v("shogilog", "create context");
     super.onCreateContextMenu(menu, v, menuInfo);
     MenuInflater inflater = getMenuInflater();
     inflater.inflate(R.menu.game_context_menu, menu);
