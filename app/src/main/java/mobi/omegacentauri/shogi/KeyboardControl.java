@@ -11,8 +11,6 @@ import android.view.View;
 
 import java.util.ArrayList;
 
-// TODO: ignore invisible views
-
 public class KeyboardControl {
     public long mTouchedAt = -1;
 

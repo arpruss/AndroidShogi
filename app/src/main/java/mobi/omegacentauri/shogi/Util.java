@@ -213,8 +213,10 @@ public class Util {
         thinkTimeMs[Player.BLACK.toIndex()] = plays.get(0).endTime();
       }
       else {
-        thinkTimeMs[(size - 1) % 2] = plays.get(size - 1).endTime();
-        thinkTimeMs[(size - 2) % 2] = plays.get(size - 2).endTime();
+        for (int i = size - 2 ; i < size ; i++) {
+            Play p = plays.get(i);
+            thinkTimeMs[p.player().toIndex()] = p.endTime();
+        }
       }
 
       for (int i=0;i<2;i++)

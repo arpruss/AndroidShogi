@@ -42,7 +42,7 @@ public class GameActivity extends Activity {
   private static final boolean NEW_SAVES = true; // not yet production ready
 
   private static final String SAVE_BUNDLE = "save.bundle";
-  private static final int SAVE_BUNDLE_VERSION = 0x12340002;
+  private static final int SAVE_BUNDLE_VERSION = 0x12340003;
   private static final int DIALOG_PROMOTE = 1235;
   private static final int DIALOG_CONFIRM_QUIT = 1236;
 

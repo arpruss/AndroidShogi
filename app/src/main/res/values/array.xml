@@ -129,7 +129,7 @@
         <item>2</item>
         <item>3</item>
         <item>4</item>
-        <item>Unlimited</item>
+        <item>600</item>
     </string-array>
 
     <string-array name="max_undo_values">
@@ -138,7 +138,7 @@
         <item>2</item>
         <item>3</item>
         <item>4</item>
-        <item>99999</item>
+        <item>600</item>
     </string-array>
 
     <string-array name="piece_style">
