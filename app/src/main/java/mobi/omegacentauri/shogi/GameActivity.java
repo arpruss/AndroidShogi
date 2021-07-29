@@ -441,8 +441,8 @@ public class GameActivity extends Activity {
     final long now = System.currentTimeMillis();
     long delta;
 
-    if (p != Player.INVALID) {
-      int current = p.opponent().toIndex();
+    if (lastMove != null) {
+      int current = lastMove.player().toIndex();
       if (mThinkStartMs[current] > 0) {
         delta = now - mThinkStartMs[current];
         if (lastMove != null) {

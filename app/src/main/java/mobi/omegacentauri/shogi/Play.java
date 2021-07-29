@@ -57,6 +57,10 @@ public class Play implements Serializable {
     mEndTimeInMs = endTimeInMs;
   }
 
+  public Player player() {
+    return mPiece < 0 ? Player.WHITE : Player.BLACK;
+  }
+
   @Override public boolean equals(Object o) {
     if (o instanceof Play) {
       Play m = (Play)o;
