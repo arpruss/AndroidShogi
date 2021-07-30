@@ -22,11 +22,6 @@
       android:entries="@array/board_style"
       android:entryValues="@array/board_style_values"/>
   />
-  <EditTextPreference
-     android:key="game_log_dir"
-     android:defaultValue="/sdcard/ShogiLog"
-     android:title="@string/game_log_dir"
-     />
   <ListPreference
     android:key="darkening"
     android:defaultValue="0"
@@ -34,12 +29,12 @@
     android:entries="@array/darkening"
     android:entryValues="@array/darkening_values"
     />
+  <PreferenceCategory android:title="Advanced settings"/>
   <CheckBoxPreference
       android:key="fuzzy"
       android:defaultValue="false"
       android:title="@string/fuzzy"
       />
-  <PreferenceCategory android:title="Advanced settings"/>
   <CheckBoxPreference
       android:key="animate"
       android:defaultValue="true"
@@ -52,6 +47,16 @@
       android:entries="@array/cores"
       android:entryValues="@array/cores"/>
   />
+  <CheckBoxPreference
+      android:key="auto_log"
+      android:defaultValue="false"
+      android:title="@string/auto_log"
+      />
+  <EditTextPreference
+      android:key="game_log_dir"
+      android:defaultValue="/sdcard/ShogiLog"
+      android:title="@string/game_log_dir"
+      />
   <CheckBoxPreference
       android:key="log_end"
       android:defaultValue="true"

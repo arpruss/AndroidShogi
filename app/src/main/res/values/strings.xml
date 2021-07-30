@@ -14,7 +14,7 @@
     <string name="player_types">Players</string>
     <string name="computer_difficulty">Computer Difficulty</string>
     <string name="reset_preferences">Reset Preferences</string>
-    <string name="flip_screen">Flip Screen</string>
+    <string name="flip_screen">Flip screen</string>
     <string name="quit_game">Quit Game</string>
     <string name="start_game">Start</string>    
     <string name="undo">Undo</string>
@@ -89,6 +89,8 @@
     <string name="remove_check">Confirmation</string>
     <string name="remove_check_message">Remove all in-memory logs?</string>
     <string name="yes_no_save">OK and don\'t save</string>
-    <string name="log_end">View logged game starting at end</string>
+    <string name="log_end">View logged games starting at end</string>
     <string name="reset_time">Reset times</string>
+    <string name="auto_log">Automatically save to log at end of game</string>
+    <string name="log_now">Save to log</string>
 </resources>

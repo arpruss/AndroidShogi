@@ -166,14 +166,7 @@ public class GameLog implements Serializable {
 
     public static final Comparator<GameLog> SORT_BY_DATE_REVERSED = new Comparator<GameLog>() {
       public int compare(GameLog g1, GameLog g2) {
-        if (g1.getDate() < g2.getDate()) return 1;
-        if (g1.getDate() > g2.getDate()) return -1;
-
-        // Use player name, then digest as a tiebreaker.
-
-        // int x = BY_PLAYERS.compare(g1, g2);
-        // if (x != 0) return x;
-        return -g1.digest().compareTo(g2.digest());
+        return -SORT_BY_DATE.compare(g1,g2);
       }
 
     @Override

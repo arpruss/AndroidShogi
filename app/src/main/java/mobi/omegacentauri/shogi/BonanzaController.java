@@ -231,7 +231,6 @@ public class BonanzaController {
         static public Result fromJNI(
                 BonanzaJNI.Result jr,
                 Player curPlayer) {
-            Log.v("shogilog", "cur player " +curPlayer);
             Result r = new Result();
             r.board = jr.board;
             r.lastMove = (jr.move != null) ? Play.fromCsaString(jr.move, curPlayer) : null;
@@ -242,7 +241,6 @@ public class BonanzaController {
             if (jr.status >= 0) {
                 r.nextPlayer = curPlayer.opponent();
                 r.gameState = GameState.ACTIVE;
-                Log.v("shogilog", "next player "+r.nextPlayer);
             } else {
                 switch (jr.status) {
                     case BonanzaJNI.R_FATAL_ERROR:
@@ -329,10 +327,8 @@ public class BonanzaController {
             return;
 
         for (int i=0; i < preplayCount ; i++) {
-            Log.v("shogilog", "preplaying " + moves.get(i).toCsaString());
             BonanzaJNI.humanMove(mInstanceId, moves.get(i).toCsaString(), jr);
             if (jr.status == BonanzaJNI.R_INSTANCE_DELETED) {
-                Log.v("shogilog", "instance deleted");
                 mThread.quit();
                 return;
             }
@@ -353,16 +349,13 @@ public class BonanzaController {
 
         r.lastMove = null; // do not record move
         sendOutputMessage(r);
-        Log.v("shogilog", "times "+blackTime+" "+whiteTime);
         BonanzaJNI.resetTime(blackTime, whiteTime);
-        Log.v("shogilog", "Started");
     }
 
     private final void doHumanPlay(Player player, Play move) {
         BonanzaJNI.Result jr = new BonanzaJNI.Result();
         BonanzaJNI.humanMove(mInstanceId, move.toCsaString(), jr);
         if (jr.status == BonanzaJNI.R_INSTANCE_DELETED) {
-            Log.d(TAG, "Instance deleted");
             mThread.quit();
             return;
         }

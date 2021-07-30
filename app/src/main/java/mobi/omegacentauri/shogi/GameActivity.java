@@ -523,7 +523,7 @@ public class GameActivity extends Activity {
       if (isComputerPlayer(r.nextPlayer)) {
         mController.computerMove(r.nextPlayer);
       }
-      if (mGameState != GameState.ACTIVE) {
+      if (mGameState != GameState.ACTIVE && mPrefs.getBoolean("auto_log", false)) {
         maybeSaveGame();
       }
       if (isHumanPlayer(r.lastPlayer)) {
@@ -568,10 +568,11 @@ public class GameActivity extends Activity {
       new AsyncTask<GameLog, String, String>() {
         @Override
         protected String doInBackground(GameLog... logs) {
-          mGameLogList.saveLogInMemory(mActivity, logs[0]);
+          mGameLogList.saveLogInMemory(mActivity, logs[0], true);
           return null;
         }
       }.execute(GameLog.newLog(mStartTimeMs, attrs.entrySet(), mPlays,  null /* not on sdcard yet */));
+      mDidHumanMove = false;
     }
   }
   
@@ -668,7 +669,8 @@ public class GameActivity extends Activity {
     super.onCreateContextMenu(menu, v, menuInfo);
     MenuInflater inflater = getMenuInflater();
     inflater.inflate(R.menu.game_context_menu, menu);
-    menu.findItem(R.id.game_undo).setEnabled(mUndosRemaining > 0);
+    menu.findItem(R.id.game_undo).setEnabled(mUndosRemaining > 0 && mHumanPlayers.size() > 0);
+    menu.findItem(R.id.log).setEnabled(mDidHumanMove || mHumanPlayers.size() == 0);
   }
 
   @Override
@@ -682,6 +684,9 @@ public class GameActivity extends Activity {
         return true;
       case R.id.game_undo:
         undo();
+        return true;
+      case R.id.log:
+        maybeSaveGame();
         return true;
       default:
         return super.onOptionsItemSelected(item);

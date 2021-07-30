@@ -4,6 +4,8 @@
 	android:title="@string/flip_screen" />
   <item android:id="@+id/game_undo"
   	android:title="@string/undo" />
+    <item android:id="@+id/log"
+        android:title="@string/log_now" />
 </menu>
     
     

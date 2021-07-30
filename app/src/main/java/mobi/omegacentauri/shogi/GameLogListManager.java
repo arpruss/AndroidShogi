@@ -101,7 +101,7 @@ public class GameLogListManager {
     ArrayList<String> to_remove = new ArrayList<String>();
     for (Map.Entry<String, GameLog> e : summary.logs.entrySet()) {
       GameLog log = e.getValue();
-      if (log.path() == null && log.getDate() <= age ) {
+      if (log.path() == null && log.getDate() <= deleteTime ) {
         to_remove.add(e.getKey());
       }
     }
@@ -153,13 +153,43 @@ public class GameLogListManager {
    * Add a new game "log" in memory. 
    */
   public void saveLogInMemory(
-      Activity activity,
-      GameLog log) {
+          Activity activity,
+          GameLog log, boolean update) {
     LogList summary = readSummary(activity);
     if (summary == null) summary = new LogList();
+    else if (update) {
+      String bestKey = null;
+      int bestMatch = 0;
+
+      for (String key : summary.logs.keySet()) {
+        GameLog l = summary.logs.get(key);
+        if (isSubset(l, log) && l.numPlays() > bestMatch) {
+          bestKey = key;
+          bestMatch = l.numPlays();
+        }
+      }
+
+      if (bestKey != null)
+        summary.logs.remove(bestKey);
+    }
     summary.logs.put(log.digest(), log);
     writeSummary(activity, summary);
     showToast(activity, activity.getResources().getString(R.string.saved_game_log_in_memory));
+  }
+
+  private boolean isSubset(GameLog log1, GameLog log2) {
+    if (log1.getDate() != log2.getDate() ||
+            !log1.getPlayer(GameLog.ATTR_BLACK_PLAYER).equals(log2.getPlayer(GameLog.ATTR_BLACK_PLAYER)) ||
+            !log1.getPlayer(GameLog.ATTR_WHITE_PLAYER).equals(log2.getPlayer(GameLog.ATTR_WHITE_PLAYER)) ||
+            log1.numPlays() > log2.numPlays()) {
+      return false;
+    }
+    int m;
+    for (m=0 ; m<log1.numPlays() ; m++) {
+      if (!log1.play(m).equals(log2.play(m)))
+        return false;
+    }
+    return true;
   }
 
   /**

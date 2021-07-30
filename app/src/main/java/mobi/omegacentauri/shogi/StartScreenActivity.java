@@ -331,7 +331,6 @@ public class StartScreenActivity extends Activity {
                     return (long) (-1);
                 }
             }
-            Log.v("shogilog", "dl " + downloadedSize + " of " + totalSize);
             return downloadedSize == totalSize ? totalSize : -1;
         }
 
@@ -360,7 +359,6 @@ public class StartScreenActivity extends Activity {
             } catch (Exception e) {
             }
 
-            Log.v("shogilog", "opening " + dataFile.url);
             InputStream stream = new URL(dataFile.url).openStream();
             XZInputStream xs = new XZInputStream(stream);
 
