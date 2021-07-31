@@ -267,8 +267,8 @@ get_cputime( unsigned int *ptime )
 
   if ( times( &t ) == -1 )
     {
-      str_error = "times() faild.";
-      LOG_DEBUG("errno = %d", errno);
+      str_error = "times() failed.";
+      LOG_DEBUG("errno = %d : %s", errno, strerror(errno));
       return -1;
     }
   clock_temp = t.tms_utime + t.tms_stime + t.tms_cutime + t.tms_cstime;
