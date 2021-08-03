@@ -11,7 +11,7 @@
   <ListPreference
     android:title="@string/piece_style"
     android:key="piece_style"
-    android:defaultValue="kanji_red_wood"
+    android:defaultValue="kanji_light_threedim"
     android:entries="@array/piece_style"
     android:entryValues="@array/piece_style_values"/>
     />

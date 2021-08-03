@@ -50,8 +50,8 @@ public class SplashView extends View {
     @Override
     public void onDraw(Canvas canvas) {
         Log.v("splash", "canvas "+canvas.getWidth()+" "+canvas.getHeight());
-        final String prefix = mPrefs.getString("piece_style", "kanji_light_threedim");
-        final String boardName = mPrefs.getString("board", "board_rich_brown");
+        final String prefix = mPrefs.getString("piece_style", ShogiPreferenceActivity.DEFAULT_PIECES);
+        final String boardName = mPrefs.getString("board", ShogiPreferenceActivity.DEFAULT_BOARD);
         Paint p = new Paint();
         Rect boardRect = new Rect(0,0,canvas.getWidth(),canvas.getHeight());
 

@@ -20,6 +20,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.os.Parcel;
+import android.os.SystemClock;
 import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.ContextMenu;
@@ -393,7 +394,7 @@ public class GameActivity extends Activity {
   }
 
   private void resetTime() {
-      final long now = System.currentTimeMillis();
+      final long now = SystemClock.uptimeMillis();
       mThinkStartMs[0]  = mThinkStartMs[1] = 0;
       if (mNextPlayer != Player.INVALID) {
         mThinkStartMs[mNextPlayer.toIndex()] = now;
@@ -419,7 +420,7 @@ public class GameActivity extends Activity {
   private final Runnable mTimerHandler = new Runnable() {
     public void run() {
       if (mNextPlayer != Player.INVALID) {
-        long now = System.currentTimeMillis();
+        long now = SystemClock.uptimeMillis();
         long[] totals = { mThinkTimeMs[0], mThinkTimeMs[1] };
         totals[mNextPlayer.toIndex()] += (now - mThinkStartMs[mNextPlayer.toIndex()]);
         mStatusView.updateThinkTimes(totals);
@@ -438,7 +439,7 @@ public class GameActivity extends Activity {
   
   private final void setCurrentPlayer(Player p, Play lastMove) {
     // Register the time spent during the last move.
-    final long now = System.currentTimeMillis();
+    final long now = SystemClock.uptimeMillis();
     long delta;
 
     if (lastMove != null) {

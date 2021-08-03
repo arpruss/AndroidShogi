@@ -18,6 +18,7 @@ import android.graphics.Rect;
 import android.graphics.Shader;
 import android.graphics.Typeface;
 import android.graphics.drawable.BitmapDrawable;
+import android.os.SystemClock;
 import android.preference.PreferenceManager;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -90,7 +91,7 @@ public class BoardView extends FrameLayout implements View.OnTouchListener, Keyb
         mCurrentPlayer = Player.INVALID;
         mBoard = new Board();
         setOnTouchListener(this);
-        mBoardName = mPrefs.getString("board", "board_rich_brown");
+        mBoardName = mPrefs.getString("board", ShogiPreferenceActivity.DEFAULT_BOARD);
         mExactPosition = !mPrefs.getBoolean("fuzzy", false);
     }
 
@@ -145,7 +146,7 @@ public class BoardView extends FrameLayout implements View.OnTouchListener, Keyb
         mLastMove = lastMove;
         mAnimationStartTime = mNextAnimationTime = -1;
         if (animateMove) {
-            mAnimationStartTime = mNextAnimationTime = System.currentTimeMillis();
+            mAnimationStartTime = mNextAnimationTime = SystemClock.uptimeMillis();
         }
         invalidate();
     }
@@ -504,7 +505,7 @@ public class BoardView extends FrameLayout implements View.OnTouchListener, Keyb
         int squareDim = layout.getSquareDim();
 
         drawEmptyBoard(canvas, layout);
-        final long now = System.currentTimeMillis();
+        final long now = SystemClock.uptimeMillis();
         int animation = 0;
         double animationStage = -1;
 
@@ -1018,7 +1019,7 @@ public class BoardView extends FrameLayout implements View.OnTouchListener, Keyb
 
     // Load bitmaps for pieces. Called whenever view is resized
     private final void initializePieceBitmaps(Context context) {
-        final String prefix = mPrefs.getString("piece_style", "kanji_light_threedim");
+        final String prefix = mPrefs.getString("piece_style", ShogiPreferenceActivity.DEFAULT_PIECES);
         int darkening = Integer.parseInt(mPrefs.getString("darkening", "0"));
         final Resources r = getResources();
         ScreenLayout layout = getScreenLayout();

@@ -20,7 +20,10 @@ import android.view.MenuItem;
  * Preference activity
  */
 public class ShogiPreferenceActivity extends PreferenceActivity {
-  @Override public void onCreate(Bundle savedInstanceState) {
+    public static final String DEFAULT_BOARD = "board_rich_brown";
+    public static final String DEFAULT_PIECES = "kanji_light_threedim";
+
+    @Override public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     addPreferencesFromResource(R.xml.preferences);
     findPreference("licenses").setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
