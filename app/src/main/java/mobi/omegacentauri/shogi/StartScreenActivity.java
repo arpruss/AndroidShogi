@@ -59,7 +59,19 @@ public class StartScreenActivity extends Activity {
     };
 
     static File getExternalDir(Context c) {
-        File dir = new File(c.getExternalFilesDir(null)+"/6");
+        File dir0 = c.getExternalFilesDir(null);
+        if (dir0 == null)
+            dir0 = c.getFilesDir();
+        else {
+            try {
+                File internalDir = new File(c.getFilesDir()+"/6");
+                Util.deleteFilesFromDir(internalDir);
+                internalDir.delete();
+            }
+            catch(Exception e) {
+            }
+        }
+        File dir = new File(dir0+"/6");
         try {
             dir.mkdir();
         }
